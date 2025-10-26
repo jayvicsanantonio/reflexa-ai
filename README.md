@@ -51,13 +51,23 @@ This will start the Vite dev server with Hot Module Replacement (HMR). The exten
 
 ### Scripts
 
-- `npm run dev` - Development build with watch mode
-- `npm run build` - Production build
+**Development**:
+
+- `npm run dev` - Start development server with HMR
+
+**Building**:
+
+- `npm run build` - Run all checks (type-check, lint, format) then build
+- `npm run build:only` - Build without running checks
+
+**Quality Checks**:
+
+- `npm run check` - Run all checks (type-check + lint + format:check)
+- `npm run type-check` - Run TypeScript type checking
 - `npm run lint` - Check code with ESLint
 - `npm run lint:fix` - Fix auto-fixable ESLint errors
 - `npm run format` - Format code with Prettier
-- `npm run format:check` - Check if code is formatted
-- `npm run type-check` - Run TypeScript type checking
+- `npm run format:check` - Check if code is formatted correctly
 
 ## Project Structure
 
