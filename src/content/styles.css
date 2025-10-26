@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Content script styles */
+/* Styles for injected UI components will be added in later tasks */
