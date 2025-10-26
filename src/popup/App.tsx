@@ -4,8 +4,8 @@ import './styles.css';
 
 const App: React.FC = () => {
   return (
-    <div className="w-96 h-[600px] bg-calm-50 p-6">
-      <h1 className="text-2xl font-display font-bold text-calm-900 mb-4">
+    <div className="bg-calm-50 h-[600px] w-96 p-6">
+      <h1 className="font-display text-calm-900 mb-4 text-2xl font-bold">
         Reflexa AI
       </h1>
       <p className="text-calm-600">

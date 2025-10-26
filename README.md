@@ -53,7 +53,10 @@ This will start the Vite dev server with Hot Module Replacement (HMR). The exten
 
 - `npm run dev` - Development build with watch mode
 - `npm run build` - Production build
-- `npm run lint` - Run ESLint
+- `npm run lint` - Check code with ESLint
+- `npm run lint:fix` - Fix auto-fixable ESLint errors
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check if code is formatted
 - `npm run type-check` - Run TypeScript type checking
 
 ## Project Structure
@@ -75,9 +78,10 @@ reflexa-ai-chrome-extension/
 
 ## Technology Stack
 
-- **Framework**: React 18 with TypeScript
+- **Framework**: React 18 with TypeScript 5
 - **Build Tool**: Vite 5 with CRXJS
 - **Styling**: Tailwind CSS v4
+- **Code Quality**: ESLint v9 + Prettier v3
 - **AI**: Chrome Gemini Nano (local inference)
 - **Storage**: Chrome Storage API
 

@@ -4,9 +4,9 @@ import './styles.css';
 
 const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-calm-50 p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-display font-bold text-calm-900 mb-6">
+    <div className="bg-calm-50 min-h-screen p-8">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-calm-900 mb-6 text-3xl font-bold">
           Reflexa AI Settings
         </h1>
         <p className="text-calm-600">

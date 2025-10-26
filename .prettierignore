@@ -1,0 +1,25 @@
+# Build outputs
+dist
+build
+.vite
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# IDE
+.vscode
+.idea
+
+# Kiro
+.kiro
+
+# Package manager
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
