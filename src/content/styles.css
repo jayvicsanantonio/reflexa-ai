@@ -1,6 +1,108 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-/* Content script styles */
-/* Styles for injected UI components will be added in later tasks */
+/* Tailwind CSS v4 - Design System Configuration */
+@theme {
+  /* Zen Spectrum - Primary Blues */
+  --color-zen-50: #f0f9ff;
+  --color-zen-100: #e0f2fe;
+  --color-zen-200: #bae6fd;
+  --color-zen-300: #7dd3fc;
+  --color-zen-400: #38bdf8;
+  --color-zen-500: #0ea5e9;
+  --color-zen-600: #0284c7;
+  --color-zen-700: #0369a1;
+  --color-zen-800: #075985;
+  --color-zen-900: #0c4a6e;
+
+  /* Calm Neutrals - Grays */
+  --color-calm-50: #f8fafc;
+  --color-calm-100: #f1f5f9;
+  --color-calm-200: #e2e8f0;
+  --color-calm-300: #cbd5e1;
+  --color-calm-400: #94a3b8;
+  --color-calm-500: #64748b;
+  --color-calm-600: #475569;
+  --color-calm-700: #334155;
+  --color-calm-800: #1e293b;
+  --color-calm-900: #0f172a;
+
+  /* Lotus Accents - Purples */
+  --color-lotus-50: #fdf4ff;
+  --color-lotus-100: #fae8ff;
+  --color-lotus-200: #f5d0fe;
+  --color-lotus-300: #f0abfc;
+  --color-lotus-400: #e879f9;
+  --color-lotus-500: #d946ef;
+  --color-lotus-600: #c026d3;
+  --color-lotus-700: #a21caf;
+  --color-lotus-800: #86198f;
+  --color-lotus-900: #701a75;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Noto Sans Display', 'Inter', sans-serif;
+  --font-serif: 'Lora', Georgia, serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
+
+  /* Spacing (4px base unit) */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  /* Shadows */
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+
+  /* Animations */
+  --animate-breathing: breathing 7s ease-in-out infinite;
+  --animate-fade-in: fadeIn 1s ease-in-out;
+  --animate-pulse-gentle: pulseGentle 2s ease-in-out infinite;
+}
+
+/* Custom Keyframe Animations */
+@keyframes breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGentle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* Content script specific styles */

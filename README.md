@@ -76,8 +76,8 @@ reflexa-ai-chrome-extension/
 ## Technology Stack
 
 - **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite 5
-- **Styling**: Tailwind CSS 3
+- **Build Tool**: Vite 5 with CRXJS
+- **Styling**: Tailwind CSS v4
 - **AI**: Chrome Gemini Nano (local inference)
 - **Storage**: Chrome Storage API
 
