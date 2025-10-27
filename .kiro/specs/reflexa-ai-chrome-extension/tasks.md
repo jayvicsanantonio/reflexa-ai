@@ -173,7 +173,7 @@
   - Add privacy notice on first launch
   - _Requirements: 5.5, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 18. Create export modal and functionality
+- [x] 18. Create export modal and functionality
 
   - Build modal component for export format selection
   - Add radio buttons for JSON and Markdown formats

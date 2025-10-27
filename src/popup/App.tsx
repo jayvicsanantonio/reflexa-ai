@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { ReflectionCard } from './ReflectionCard';
 import { StreakCounter } from './StreakCounter';
 import { CalmStats } from './CalmStats';
+import { ExportModal } from './ExportModal';
 import type {
   Reflection,
   StreakData,
@@ -32,8 +33,6 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'json' | 'markdown'>('json');
-  const [isExporting, setIsExporting] = useState(false);
 
   // Calculate calm stats from reflections
   const calmStats = useMemo<CalmStatsType>(() => {
@@ -226,95 +225,6 @@ export const App: React.FC = () => {
     })();
   }, []);
 
-  // Handle export
-  const handleExport = useCallback(() => {
-    try {
-      setIsExporting(true);
-
-      // Generate export data
-      let exportData: string;
-      let filename: string;
-      let mimeType: string;
-
-      if (exportFormat === 'json') {
-        exportData = JSON.stringify(reflections, null, 2);
-        filename = `reflexa-reflections-${formatISODate(Date.now())}.json`;
-        mimeType = 'application/json';
-      } else {
-        // Generate Markdown
-        let markdown = '# Reflexa AI - Reflections Export\n\n';
-        markdown += `Exported on: ${new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })}\n`;
-        markdown += `Total Reflections: ${reflections.length}\n\n`;
-        markdown += '---\n\n';
-
-        for (const reflection of reflections) {
-          markdown += `## ${reflection.title}\n\n`;
-          markdown += `**URL:** ${reflection.url}\n`;
-          markdown += `**Date:** ${new Date(
-            reflection.createdAt
-          ).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}\n\n`;
-
-          if (reflection.summary && reflection.summary.length > 0) {
-            markdown += '### Summary\n\n';
-            const labels = ['Insight', 'Surprise', 'Apply'];
-            reflection.summary.forEach((bullet, index) => {
-              markdown += `- **${labels[index] ?? 'Point'}:** ${bullet}\n`;
-            });
-            markdown += '\n';
-          }
-
-          if (reflection.reflection && reflection.reflection.length > 0) {
-            markdown += '### Reflections\n\n';
-            reflection.reflection.forEach((text, index) => {
-              markdown += `${index + 1}. ${text}\n\n`;
-            });
-          }
-
-          if (reflection.proofreadVersion) {
-            markdown += '### Proofread Version\n\n';
-            markdown += `${reflection.proofreadVersion}\n\n`;
-          }
-
-          if (reflection.tags && reflection.tags.length > 0) {
-            markdown += `**Tags:** ${reflection.tags.join(', ')}\n\n`;
-          }
-
-          markdown += '---\n\n';
-        }
-
-        exportData = markdown;
-        filename = `reflexa-reflections-${formatISODate(Date.now())}.md`;
-        mimeType = 'text/markdown';
-      }
-
-      // Create blob and download
-      const blob = new Blob([exportData], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      // Close modal
-      setShowExportModal(false);
-    } catch (error) {
-      console.error('Failed to export reflections:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  }, [reflections, exportFormat]);
-
   const handleStreakIncrease = useCallback(() => {
     console.log('Streak increased! 🎉');
   }, []);
@@ -340,9 +250,8 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [reflections.length]);
 
-  // Focus trap refs for modals
+  // Focus trap ref for privacy modal
   const privacyModalRef = useRef<HTMLDivElement>(null);
-  const exportModalRef = useRef<HTMLDivElement>(null);
 
   // Focus trap for privacy modal
   useEffect(() => {
@@ -377,40 +286,6 @@ export const App: React.FC = () => {
     modal.addEventListener('keydown', handleTabKey);
     return () => modal.removeEventListener('keydown', handleTabKey);
   }, [showPrivacyNotice]);
-
-  // Focus trap for export modal
-  useEffect(() => {
-    if (!showExportModal || !exportModalRef.current) return;
-
-    const modal = exportModalRef.current;
-    const focusableElements = modal.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    // Focus first element
-    firstElement?.focus();
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
-      }
-    };
-
-    modal.addEventListener('keydown', handleTabKey);
-    return () => modal.removeEventListener('keydown', handleTabKey);
-  }, [showExportModal]);
 
   // Render loading state
   if (isLoading) {
@@ -564,89 +439,11 @@ export const App: React.FC = () => {
       )}
 
       {/* Export Modal */}
-      {showExportModal && (
-        <div
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="export-modal-title"
-        >
-          <div
-            ref={exportModalRef}
-            className="mx-6 max-w-sm rounded-xl bg-white p-6 shadow-xl"
-          >
-            <h2
-              id="export-modal-title"
-              className="font-display text-calm-900 mb-4 text-lg font-semibold"
-            >
-              Export Reflections
-            </h2>
-            <p className="text-calm-600 mb-4 text-sm">
-              Choose a format to export your {reflections.length} reflection
-              {reflections.length !== 1 ? 's' : ''}.
-            </p>
-
-            {/* Format selection */}
-            <div className="mb-6 space-y-3">
-              <label className="border-calm-200 hover:border-zen-400 flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors">
-                <input
-                  type="radio"
-                  name="export-format"
-                  value="json"
-                  checked={exportFormat === 'json'}
-                  onChange={(e) => setExportFormat(e.target.value as 'json')}
-                  className="text-zen-600 focus:ring-zen-500 h-4 w-4"
-                />
-                <div className="flex-1">
-                  <div className="text-calm-900 text-sm font-medium">JSON</div>
-                  <div className="text-calm-500 text-xs">
-                    Machine-readable format with all metadata
-                  </div>
-                </div>
-              </label>
-
-              <label className="border-calm-200 hover:border-zen-400 flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors">
-                <input
-                  type="radio"
-                  name="export-format"
-                  value="markdown"
-                  checked={exportFormat === 'markdown'}
-                  onChange={(e) =>
-                    setExportFormat(e.target.value as 'markdown')
-                  }
-                  className="text-zen-600 focus:ring-zen-500 h-4 w-4"
-                />
-                <div className="flex-1">
-                  <div className="text-calm-900 text-sm font-medium">
-                    Markdown
-                  </div>
-                  <div className="text-calm-500 text-xs">
-                    Human-readable format for notes apps
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="text-calm-600 hover:bg-calm-100 focus-visible:outline-zen-500 flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-                disabled={isExporting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleExport}
-                className="from-zen-500 to-zen-600 hover:from-zen-600 hover:to-zen-700 focus-visible:outline-zen-500 flex-1 rounded-lg bg-linear-to-r px-4 py-2.5 text-sm font-semibold text-white transition-all focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-                disabled={isExporting}
-              >
-                {isExporting ? 'Exporting...' : 'Export'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportModal
+        reflections={reflections}
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 };
