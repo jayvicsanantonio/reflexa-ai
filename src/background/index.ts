@@ -49,6 +49,7 @@ function isValidMessage(message: unknown): message is Message {
     'load',
     'getSettings',
     'updateSettings',
+    'resetSettings',
   ];
 
   return validTypes.includes(message.type as MessageType);
@@ -134,6 +135,9 @@ async function handleMessage(message: Message): Promise<AIResponse> {
 
     case 'updateSettings':
       return handleUpdateSettings(message.payload);
+
+    case 'resetSettings':
+      return handleResetSettings();
 
     default:
       return {
@@ -459,6 +463,29 @@ async function handleUpdateSettings(
     };
   } catch (error) {
     console.error('Error in handleUpdateSettings:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+    };
+  }
+}
+
+/**
+ * Handle reset settings request
+ * @returns Response with default settings or error
+ */
+async function handleResetSettings(): Promise<AIResponse<Settings>> {
+  try {
+    // Reset settings to defaults using settings manager
+    const defaultSettings = await settingsManager.resetToDefaults();
+
+    return {
+      success: true,
+      data: defaultSettings,
+    };
+  } catch (error) {
+    console.error('Error in handleResetSettings:', error);
     return {
       success: false,
       error:

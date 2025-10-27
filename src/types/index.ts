@@ -81,6 +81,7 @@ export type MessageType =
   | 'load'
   | 'getSettings'
   | 'updateSettings'
+  | 'resetSettings'
   | 'checkAI';
 
 /**
