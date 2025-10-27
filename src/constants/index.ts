@@ -1,0 +1,155 @@
+/**
+ * Constants for Reflexa AI Chrome Extension
+ */
+
+import type { Settings } from '../types';
+
+/**
+ * Default user settings
+ */
+export const DEFAULT_SETTINGS: Settings = {
+  dwellThreshold: 60, // 60 seconds default
+  enableSound: true,
+  reduceMotion: false,
+  proofreadEnabled: false,
+  privacyMode: 'local',
+};
+
+/**
+ * Timing values (in milliseconds unless specified)
+ */
+export const TIMING = {
+  DWELL_MIN: 30, // Minimum dwell threshold in seconds
+  DWELL_MAX: 300, // Maximum dwell threshold in seconds
+  DWELL_DEFAULT: 60, // Default dwell threshold in seconds
+  AI_TIMEOUT: 4000, // AI request timeout in milliseconds
+  OVERLAY_FADE_IN: 1000, // Overlay fade-in duration
+  BREATHING_CYCLE: 7000, // Breathing orb animation cycle
+  BREATHING_EXPAND: 3500, // Breathing orb expand duration
+  BREATHING_CONTRACT: 3500, // Breathing orb contract duration
+  OVERLAY_RENDER_TARGET: 300, // Target overlay render time
+  SETTINGS_DEBOUNCE: 500, // Settings auto-save debounce
+  CACHE_TTL: 300000, // Cache time-to-live (5 minutes)
+};
+
+/**
+ * Audio settings
+ */
+export const AUDIO = {
+  VOLUME: 0.3, // 30% volume
+  ENTRY_CHIME_DURATION: 1000, // Entry chime duration in ms
+  AMBIENT_LOOP_DURATION: 8000, // Ambient loop duration in ms
+  COMPLETION_BELL_DURATION: 800, // Completion bell duration in ms
+};
+
+/**
+ * Content extraction limits
+ */
+export const CONTENT_LIMITS = {
+  MAX_TOKENS: 3000, // Maximum tokens for AI processing
+  TRUNCATE_TOKENS: 2500, // Truncate to this if exceeds max
+  WORDS_PER_TOKEN: 0.75, // Estimation: 1 token ≈ 0.75 words
+  MAX_SUMMARY_WORDS: 20, // Maximum words per summary bullet
+  MAX_PROMPT_WORDS: 15, // Maximum words per reflection prompt
+};
+
+/**
+ * Performance targets
+ */
+export const PERFORMANCE = {
+  MAX_MEMORY_MB: 150, // Maximum memory usage in MB
+  TARGET_FPS: 60, // Target animation frame rate
+  MAX_RENDER_TIME: 300, // Maximum overlay render time in ms
+};
+
+/**
+ * Storage keys
+ */
+export const STORAGE_KEYS = {
+  REFLECTIONS: 'reflections',
+  SETTINGS: 'settings',
+  LAST_SYNC: 'lastSync',
+  STREAK: 'streak',
+  FIRST_LAUNCH: 'firstLaunch',
+};
+
+/**
+ * AI prompts for Gemini Nano
+ */
+export const AI_PROMPTS = {
+  SUMMARIZE: `Summarize the following article into exactly 3 concise bullets. Each bullet should be no more than 20 words.
+
+Format your response as:
+- Insight: [One key insight from the article]
+- Surprise: [One surprising or unexpected element]
+- Apply: [One actionable takeaway]
+
+Article content:
+{content}`,
+
+  REFLECT: `Based on this article summary, generate exactly 2 thoughtful reflection questions that help the reader think deeper about the content. Each question should be:
+- Action-oriented and practical
+- No more than 15 words
+- Designed to help apply the insights
+
+Summary:
+{summary}
+
+Format your response as:
+1. [First reflection question]
+2. [Second reflection question]`,
+
+  PROOFREAD: `Proofread the following text for grammar and clarity. Preserve the original tone and voice. Make no more than 2 edits per sentence. Only fix clear errors or improve clarity.
+
+Original text:
+{text}
+
+Provide only the corrected version without explanations.`,
+};
+
+/**
+ * UI constants
+ */
+export const UI = {
+  NUDGE_Z_INDEX: 999999,
+  OVERLAY_Z_INDEX: 2147483647, // Maximum z-index
+  SHADOW_DOM_ID: 'reflexa-shadow-root',
+  NUDGE_ID: 'reflexa-nudge',
+  OVERLAY_ID: 'reflexa-overlay',
+};
+
+/**
+ * Accessibility
+ */
+export const A11Y = {
+  MIN_CONTRAST_RATIO: 4.5, // WCAG AA standard
+  FOCUS_OUTLINE_WIDTH: 2, // Focus outline width in pixels
+  FOCUS_OUTLINE_OFFSET: 2, // Focus outline offset in pixels
+};
+
+/**
+ * Export formats
+ */
+export const EXPORT_FORMATS = {
+  JSON: 'json',
+  MARKDOWN: 'markdown',
+} as const;
+
+/**
+ * Privacy notice text
+ */
+export const PRIVACY_NOTICE =
+  "Your reflections never leave your device. All AI processing happens locally using Chrome's built-in Gemini Nano.";
+
+/**
+ * Error messages
+ */
+export const ERROR_MESSAGES = {
+  AI_UNAVAILABLE: 'Local AI disabled — manual reflection available.',
+  AI_TIMEOUT:
+    'AI taking longer than expected. You can enter your summary manually.',
+  CONTENT_TOO_LARGE: 'Long article detected. Summary based on first section.',
+  STORAGE_FULL: 'Storage full. Export older reflections to free space.',
+  NETWORK_ERROR: 'Network error. Changes will sync when online.',
+  GENERIC_ERROR: 'Something went wrong. Please try again.',
+};

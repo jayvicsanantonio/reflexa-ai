@@ -9,7 +9,7 @@
   - Configure TypeScript with strict mode and Chrome extension types
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 6.1, 6.2, 6.3, 6.4, 6.5, 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 2. Implement core type definitions and utilities
+- [x] 2. Implement core type definitions and utilities
 
   - Create TypeScript types for Reflection, Settings, ExtractedContent, and PageMetadata
   - Implement constants file with default settings, timing values, and AI prompts
