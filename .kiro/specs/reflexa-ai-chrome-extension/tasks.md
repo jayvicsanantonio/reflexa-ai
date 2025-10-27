@@ -54,7 +54,7 @@
   - Add AI availability check on service worker startup
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 8.1, 8.2, 8.3, 8.4, 8.5, 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 7. Implement content extraction logic
+- [x] 7. Implement content extraction logic
 
   - Create ContentExtractor class that analyzes DOM structure
   - Implement heuristics to identify main article content (article tags, content density, semantic HTML)
