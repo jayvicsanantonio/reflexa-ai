@@ -563,7 +563,6 @@ export class AIManager {
 
       try {
         while (true) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const result = await reader.read();
           const done = result.done;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -623,7 +622,6 @@ export class AIManager {
 
       try {
         while (true) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const result = await reader.read();
           const done = result.done;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

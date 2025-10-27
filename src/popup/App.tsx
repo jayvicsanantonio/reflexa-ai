@@ -27,7 +27,7 @@ const sampleReflection: Reflection = {
   ],
 };
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
   const [streakData, setStreakData] = useState<StreakData>({
     current: 0,
     lastReflectionDate: '',

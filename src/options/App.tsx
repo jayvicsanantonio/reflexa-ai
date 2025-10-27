@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
   return (
     <div className="bg-calm-50 min-h-screen p-8">
       <div className="mx-auto max-w-2xl">
