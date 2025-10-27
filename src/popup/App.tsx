@@ -8,6 +8,7 @@ import React, {
 import { createRoot } from 'react-dom/client';
 
 import { ReflectionCard } from './ReflectionCard';
+import { VirtualList } from './VirtualList';
 import { StreakCounter } from './StreakCounter';
 import { CalmStats } from './CalmStats';
 import { ExportModal } from './ExportModal';
@@ -362,13 +363,32 @@ export const App: React.FC = () => {
               <h2 className="font-display text-calm-900 text-lg font-semibold">
                 Your Reflections
               </h2>
-              {reflections.map((reflection) => (
-                <ReflectionCard
-                  key={reflection.id}
-                  reflection={reflection}
-                  onDelete={handleDelete}
+              {/* Use virtual scrolling for lists with more than 10 items */}
+              {reflections.length > 10 ? (
+                <VirtualList
+                  items={reflections}
+                  itemHeight={280}
+                  containerHeight={400}
+                  overscan={2}
+                  renderItem={(reflection) => (
+                    <ReflectionCard
+                      key={reflection.id}
+                      reflection={reflection}
+                      onDelete={handleDelete}
+                    />
+                  )}
                 />
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {reflections.map((reflection) => (
+                    <ReflectionCard
+                      key={reflection.id}
+                      reflection={reflection}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="border-calm-200 rounded-lg border bg-white p-8 text-center">

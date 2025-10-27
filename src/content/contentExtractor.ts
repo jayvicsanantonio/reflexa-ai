@@ -233,6 +233,7 @@ export class ContentExtractor {
 
   /**
    * Find element with highest content density (text vs markup ratio)
+   * Optimized to limit DOM traversal by early exit and sampling
    * @param elements Array of HTMLElements to analyze
    * @returns Element with highest density or null
    */
@@ -242,12 +243,24 @@ export class ContentExtractor {
     let bestElement: HTMLElement | null = null;
     let highestScore = 0;
 
-    for (const element of elements) {
+    // Limit analysis to first 20 elements to reduce DOM traversal
+    const maxElements = Math.min(elements.length, 20);
+
+    for (let i = 0; i < maxElements; i++) {
+      const element = elements[i];
       const score = this.calculateContentScore(element);
 
       if (score > highestScore) {
         highestScore = score;
         bestElement = element;
+
+        // Early exit if we find a very high score (likely the main content)
+        if (score > 5000) {
+          console.log(
+            `Found high-scoring element early (score: ${score}), stopping search`
+          );
+          break;
+        }
       }
     }
 

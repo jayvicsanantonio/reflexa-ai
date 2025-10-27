@@ -38,7 +38,8 @@ export class AudioManager {
 
   /**
    * Load all audio files
-   * Creates Audio elements and preloads the files
+   * Creates Audio elements with lazy loading (preload='none')
+   * Audio files are only loaded when first played
    */
   loadAudioFiles(): void {
     if (this.isLoaded) return;
@@ -63,10 +64,10 @@ export class AudioManager {
       // Enable looping for ambient sound
       this.ambientLoop.loop = true;
 
-      // Preload audio files
-      this.entryChime.preload = 'auto';
-      this.ambientLoop.preload = 'auto';
-      this.completionBell.preload = 'auto';
+      // Lazy load audio files - only load when first played
+      this.entryChime.preload = 'none';
+      this.ambientLoop.preload = 'none';
+      this.completionBell.preload = 'none';
 
       this.isLoaded = true;
     } catch (error) {

@@ -7,6 +7,9 @@ import { CONTENT_LIMITS } from '../constants';
 // Export AudioManager
 export { AudioManager } from './audioManager';
 
+// Export PerformanceMonitor
+export { PerformanceMonitor, performanceMonitor } from './performanceMonitor';
+
 // Export accessibility utilities
 export {
   prefersReducedMotion as prefersReducedMotionUtil,

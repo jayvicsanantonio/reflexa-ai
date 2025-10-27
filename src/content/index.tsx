@@ -7,6 +7,7 @@ import { ReflectModeOverlay } from './ReflectModeOverlay';
 import { ErrorModal } from './ErrorModal';
 import { Notification } from './Notification';
 import { AudioManager } from '../utils/audioManager';
+import { performanceMonitor } from '../utils/performanceMonitor';
 import type {
   Message,
   Settings,
@@ -351,12 +352,16 @@ const sendMessageToBackground = <T,>(
 /**
  * Show the Reflect Mode overlay
  * Creates shadow DOM and renders the overlay component
+ * Optimized to minimize layout shifts and track render time
  */
 const showReflectModeOverlay = async () => {
   if (isOverlayVisible) {
     console.log('Overlay already visible');
     return;
   }
+
+  // Start performance measurement
+  performanceMonitor.startMeasure('overlay-render');
 
   console.log('Showing Reflect Mode overlay...');
 
@@ -379,9 +384,12 @@ const showReflectModeOverlay = async () => {
     void audioManager.playAmbientLoop();
   }
 
-  // Create container for shadow DOM
+  // Create container for shadow DOM with optimized positioning
   overlayContainer = document.createElement('div');
   overlayContainer.id = 'reflexa-overlay-container';
+  // Set position and dimensions before appending to minimize layout shift
+  overlayContainer.style.cssText =
+    'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647;';
   document.body.appendChild(overlayContainer);
 
   // Create shadow root for style isolation
@@ -412,6 +420,18 @@ const showReflectModeOverlay = async () => {
   );
 
   isOverlayVisible = true;
+
+  // End performance measurement
+  performanceMonitor.endMeasure('overlay-render');
+
+  // Start frame rate monitoring if animations are enabled
+  if (!currentSettings?.reduceMotion) {
+    performanceMonitor.startFrameRateMonitoring();
+  }
+
+  // Log memory usage
+  performanceMonitor.logMemoryUsage();
+
   console.log('Reflect Mode overlay displayed');
 };
 
@@ -564,6 +584,9 @@ const hideReflectModeOverlay = () => {
   if (!isOverlayVisible) {
     return;
   }
+
+  // Stop frame rate monitoring if active
+  performanceMonitor.stopFrameRateMonitoring();
 
   // Unmount React component
   if (overlayRoot) {
