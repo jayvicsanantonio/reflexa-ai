@@ -25,7 +25,7 @@
   - Implement streak calculation logic based on reflection dates
   - _Requirements: 5.3, 5.4, 7.1, 7.2, 7.3, 7.4, 7.5, 9.1, 9.2, 9.3, 9.4, 9.5, 10.5_
 
-- [ ] 4. Build settings manager module
+- [x] 4. Build settings manager module
 
   - Implement SettingsManager class with methods for loading and saving settings
   - Create default settings object with dwell threshold, sound, motion, and privacy preferences
@@ -33,7 +33,7 @@
   - Add method to reset settings to defaults
   - _Requirements: 3.4, 3.5, 6.1, 6.2, 6.3, 8.1, 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 5. Implement AI manager for Gemini Nano integration
+- [ ] 5. Implement AI manager for Gemini Nano integration (use Context7 MCP to see Gemini Nano Documentation and Google Chrome Extension Documentation and Google Web API Documentation)
 
   - Create AIManager class that wraps chrome.aiOriginTrial API
   - Implement checkAvailability method to detect if Gemini Nano is available
