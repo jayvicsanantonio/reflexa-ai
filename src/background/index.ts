@@ -178,9 +178,12 @@ async function handleCheckAI(): Promise<AIResponse<boolean>> {
 async function handleSummarize(
   payload: unknown
 ): Promise<AIResponse<string[]>> {
+  const startTime = Date.now();
+
   try {
     // Validate payload
     if (typeof payload !== 'string' || !payload.trim()) {
+      console.error('[Summarize] Invalid payload:', typeof payload);
       return {
         success: false,
         error: 'Invalid content for summarization',
@@ -189,10 +192,12 @@ async function handleSummarize(
 
     // Check AI availability
     if (!aiAvailable) {
+      console.log('[Summarize] Checking AI availability...');
       const available = await aiManager.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
+        console.error('[Summarize] AI unavailable');
         return {
           success: false,
           error: ERROR_MESSAGES.AI_UNAVAILABLE,
@@ -201,22 +206,27 @@ async function handleSummarize(
     }
 
     // Call AI manager to summarize
+    console.log('[Summarize] Calling AI manager...');
     const summary = await aiManager.summarize(payload);
+    const duration = Date.now() - startTime;
 
     // Check if summarization failed
     if (!summary || summary.length === 0) {
+      console.error(`[Summarize] Failed after ${duration}ms - empty result`);
       return {
         success: false,
         error: ERROR_MESSAGES.AI_TIMEOUT,
       };
     }
 
+    console.log(`[Summarize] Success in ${duration}ms`);
     return {
       success: true,
       data: summary,
     };
   } catch (error) {
-    console.error('Error in handleSummarize:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[Summarize] Error after ${duration}ms:`, error);
     return {
       success: false,
       error:
@@ -231,9 +241,12 @@ async function handleSummarize(
  * @returns Response with reflection questions or error
  */
 async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
+  const startTime = Date.now();
+
   try {
     // Validate payload
     if (!Array.isArray(payload) || payload.length === 0) {
+      console.error('[Reflect] Invalid payload:', payload);
       return {
         success: false,
         error: 'Invalid summary for reflection prompts',
@@ -242,10 +255,12 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
 
     // Check AI availability
     if (!aiAvailable) {
+      console.log('[Reflect] Checking AI availability...');
       const available = await aiManager.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
+        console.error('[Reflect] AI unavailable');
         return {
           success: false,
           error: ERROR_MESSAGES.AI_UNAVAILABLE,
@@ -254,24 +269,29 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
     }
 
     // Call AI manager to generate reflection prompts
+    console.log('[Reflect] Calling AI manager...');
     const prompts = await aiManager.generateReflectionPrompts(
       payload as string[]
     );
+    const duration = Date.now() - startTime;
 
     // Check if generation failed
     if (!prompts || prompts.length === 0) {
+      console.error(`[Reflect] Failed after ${duration}ms - empty result`);
       return {
         success: false,
         error: ERROR_MESSAGES.AI_TIMEOUT,
       };
     }
 
+    console.log(`[Reflect] Success in ${duration}ms`);
     return {
       success: true,
       data: prompts,
     };
   } catch (error) {
-    console.error('Error in handleReflect:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[Reflect] Error after ${duration}ms:`, error);
     return {
       success: false,
       error:
@@ -340,9 +360,12 @@ async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
  * @returns Response with success status or error
  */
 async function handleSave(payload: unknown): Promise<AIResponse<void>> {
+  const startTime = Date.now();
+
   try {
     // Validate payload
     if (!payload || typeof payload !== 'object') {
+      console.error('[Save] Invalid payload:', typeof payload);
       return {
         success: false,
         error: 'Invalid reflection data',
@@ -353,24 +376,41 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
 
     // Validate required fields
     if (!reflection.url || !reflection.title || !reflection.createdAt) {
+      console.error('[Save] Missing required fields:', reflection);
       return {
         success: false,
         error: 'Missing required reflection fields',
       };
     }
 
-    // Save reflection using storage manager
-    await storageManager.saveReflection(reflection);
+    // Check storage quota before saving
+    const isNearLimit = await storageManager.isStorageNearLimit();
+    if (isNearLimit) {
+      console.warn('[Save] Storage near limit (>90%)');
+    }
 
+    // Save reflection using storage manager
+    console.log('[Save] Saving reflection...');
+    await storageManager.saveReflection(reflection);
+    const duration = Date.now() - startTime;
+
+    console.log(`[Save] Success in ${duration}ms`);
     return {
       success: true,
       data: undefined,
     };
   } catch (error) {
-    console.error('Error in handleSave:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[Save] Error after ${duration}ms:`, error);
 
     // Check if it's a storage full error
-    if (error instanceof Error && error.message.includes('storage')) {
+    if (
+      error instanceof Error &&
+      (error.message.includes('storage') ||
+        error.message.includes('QUOTA') ||
+        error.name === 'StorageFullError')
+    ) {
+      console.error('[Save] Storage quota exceeded');
       return {
         success: false,
         error: ERROR_MESSAGES.STORAGE_FULL,

@@ -12,7 +12,9 @@ export {
   prefersReducedMotion as prefersReducedMotionUtil,
   trapFocus,
   announceToScreenReader,
+  cleanupAllAnnouncements,
   meetsContrastRequirement,
+  getContrastRatio,
   createKeyboardHandler,
   getAccessibleDuration,
 } from './accessibility';

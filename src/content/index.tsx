@@ -4,6 +4,8 @@ import { DwellTracker } from './dwellTracker';
 import { ContentExtractor } from './contentExtractor';
 import { LotusNudge } from './LotusNudge';
 import { ReflectModeOverlay } from './ReflectModeOverlay';
+import { ErrorModal } from './ErrorModal';
+import { Notification } from './Notification';
 import { AudioManager } from '../utils/audioManager';
 import type {
   Message,
@@ -13,6 +15,7 @@ import type {
   ExtractedContent,
 } from '../types';
 import { generateUUID } from '../utils';
+import { ERROR_MESSAGES } from '../constants';
 
 console.log('Reflexa AI content script initialized');
 
@@ -33,10 +36,23 @@ let overlayContainer: HTMLDivElement | null = null;
 let overlayRoot: ReturnType<typeof createRoot> | null = null;
 let isOverlayVisible = false;
 
+// Error modal UI state
+let errorModalContainer: HTMLDivElement | null = null;
+let errorModalRoot: ReturnType<typeof createRoot> | null = null;
+let isErrorModalVisible = false;
+
+// Notification UI state
+let notificationContainer: HTMLDivElement | null = null;
+let notificationRoot: ReturnType<typeof createRoot> | null = null;
+let isNotificationVisible = false;
+
 // Current reflection data
 let currentExtractedContent: ExtractedContent | null = null;
 let currentSummary: string[] = [];
 let currentPrompts: string[] = [];
+
+// AI availability status
+let aiAvailable: boolean | null = null;
 
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
@@ -164,6 +180,20 @@ const initiateReflectionFlow = async () => {
     // Show loading state
     setNudgeLoadingState(true);
 
+    // Check AI availability first if not already checked
+    if (aiAvailable === null) {
+      const aiCheckResponse = await sendMessageToBackground<boolean>({
+        type: 'checkAI',
+      });
+
+      if (aiCheckResponse.success) {
+        aiAvailable = aiCheckResponse.data;
+        console.log('AI availability:', aiAvailable);
+      } else {
+        aiAvailable = false;
+      }
+    }
+
     // Extract content from the page
     contentExtractor ??= new ContentExtractor();
 
@@ -183,9 +213,38 @@ const initiateReflectionFlow = async () => {
       currentExtractedContent = contentExtractor.getTruncatedContent(
         currentExtractedContent
       );
+
+      // Show notification about truncation
+      showNotification(
+        'Long Article Detected',
+        ERROR_MESSAGES.CONTENT_TOO_LARGE,
+        'warning'
+      );
     }
 
-    // Request AI summarization
+    // If AI is unavailable, show modal and proceed with manual mode
+    if (!aiAvailable) {
+      console.warn('AI unavailable, showing manual mode modal');
+      showErrorModal(
+        'AI Unavailable',
+        ERROR_MESSAGES.AI_UNAVAILABLE,
+        'ai-unavailable',
+        () => {
+          hideErrorModal();
+          // Proceed with manual mode
+          currentSummary = ['', '', ''];
+          currentPrompts = [
+            'What did you find most interesting?',
+            'How might you apply this?',
+          ];
+          void showReflectModeOverlay();
+        },
+        'Continue with Manual Mode'
+      );
+      return;
+    }
+
+    // Request AI summarization with retry logic
     console.log('Requesting AI summarization...');
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
@@ -194,6 +253,28 @@ const initiateReflectionFlow = async () => {
 
     if (!summaryResponse.success) {
       console.error('Summarization failed:', summaryResponse.error);
+
+      // Check if it's a timeout error
+      if (summaryResponse.error.includes('timeout')) {
+        showErrorModal(
+          'AI Timeout',
+          ERROR_MESSAGES.AI_TIMEOUT,
+          'ai-timeout',
+          () => {
+            hideErrorModal();
+            // Proceed with manual mode
+            currentSummary = ['', '', ''];
+            currentPrompts = [
+              'What did you find most interesting?',
+              'How might you apply this?',
+            ];
+            void showReflectModeOverlay();
+          },
+          'Enter Summary Manually'
+        );
+        return;
+      }
+
       // Fall back to manual mode with empty summary
       currentSummary = ['', '', ''];
       currentPrompts = [
@@ -377,7 +458,33 @@ const handleSaveReflection = async (reflections: string[]) => {
 
     if (!saveResponse.success) {
       console.error('Failed to save reflection:', saveResponse.error);
-      // TODO: Show error notification to user
+
+      // Check if it's a storage full error
+      if (saveResponse.error.includes('Storage full')) {
+        // Hide overlay first
+        hideReflectModeOverlay();
+
+        // Show storage full modal with export option
+        showErrorModal(
+          'Storage Full',
+          ERROR_MESSAGES.STORAGE_FULL,
+          'storage-full',
+          () => {
+            hideErrorModal();
+            // Open popup to export reflections
+            void chrome.runtime.sendMessage({ type: 'openPopup' });
+          },
+          'Export Reflections'
+        );
+        return;
+      }
+
+      // Show generic error notification
+      showNotification(
+        'Save Failed',
+        saveResponse.error || ERROR_MESSAGES.GENERIC_ERROR,
+        'error'
+      );
     } else {
       console.log('Reflection saved successfully');
 
@@ -392,6 +499,14 @@ const handleSaveReflection = async (reflections: string[]) => {
     resetReflectionState();
   } catch (error) {
     console.error('Error saving reflection:', error);
+
+    // Show error notification
+    showNotification(
+      'Save Failed',
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      'error'
+    );
+
     // Still hide overlay even if save failed
     hideReflectModeOverlay();
     resetReflectionState();
@@ -731,6 +846,167 @@ const setupNavigationListeners = () => {
 };
 
 /**
+ * Show error modal with specified configuration
+ * @param title Modal title
+ * @param message Error message
+ * @param type Error type
+ * @param onAction Optional action callback
+ * @param actionLabel Optional action button label
+ */
+const showErrorModal = (
+  title: string,
+  message: string,
+  type: 'ai-unavailable' | 'ai-timeout' | 'content-truncated' | 'storage-full',
+  onAction?: () => void,
+  actionLabel?: string
+) => {
+  if (isErrorModalVisible) {
+    console.log('Error modal already visible');
+    return;
+  }
+
+  console.log('Showing error modal:', type);
+
+  // Create container for shadow DOM
+  errorModalContainer = document.createElement('div');
+  errorModalContainer.id = 'reflexa-error-modal-container';
+  document.body.appendChild(errorModalContainer);
+
+  // Create shadow root for style isolation
+  const shadowRoot = errorModalContainer.attachShadow({ mode: 'open' });
+
+  // Inject styles into shadow DOM
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  linkElement.href = chrome.runtime.getURL('src/content/styles.css');
+  shadowRoot.appendChild(linkElement);
+
+  // Create root element for React
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  // Render the ErrorModal component
+  errorModalRoot = createRoot(rootElement);
+  errorModalRoot.render(
+    <ErrorModal
+      title={title}
+      message={message}
+      type={type}
+      onClose={hideErrorModal}
+      onAction={onAction}
+      actionLabel={actionLabel}
+    />
+  );
+
+  isErrorModalVisible = true;
+  console.log('Error modal displayed');
+};
+
+/**
+ * Hide the error modal
+ * Removes the component and cleans up the DOM
+ */
+const hideErrorModal = () => {
+  if (!isErrorModalVisible) {
+    return;
+  }
+
+  // Unmount React component
+  if (errorModalRoot) {
+    errorModalRoot.unmount();
+    errorModalRoot = null;
+  }
+
+  // Remove container from DOM
+  if (errorModalContainer?.parentNode) {
+    errorModalContainer.parentNode.removeChild(errorModalContainer);
+    errorModalContainer = null;
+  }
+
+  isErrorModalVisible = false;
+  console.log('Error modal hidden');
+};
+
+/**
+ * Show notification toast
+ * @param title Notification title
+ * @param message Notification message
+ * @param type Notification type
+ * @param duration Optional duration in milliseconds
+ */
+const showNotification = (
+  title: string,
+  message: string,
+  type: 'warning' | 'error' | 'info',
+  duration = 5000
+) => {
+  // Hide existing notification if visible
+  if (isNotificationVisible) {
+    hideNotification();
+  }
+
+  console.log('Showing notification:', type, title);
+
+  // Create container for shadow DOM
+  notificationContainer = document.createElement('div');
+  notificationContainer.id = 'reflexa-notification-container';
+  document.body.appendChild(notificationContainer);
+
+  // Create shadow root for style isolation
+  const shadowRoot = notificationContainer.attachShadow({ mode: 'open' });
+
+  // Inject styles into shadow DOM
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  linkElement.href = chrome.runtime.getURL('src/content/styles.css');
+  shadowRoot.appendChild(linkElement);
+
+  // Create root element for React
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  // Render the Notification component
+  notificationRoot = createRoot(rootElement);
+  notificationRoot.render(
+    <Notification
+      title={title}
+      message={message}
+      type={type}
+      duration={duration}
+      onClose={hideNotification}
+    />
+  );
+
+  isNotificationVisible = true;
+  console.log('Notification displayed');
+};
+
+/**
+ * Hide the notification toast
+ * Removes the component and cleans up the DOM
+ */
+const hideNotification = () => {
+  if (!isNotificationVisible) {
+    return;
+  }
+
+  // Unmount React component
+  if (notificationRoot) {
+    notificationRoot.unmount();
+    notificationRoot = null;
+  }
+
+  // Remove container from DOM
+  if (notificationContainer?.parentNode) {
+    notificationContainer.parentNode.removeChild(notificationContainer);
+    notificationContainer = null;
+  }
+
+  isNotificationVisible = false;
+  console.log('Notification hidden');
+};
+
+/**
  * Clean up on page unload
  */
 window.addEventListener('beforeunload', () => {
@@ -742,6 +1018,8 @@ window.addEventListener('beforeunload', () => {
   }
   hideLotusNudge();
   hideReflectModeOverlay();
+  hideErrorModal();
+  hideNotification();
 });
 
 // Initialize the content script

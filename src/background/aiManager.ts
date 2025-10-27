@@ -287,43 +287,64 @@ export class AIManager {
     prompt: string,
     retryCount: number
   ): Promise<string | null> {
+    const attemptNumber = 1 - retryCount + 1;
+    console.log(`[AI] Attempt ${attemptNumber} of ${2 - retryCount}`);
+
     try {
       // Ensure model is initialized and valid
       const modelReady = await this.ensureModel();
       if (!modelReady) {
+        console.error('[AI] Model initialization failed');
         return null;
       }
 
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMING.AI_TIMEOUT);
+      const timeoutId = setTimeout(() => {
+        console.warn(`[AI] Request timeout after ${TIMING.AI_TIMEOUT}ms`);
+        controller.abort();
+      }, TIMING.AI_TIMEOUT);
 
       try {
+        const startTime = Date.now();
+        console.log('[AI] Sending prompt to model...');
+
         // Call the AI model with abort signal
         const result = await this.model!.prompt(prompt, {
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
+        const duration = Date.now() - startTime;
+        console.log(`[AI] Response received in ${duration}ms`);
+
         return result;
       } catch (error) {
         clearTimeout(timeoutId);
 
         // Check if it was a timeout (abort)
         if (error instanceof Error && error.name === 'AbortError') {
-          console.warn('AI request timed out');
+          console.warn(
+            `[AI] Request aborted (timeout) on attempt ${attemptNumber}`
+          );
 
           // Retry once if we have retries left
           if (retryCount > 0) {
-            console.log('Retrying AI request...');
+            console.log(`[AI] Retrying... (${retryCount} retries remaining)`);
+            // Add a small delay before retry
+            await new Promise((resolve) => setTimeout(resolve, 500));
             return this.callWithTimeout(prompt, retryCount - 1);
+          } else {
+            console.error('[AI] All retry attempts exhausted');
           }
+        } else {
+          console.error('[AI] Request failed with error:', error);
         }
 
         throw error;
       }
     } catch (error) {
-      console.error('Error calling AI model:', error);
+      console.error(`[AI] Error on attempt ${attemptNumber}:`, error);
       return null;
     }
   }

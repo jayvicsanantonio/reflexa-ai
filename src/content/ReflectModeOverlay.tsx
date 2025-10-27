@@ -65,8 +65,8 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
 
   // Auto-focus first input on mount and announce to screen readers
   useEffect(() => {
-    // Announce overlay opening
-    announceToScreenReader(
+    // Announce overlay opening (returns cleanup function)
+    const cleanupAnnouncement = announceToScreenReader(
       'Reflect mode opened. Review the summary and answer reflection questions.',
       'assertive'
     );
@@ -76,7 +76,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       firstInputRef.current?.focus();
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      cleanupAnnouncement();
+    };
   }, []);
 
   // Disable page scroll while overlay is active
@@ -94,6 +97,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   }, []);
 
   const handleSave = useCallback(() => {
+    // Announce save (cleanup handled automatically after 1s)
     announceToScreenReader('Reflection saved successfully', 'assertive');
     onSave(reflections);
   }, [reflections, onSave]);
