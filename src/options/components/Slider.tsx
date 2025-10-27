@@ -1,4 +1,5 @@
 import React from 'react';
+import { getAccessibleDuration } from '../../utils/accessibility';
 
 export interface SliderProps {
   label: string;
@@ -27,6 +28,14 @@ export const Slider: React.FC<SliderProps> = ({
     onChange(Number(e.target.value));
   };
 
+  // Get accessible description for screen readers
+  const getAccessibleValue = (): string => {
+    if (unit === ' seconds') {
+      return getAccessibleDuration(value);
+    }
+    return `${value}${unit}`;
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -36,12 +45,19 @@ export const Slider: React.FC<SliderProps> = ({
         >
           {label}
         </label>
-        <span className="text-calm-900 text-sm font-semibold">
+        <span
+          className="text-calm-900 text-sm font-semibold"
+          aria-hidden="true"
+        >
           {value}
           {unit}
         </span>
       </div>
-      {description && <p className="text-calm-600 text-sm">{description}</p>}
+      {description && (
+        <p id={`slider-${label}-description`} className="text-calm-600 text-sm">
+          {description}
+        </p>
+      )}
       <input
         id={`slider-${label}`}
         type="range"
@@ -51,11 +67,14 @@ export const Slider: React.FC<SliderProps> = ({
         value={value}
         onChange={handleChange}
         disabled={disabled}
-        aria-label={label}
+        aria-label={`${label}. ${description ?? ''}`}
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
-        aria-valuetext={`${value}${unit}`}
+        aria-valuetext={getAccessibleValue()}
+        aria-describedby={
+          description ? `slider-${label}-description` : undefined
+        }
         className={`bg-calm-200 focus:ring-accent-500 h-2 w-full cursor-pointer appearance-none rounded-lg focus:ring-2 focus:ring-offset-2 focus:outline-none ${
           disabled ? 'cursor-not-allowed opacity-50' : ''
         }`}

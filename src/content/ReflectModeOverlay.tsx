@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BreathingOrb } from './BreathingOrb';
 import type { Settings } from '../types';
+import { trapFocus, announceToScreenReader } from '../utils/accessibility';
 import './styles.css';
 
 interface ReflectModeOverlayProps {
@@ -62,9 +63,20 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus first input on mount
+  // Auto-focus first input on mount and announce to screen readers
   useEffect(() => {
-    firstInputRef.current?.focus();
+    // Announce overlay opening
+    announceToScreenReader(
+      'Reflect mode opened. Review the summary and answer reflection questions.',
+      'assertive'
+    );
+
+    // Focus first input after a brief delay to ensure screen reader announcement
+    const timer = setTimeout(() => {
+      firstInputRef.current?.focus();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Disable page scroll while overlay is active
@@ -82,6 +94,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   }, []);
 
   const handleSave = useCallback(() => {
+    announceToScreenReader('Reflection saved successfully', 'assertive');
     onSave(reflections);
   }, [reflections, onSave]);
 
@@ -101,34 +114,13 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, onCancel]);
 
-  // Focus trap: Keep focus within the modal
+  // Focus trap: Keep focus within the modal using utility
   useEffect(() => {
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        const focusableElements = overlayRef.current?.querySelectorAll(
-          'button, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+    if (!overlayRef.current) return;
 
-        if (!focusableElements || focusableElements.length === 0) return;
-
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[
-          focusableElements.length - 1
-        ] as HTMLElement;
-
-        if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleTab);
-    return () => document.removeEventListener('keydown', handleTab);
-  }, []);
+    const cleanup = trapFocus(overlayRef.current, onCancel);
+    return cleanup;
+  }, [onCancel]);
 
   const handleReflectionChange = (index: number, value: string) => {
     const newReflections = [...reflections];

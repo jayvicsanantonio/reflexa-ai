@@ -1,4 +1,5 @@
 import React from 'react';
+import { createKeyboardHandler } from '../utils/accessibility';
 
 export type LotusNudgePosition =
   | 'bottom-right'
@@ -31,14 +32,18 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
     }
   };
 
+  const handleKeyDown = createKeyboardHandler(onClick);
+
   return (
     <button
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       onAnimationEnd={handleAnimationEnd}
       className={`reflexa-lotus-nudge reflexa-lotus-nudge--${position}`}
       role="button"
-      aria-label="Start reflection session"
+      aria-label="Start reflection session. Press Enter or Space to begin."
       data-testid="lotus-nudge"
+      tabIndex={0}
     >
       <svg
         width="48"

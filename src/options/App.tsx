@@ -7,9 +7,13 @@ import { Slider } from './components/Slider';
 import { Toggle } from './components/Toggle';
 import { RadioGroup, type RadioOption } from './components/RadioGroup';
 import { SaveIndicator } from './components/SaveIndicator';
+import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
 
 export const App: React.FC = () => {
+  // Enable keyboard navigation detection
+  useKeyboardNavigation();
+
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
@@ -133,6 +137,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="bg-calm-50 min-h-screen p-8">
+      {/* Skip to main content link for keyboard navigation */}
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
+
       <div className="mx-auto max-w-3xl">
         {/* Header */}
         <header className="mb-8">
@@ -145,7 +154,12 @@ export const App: React.FC = () => {
         </header>
 
         {/* Settings Sections */}
-        <div className="space-y-6">
+        <main
+          id="main-content"
+          className="space-y-6"
+          role="main"
+          aria-label="Extension settings"
+        >
           {/* Behavior Settings */}
           <SettingsSection
             title="Behavior"
@@ -211,7 +225,7 @@ export const App: React.FC = () => {
               description="All AI processing happens locally on your device regardless of this setting"
             />
           </SettingsSection>
-        </div>
+        </main>
 
         {/* Footer Actions */}
         <footer className="border-calm-200 mt-8 flex items-center justify-between border-t pt-6">

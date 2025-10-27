@@ -24,24 +24,31 @@ export const Toggle: React.FC<ToggleProps> = ({
     }
   };
 
+  const toggleId = `toggle-${label.replace(/\s+/g, '-').toLowerCase()}`;
+  const descriptionId = description ? `${toggleId}-description` : undefined;
+
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex-1">
         <label
-          htmlFor={`toggle-${label}`}
-          className="text-calm-900 block text-sm font-medium"
+          htmlFor={toggleId}
+          className="text-calm-900 block cursor-pointer text-sm font-medium"
         >
           {label}
         </label>
         {description && (
-          <p className="text-calm-600 mt-1 text-sm">{description}</p>
+          <p id={descriptionId} className="text-calm-600 mt-1 text-sm">
+            {description}
+          </p>
         )}
       </div>
       <button
-        id={`toggle-${label}`}
+        id={toggleId}
+        type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-label={`${label}. ${checked ? 'Enabled' : 'Disabled'}`}
+        aria-describedby={descriptionId}
         disabled={disabled}
         onClick={() => onChange(!checked)}
         onKeyDown={handleKeyDown}

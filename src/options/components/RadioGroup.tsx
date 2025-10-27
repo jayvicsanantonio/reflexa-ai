@@ -46,55 +46,85 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
     }
   };
 
+  const groupId = `radio-group-${label.replace(/\s+/g, '-').toLowerCase()}`;
+  const descriptionId = description ? `${groupId}-description` : undefined;
+
   return (
     <div className="space-y-3">
       <div>
-        <label className="text-calm-900 block text-sm font-medium">
+        <label
+          id={`${groupId}-label`}
+          className="text-calm-900 block text-sm font-medium"
+        >
           {label}
         </label>
         {description && (
-          <p className="text-calm-600 mt-1 text-sm">{description}</p>
+          <p id={descriptionId} className="text-calm-600 mt-1 text-sm">
+            {description}
+          </p>
         )}
       </div>
-      <div className="space-y-2">
-        {options.map((option) => (
-          <div
-            key={option.value}
-            className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
-              value === option.value
-                ? 'border-accent-500 bg-accent-50'
-                : 'border-calm-200 hover:border-calm-300 bg-white'
-            } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-            onClick={() => !disabled && onChange(option.value)}
-            onKeyDown={(e) => handleKeyDown(e, option.value)}
-            role="radio"
-            aria-checked={value === option.value}
-            tabIndex={0}
-          >
-            <div className="flex h-5 items-center">
-              <input
-                type="radio"
-                name={label}
-                value={option.value}
-                checked={value === option.value}
-                onChange={() => onChange(option.value)}
-                disabled={disabled}
-                className="border-calm-300 text-accent-500 focus:ring-accent-500 h-4 w-4 cursor-pointer focus:ring-2 focus:ring-offset-2"
-                aria-label={option.label}
-              />
-            </div>
-            <div className="flex-1">
-              <div className="text-calm-900 text-sm font-medium">
-                {option.label}
+      <div
+        className="space-y-2"
+        role="radiogroup"
+        aria-labelledby={`${groupId}-label`}
+        aria-describedby={descriptionId}
+      >
+        {options.map((option, index) => {
+          const isSelected = value === option.value;
+          const optionId = `${groupId}-option-${index}`;
+
+          return (
+            <div
+              key={option.value}
+              className={`flex items-start gap-3 rounded-lg border p-3 transition-colors ${
+                isSelected
+                  ? 'border-accent-500 bg-accent-50'
+                  : 'border-calm-200 hover:border-calm-300 bg-white'
+              } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              onClick={() => !disabled && onChange(option.value)}
+              onKeyDown={(e) => handleKeyDown(e, option.value)}
+              role="radio"
+              aria-checked={isSelected}
+              aria-labelledby={`${optionId}-label`}
+              aria-describedby={
+                option.description ? `${optionId}-description` : undefined
+              }
+              tabIndex={isSelected ? 0 : -1}
+            >
+              <div className="flex h-5 items-center">
+                <input
+                  type="radio"
+                  id={optionId}
+                  name={groupId}
+                  value={option.value}
+                  checked={isSelected}
+                  onChange={() => onChange(option.value)}
+                  disabled={disabled}
+                  tabIndex={-1}
+                  className="border-calm-300 text-accent-500 focus:ring-accent-500 h-4 w-4 cursor-pointer focus:ring-2 focus:ring-offset-2"
+                  aria-hidden="true"
+                />
               </div>
-              {option.description && (
-                <div className="text-calm-600 mt-1 text-sm">
-                  {option.description}
+              <div className="flex-1">
+                <div
+                  id={`${optionId}-label`}
+                  className="text-calm-900 text-sm font-medium"
+                >
+                  {option.label}
                 </div>
-              )}
+                {option.description && (
+                  <div
+                    id={`${optionId}-description`}
+                    className="text-calm-600 mt-1 text-sm"
+                  >
+                    {option.description}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

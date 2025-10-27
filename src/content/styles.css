@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../styles/accessibility.css';
 
 /* Tailwind CSS v4 - Design System Configuration */
 @theme {

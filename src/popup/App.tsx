@@ -18,6 +18,7 @@ import type {
 } from '../types';
 import { STORAGE_KEYS, PRIVACY_NOTICE } from '../constants';
 import { formatISODate } from '../utils';
+import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
 
 /**
@@ -25,6 +26,9 @@ import './styles.css';
  * Main interface for viewing reflection history, stats, and exporting data
  */
 export const App: React.FC = () => {
+  // Enable keyboard navigation detection
+  useKeyboardNavigation();
+
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [streakData, setStreakData] = useState<StreakData>({
     current: 0,
@@ -301,6 +305,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="bg-calm-50 relative h-[600px] w-96 overflow-hidden">
+      {/* Skip to main content link for keyboard navigation */}
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
+
       {/* Header */}
       <header className="border-calm-200 bg-white px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
@@ -331,7 +340,12 @@ export const App: React.FC = () => {
       </header>
 
       {/* Scrollable content */}
-      <div className="h-[calc(600px-64px)] overflow-y-auto px-6 py-4">
+      <main
+        id="main-content"
+        className="h-[calc(600px-64px)] overflow-y-auto px-6 py-4"
+        role="main"
+        aria-label="Reflection dashboard"
+      >
         <div className="space-y-4">
           {/* Streak Counter */}
           <StreakCounter
@@ -384,7 +398,7 @@ export const App: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Privacy Notice Modal */}
       {showPrivacyNotice && (

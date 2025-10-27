@@ -7,6 +7,16 @@ import { CONTENT_LIMITS } from '../constants';
 // Export AudioManager
 export { AudioManager } from './audioManager';
 
+// Export accessibility utilities
+export {
+  prefersReducedMotion as prefersReducedMotionUtil,
+  trapFocus,
+  announceToScreenReader,
+  meetsContrastRequirement,
+  createKeyboardHandler,
+  getAccessibleDuration,
+} from './accessibility';
+
 /**
  * Generate a UUID v4
  * @returns A UUID v4 string
