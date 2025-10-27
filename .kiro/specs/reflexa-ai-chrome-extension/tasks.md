@@ -95,7 +95,7 @@
   - Respect prefers-reduced-motion and settings to disable animation
   - _Requirements: 2.2, 2.3, 3.2, 3.3, 3.4, 6.1, 6.3_
 
-- [ ] 11. Implement audio system
+- [x] 11. Implement audio system
 
   - Create AudioManager class to handle sound playback
   - Load audio files (entry chime, ambient loop, completion bell)
