@@ -142,7 +142,7 @@
   - Implement optional delete button
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 15. Build streak counter component
+- [x] 15. Build streak counter component
 
   - Create React component to display current reflection streak
   - Calculate streak from reflection dates (consecutive days with at least one reflection)

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReflectionCard } from './ReflectionCard';
-import type { Reflection } from '../types';
+import { StreakCounter } from './StreakCounter';
+import type { Reflection, StreakData } from '../types';
 import './styles.css';
 
 // Sample reflection data for demonstration
@@ -22,9 +23,50 @@ const sampleReflection: Reflection = {
 };
 
 const App: React.FC = () => {
+  const [streakData, setStreakData] = useState<StreakData>({
+    current: 0,
+    lastReflectionDate: '',
+  });
+
+  // Load streak data from storage
+  useEffect(() => {
+    const loadStreak = async () => {
+      try {
+        const result = await chrome.storage.local.get('streak');
+        if (result.streak) {
+          setStreakData(result.streak as StreakData);
+        }
+      } catch (error) {
+        console.error('Failed to load streak data:', error);
+      }
+    };
+
+    void loadStreak();
+
+    // Listen for storage changes to update streak in real-time
+    const handleStorageChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string
+    ) => {
+      if (areaName === 'local' && changes.streak?.newValue) {
+        setStreakData(changes.streak.newValue as StreakData);
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
   const handleDelete = (id: string) => {
     console.log('Delete reflection:', id);
     // Actual deletion logic will be implemented in later tasks
+  };
+
+  const handleStreakIncrease = () => {
+    console.log('Streak increased! 🎉');
   };
 
   return (
@@ -33,6 +75,12 @@ const App: React.FC = () => {
         Reflexa AI
       </h1>
       <div className="space-y-4">
+        {/* Streak Counter */}
+        <StreakCounter
+          streak={streakData}
+          onStreakIncrease={handleStreakIncrease}
+        />
+
         {/* Normal reflection card */}
         <ReflectionCard reflection={sampleReflection} onDelete={handleDelete} />
 

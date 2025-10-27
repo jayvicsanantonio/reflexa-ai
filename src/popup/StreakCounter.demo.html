@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StreakCounter Component Demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 40px;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: 100vh;
+      }
+
+      .demo-container {
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      .demo-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 32px;
+        text-align: center;
+      }
+
+      .demo-section {
+        margin-bottom: 32px;
+      }
+
+      .demo-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Streak Counter Styles */
+      .streak-counter {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        color: white;
+      }
+
+      .streak-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .streak-icon {
+        width: 64px;
+        height: 64px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+      }
+
+      .streak-icon svg {
+        width: 32px;
+        height: 32px;
+        fill: white;
+      }
+
+      .streak-info {
+        flex: 1;
+      }
+
+      .streak-number {
+        font-size: 48px;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+
+      .streak-label {
+        font-size: 14px;
+        opacity: 0.8;
+        font-weight: 500;
+      }
+
+      .streak-divider {
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 16px 0;
+      }
+
+      .streak-last {
+        font-size: 14px;
+        opacity: 0.7;
+      }
+
+      .streak-message {
+        font-size: 14px;
+        font-style: italic;
+        opacity: 0.8;
+        margin-top: 12px;
+        font-family: 'Lora', Georgia, serif;
+      }
+
+      .demo-controls {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .demo-button {
+        width: 100%;
+        padding: 12px 20px;
+        background: #0ea5e9;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 8px;
+      }
+
+      .demo-button:hover {
+        background: #0284c7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+      }
+
+      .demo-button:active {
+        transform: translateY(0);
+      }
+
+      .demo-button.secondary {
+        background: #64748b;
+      }
+
+      .demo-button.secondary:hover {
+        background: #475569;
+      }
+
+      @keyframes celebrate {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .celebrating {
+        animation: celebrate 0.6s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <h1 class="demo-title">StreakCounter Component Demo</h1>
+
+      <div class="demo-section">
+        <div class="demo-label">Current Streak</div>
+        <div class="streak-counter" id="streakCounter">
+          <div class="streak-header">
+            <div class="streak-icon">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 2C12 2 9 6 9 10C9 11.66 10.34 13 12 13C13.66 13 15 11.66 15 10C15 6 12 2 12 2Z"
+                />
+                <path
+                  d="M12 13C12 13 8 14 6 17C4.89 18.66 5.45 20.89 7.11 22C8.77 23.11 11 22.55 12.11 20.89C13 19.5 13 17 12 13Z"
+                />
+                <path
+                  d="M12 13C12 13 16 14 18 17C19.11 18.66 18.55 20.89 16.89 22C15.23 23.11 13 22.55 11.89 20.89C11 19.5 11 17 12 13Z"
+                />
+              </svg>
+            </div>
+            <div class="streak-info">
+              <div class="streak-number" id="streakNumber">7</div>
+              <div class="streak-label" id="streakLabel">days</div>
+            </div>
+          </div>
+          <div class="streak-divider"></div>
+          <div class="streak-last">
+            Last reflection: <strong id="lastReflection">2 hours ago</strong>
+          </div>
+          <div class="streak-message" id="streakMessage">
+            Building a beautiful habit, one day at a time.
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <div class="demo-label">Controls</div>
+        <div class="demo-controls">
+          <button class="demo-button" onclick="increaseStreak()">
+            Increase Streak (+1)
+          </button>
+          <button class="demo-button secondary" onclick="resetStreak()">
+            Reset Streak
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStreak = 7;
+
+      function getMotivationalMessage(streak) {
+        if (streak === 0) return 'Start your reflection journey today!';
+        if (streak === 1) return 'Great start! Keep the momentum going.';
+        if (streak < 7) return 'Building a beautiful habit, one day at a time.';
+        if (streak < 14) return 'One week strong! Your mind thanks you.';
+        if (streak < 30) return "Incredible consistency. You're on fire! 🔥";
+        if (streak < 100) return 'A month of mindfulness. Truly inspiring.';
+        return "Legendary dedication. You're a reflection master! ✨";
+      }
+
+      function updateDisplay() {
+        const streakNumber = document.getElementById('streakNumber');
+        const streakLabel = document.getElementById('streakLabel');
+        const streakMessage = document.getElementById('streakMessage');
+
+        streakNumber.textContent = currentStreak;
+        streakLabel.textContent = currentStreak === 1 ? 'day' : 'days';
+        streakMessage.textContent = getMotivationalMessage(currentStreak);
+      }
+
+      function increaseStreak() {
+        currentStreak++;
+        updateDisplay();
+
+        // Add celebration animation
+        const counter = document.getElementById('streakCounter');
+        counter.classList.add('celebrating');
+        setTimeout(() => {
+          counter.classList.remove('celebrating');
+        }, 600);
+      }
+
+      function resetStreak() {
+        currentStreak = 0;
+        updateDisplay();
+      }
+
+      // Initialize
+      updateDisplay();
+    </script>
+  </body>
+</html>
