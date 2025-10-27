@@ -75,7 +75,7 @@
   - Load dwell threshold from settings on initialization
   - _Requirements: 1.1, 1.2, 1.4, 1.5, 12.4, 12.5_
 
-- [ ] 9. Create lotus nudge icon component
+- [x] 9. Create lotus nudge icon component
 
   - Build React component for floating lotus icon
   - Implement fade-in animation when dwell threshold is reached
