@@ -119,7 +119,7 @@
   - Disable page scroll while overlay is active
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 4.3, 4.4, 8.1, 8.4, 11.1_
 
-- [ ] 13. Implement content script orchestration
+- [x] 13. Implement content script orchestration
 
   - Create content script entry point that initializes on page load
   - Instantiate DwellTracker and ContentExtractor
