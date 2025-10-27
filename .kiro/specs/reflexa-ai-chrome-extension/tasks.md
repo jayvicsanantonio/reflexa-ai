@@ -151,7 +151,7 @@
   - Show last reflection date
   - _Requirements: 7.4_
 
-- [ ] 16. Implement calm stats visualization
+- [x] 16. Implement calm stats visualization
 
   - Create React component for reading vs reflection time ratio
   - Calculate total reflections, average per day, and time metrics

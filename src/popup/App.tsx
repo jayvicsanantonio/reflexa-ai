@@ -2,7 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReflectionCard } from './ReflectionCard';
 import { StreakCounter } from './StreakCounter';
-import type { Reflection, StreakData } from '../types';
+import { CalmStats } from './CalmStats';
+import type {
+  Reflection,
+  StreakData,
+  CalmStats as CalmStatsType,
+} from '../types';
 import './styles.css';
 
 // Sample reflection data for demonstration
@@ -26,6 +31,15 @@ const App: React.FC = () => {
   const [streakData, setStreakData] = useState<StreakData>({
     current: 0,
     lastReflectionDate: '',
+  });
+
+  // Sample calm stats data for demonstration
+  const [calmStats] = useState<CalmStatsType>({
+    totalReflections: 12,
+    averagePerDay: 1.7,
+    totalReadingTime: 3600, // 1 hour in seconds
+    totalReflectionTime: 900, // 15 minutes in seconds
+    reflectionRatio: 0.2, // 20% reflection time
   });
 
   // Load streak data from storage
@@ -80,6 +94,9 @@ const App: React.FC = () => {
           streak={streakData}
           onStreakIncrease={handleStreakIncrease}
         />
+
+        {/* Calm Stats */}
+        <CalmStats stats={calmStats} />
 
         {/* Normal reflection card */}
         <ReflectionCard reflection={sampleReflection} onDelete={handleDelete} />
