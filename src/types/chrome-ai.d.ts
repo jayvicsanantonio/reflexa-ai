@@ -74,12 +74,32 @@ export interface AIRewriterFactory {
 }
 
 /**
+ * Proofreader API types
+ */
+export interface AIProofreader {
+  proofread(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  proofreadStreaming(input: string): ReadableStream;
+  destroy(): void;
+}
+
+export interface AIProofreaderFactory {
+  create(options?: {
+    sharedContext?: string;
+    signal?: AbortSignal;
+  }): Promise<AIProofreader>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
   writer?: AIWriterFactory;
   rewriter?: AIRewriterFactory;
+  proofreader?: AIProofreaderFactory;
   languageDetector?: unknown;
   translator?: unknown;
   languageModel?: unknown;

@@ -72,14 +72,14 @@
     - Return both original and rewritten versions for comparison
     - _Requirements: 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 6. Build Proofreader Manager module
-  - [ ] 6.1 Implement ProofreaderManager class
+- [x] 6. Build Proofreader Manager module
+  - [x] 6.1 Implement ProofreaderManager class
     - Create isAvailable() method
     - Implement session creation
     - Add session lifecycle management
     - _Requirements: 5.1, 8.4_
 
-  - [ ] 6.2 Create proofread method with change tracking
+  - [x] 6.2 Create proofread method with change tracking
     - Call API with grammar_clarity mode
     - Parse response to extract corrected text
     - Calculate diff between original and corrected versions

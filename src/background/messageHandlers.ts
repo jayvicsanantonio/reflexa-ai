@@ -4,7 +4,12 @@
  */
 
 import { unifiedAI } from './unifiedAIService';
-import type { Message, AIResponse, TonePreset } from '../types';
+import type {
+  Message,
+  AIResponse,
+  TonePreset,
+  ProofreadResult,
+} from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
 
 /**
@@ -144,14 +149,14 @@ async function handleReflect(payload: {
  */
 async function handleProofread(payload: {
   text: string;
-}): Promise<AIResponse<string>> {
+}): Promise<AIResponse<ProofreadResult>> {
   const startTime = Date.now();
   try {
     // Try native Proofreader API first
     const proofreaderAvailable =
       await unifiedAI.proofreader.checkAvailability();
 
-    let result: string;
+    let result: ProofreadResult;
     let apiUsed: string;
 
     if (proofreaderAvailable) {
@@ -160,7 +165,12 @@ async function handleProofread(payload: {
       apiUsed = 'proofreader';
     } else {
       console.log('[Background] Falling back to Prompt API for proofreading');
-      result = await unifiedAI.prompt.proofread(payload.text);
+      const correctedText = await unifiedAI.prompt.proofread(payload.text);
+      // Prompt API returns just the corrected text, so we create a ProofreadResult
+      result = {
+        correctedText,
+        changes: [], // Prompt API doesn't provide detailed changes
+      };
       apiUsed = 'prompt';
     }
 
