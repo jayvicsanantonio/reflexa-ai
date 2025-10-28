@@ -40,21 +40,21 @@
     - Handle session errors gracefully
     - _Requirements: 8.1, 9.3_
 
-- [ ] 4. Build Writer Manager module
-  - [ ] 4.1 Implement WriterManager class with session management
+- [x] 4. Build Writer Manager module
+  - [x] 4.1 Implement WriterManager class with session management
     - Create isAvailable() method
     - Implement createSession with WriterConfig
     - Add session cleanup on completion
     - _Requirements: 3.1, 8.2_
 
-  - [ ] 4.2 Create generate method for draft creation
+  - [x] 4.2 Create generate method for draft creation
     - Map tone parameters (calm, professional, casual)
     - Implement length control (short=50-100 words, medium=100-200, long=200-300)
     - Use summary as context for better draft generation
     - Format response as clean paragraph text
     - _Requirements: 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 4.3 Add streaming support if API supports it
+  - [x] 4.3 Add streaming support if API supports it
     - Implement streaming response handler
     - Update UI progressively as text generates
     - _Requirements: 3.5_

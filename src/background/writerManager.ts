@@ -1,86 +1,147 @@
 /**
- * Writer Manager for Gemini Nano Writer API
- * Handles creative text generation
+ * Writer Manager for Chrome Built-in Writer API
+ * Handles draft generation with tone and length control
+ * Implements timeout logic, retry mechanism, streaming support, and session lifecycle management
  */
+
+import type { WriterOptions } from '../types';
+import type { AIWriter } from '../types/chrome-ai';
+import { capabilityDetector } from './capabilityDetector';
 
 /**
- * Type definitions for Chrome's Writer API
- * Based on: https://developer.chrome.com/docs/ai/writer-api
+ * Timeout duration for writer operations (5 seconds)
  */
-interface AIWriter {
-  write(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  writeStreaming(input: string): ReadableStream;
-  destroy(): void;
-}
+const WRITER_TIMEOUT = 5000;
 
-interface AIWriterFactory {
-  create(options?: {
+/**
+ * Extended timeout for retry attempts (8 seconds)
+ */
+const RETRY_TIMEOUT = 8000;
+
+/**
+ * Word count ranges for length control
+ */
+const LENGTH_RANGES = {
+  short: { min: 50, max: 100 },
+  medium: { min: 100, max: 200 },
+  long: { min: 200, max: 300 },
+} as const;
+
+/**
+ * WriterManager class
+ * Manages Chrome Writer API sessions with tone/length control, error handling, and timeouts
+ */
+export class WriterManager {
+  private sessions = new Map<string, AIWriter>();
+  private available = false;
+
+  /**
+   * Check if Writer API is available
+   * Uses capability detector for consistent availability checking
+   * @returns Promise resolving to availability status
+   */
+  checkAvailability(): Promise<boolean> {
+    try {
+      const capabilities = capabilityDetector.getCapabilities();
+      this.available = capabilities.writer;
+      return Promise.resolve(this.available);
+    } catch (error) {
+      console.error('Error checking Writer availability:', error);
+      this.available = false;
+      return Promise.resolve(false);
+    }
+  }
+
+  /**
+   * Check if Writer API is available (synchronous)
+   * @returns True if Writer API is available
+   */
+  isAvailable(): boolean {
+    return this.available;
+  }
+
+  /**
+   * Map Reflexa tone presets to Writer API tone values
+   * @param tone - Reflexa tone preset
+   * @returns Writer API tone value
+   */
+  private mapTone(
+    tone: 'calm' | 'professional' | 'casual'
+  ): 'formal' | 'neutral' | 'casual' {
+    switch (tone) {
+      case 'calm':
+        return 'neutral';
+      case 'professional':
+        return 'formal';
+      case 'casual':
+        return 'casual';
+      default:
+        return 'neutral';
+    }
+  }
+
+  /**
+   * Map length parameter to Writer API length value
+   * @param length - Length preset
+   * @returns Writer API length value
+   */
+  private mapLength(
+    length: 'short' | 'medium' | 'long'
+  ): 'short' | 'medium' | 'long' {
+    return length;
+  }
+
+  /**
+   * Create or retrieve a writer session with specific configuration
+   * Sessions are cached by configuration key for reuse
+   * @param config - Writer configuration options
+   * @returns AIWriter session or null if unavailable
+   */
+  private async createSession(config: {
+    sharedContext?: string;
     tone?: 'formal' | 'neutral' | 'casual';
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
-    signal?: AbortSignal;
-  }): Promise<AIWriter>;
-  availability(): Promise<
-    'available' | 'downloadable' | 'downloading' | 'unavailable'
-  >;
-}
+  }): Promise<AIWriter | null> {
+    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'plain-text'}-${config.length ?? 'medium'}`;
 
-declare global {
-  interface Window {
-    Writer?: AIWriterFactory;
-  }
-  var Writer: AIWriterFactory | undefined;
-}
-
-export class WriterManager {
-  private isAvailable = false;
-  private writers = new Map<string, AIWriter>();
-
-  async checkAvailability(): Promise<boolean> {
-    try {
-      if (typeof Writer === 'undefined') {
-        console.warn('Chrome Writer API not available');
-        this.isAvailable = false;
-        return false;
-      }
-
-      const availability = await Writer.availability();
-      console.log('Writer availability:', availability);
-
-      this.isAvailable = availability !== 'unavailable';
-      return this.isAvailable;
-    } catch (error) {
-      console.error('Error checking Writer availability:', error);
-      this.isAvailable = false;
-      return false;
-    }
-  }
-
-  private async ensureWriter(
-    tone: 'formal' | 'neutral' | 'casual' = 'neutral',
-    format: 'plain-text' | 'markdown' = 'plain-text',
-    length: 'short' | 'medium' | 'long' = 'medium'
-  ): Promise<AIWriter | null> {
-    const key = `${tone}-${format}-${length}`;
-
-    if (this.writers.has(key)) {
-      return this.writers.get(key)!;
+    // Return cached session if available
+    if (this.sessions.has(sessionKey)) {
+      return this.sessions.get(sessionKey)!;
     }
 
     try {
-      if (typeof Writer === 'undefined') {
+      // Access ai.writer from globalThis (service worker context)
+      if (typeof ai === 'undefined' || !ai?.writer) {
+        console.warn('Writer API not available');
         return null;
       }
 
-      const writer = await Writer.create({ tone, format, length });
-      this.writers.set(key, writer);
-      return writer;
+      // Create new session with specified options
+      const session = await ai.writer.create({
+        sharedContext: config.sharedContext,
+        tone: config.tone,
+        format: config.format ?? 'plain-text',
+        length: config.length,
+      });
+
+      // Cache the session
+      this.sessions.set(sessionKey, session);
+      console.log(`Created writer session: ${sessionKey}`);
+
+      return session;
     } catch (error) {
-      console.error('Error initializing Writer:', error);
+      console.error('Error creating writer session:', error);
       return null;
     }
   }
 
+  /**
+   * Write/generate text with specified options (main method for message handlers)
+   * @param prompt - Prompt for text generation
+   * @param options - Writer options (tone, format, length)
+   * @returns Generated text
+   */
   async write(
     prompt: string,
     options?: {
@@ -89,61 +150,208 @@ export class WriterManager {
       length?: 'short' | 'medium' | 'long';
     }
   ): Promise<string> {
-    try {
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          return '';
-        }
-      }
+    // Map to WriterOptions format
+    const writerOptions: WriterOptions = {
+      tone: this.mapReverseTone(options?.tone ?? 'neutral'),
+      length: options?.length ?? 'medium',
+    };
 
-      const writer = await this.ensureWriter(
-        options?.tone,
-        options?.format,
-        options?.length
-      );
+    return this.generate(prompt, writerOptions);
+  }
 
-      if (!writer) {
-        return '';
-      }
-
-      const result = await writer.write(prompt);
-      return result.trim();
-    } catch (error) {
-      console.error('Error in write:', error);
-      return '';
+  /**
+   * Map Writer API tone to Reflexa tone
+   * @param tone - Writer API tone
+   * @returns Reflexa tone preset
+   */
+  private mapReverseTone(
+    tone: 'formal' | 'neutral' | 'casual'
+  ): 'calm' | 'professional' | 'casual' {
+    switch (tone) {
+      case 'formal':
+        return 'professional';
+      case 'neutral':
+        return 'calm';
+      case 'casual':
+        return 'casual';
+      default:
+        return 'calm';
     }
   }
 
-  async *writeStreaming(
-    prompt: string,
-    options?: {
-      tone?: 'formal' | 'neutral' | 'casual';
-      format?: 'plain-text' | 'markdown';
-      length?: 'short' | 'medium' | 'long';
+  /**
+   * Generate draft text with specified options
+   * Implements timeout logic and retry mechanism
+   * @param topic - Topic or prompt for draft generation
+   * @param options - Writer options (tone, length)
+   * @param context - Optional context (e.g., summary) for better generation
+   * @returns Generated draft text
+   * @throws Error if generation fails after retry
+   */
+  async generate(
+    topic: string,
+    options: WriterOptions,
+    context?: string
+  ): Promise<string> {
+    // Check availability first
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Writer API is not available');
+      }
     }
-  ): AsyncGenerator<string> {
+
     try {
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          return;
-        }
-      }
-
-      const writer = await this.ensureWriter(
-        options?.tone,
-        options?.format,
-        options?.length
+      // First attempt with standard timeout
+      return await this.generateWithTimeout(
+        topic,
+        options,
+        context,
+        WRITER_TIMEOUT
       );
+    } catch (error) {
+      console.warn('First generation attempt failed, retrying...', error);
 
-      if (!writer) {
-        return;
+      try {
+        // Retry with extended timeout
+        return await this.generateWithTimeout(
+          topic,
+          options,
+          context,
+          RETRY_TIMEOUT
+        );
+      } catch (retryError) {
+        console.error('Generation failed after retry:', retryError);
+        throw new Error(
+          `Draft generation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Generate with timeout wrapper
+   * @param topic - Topic or prompt for draft generation
+   * @param options - Writer options
+   * @param context - Optional context
+   * @param timeout - Timeout in milliseconds
+   * @returns Generated draft text
+   */
+  private async generateWithTimeout(
+    topic: string,
+    options: WriterOptions,
+    context: string | undefined,
+    timeout: number
+  ): Promise<string> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Writer timeout')), timeout);
+    });
+
+    const generatePromise = this.executeGenerate(topic, options, context);
+
+    return Promise.race([generatePromise, timeoutPromise]);
+  }
+
+  /**
+   * Execute draft generation
+   * @param topic - Topic or prompt for draft generation
+   * @param options - Writer options (tone, length)
+   * @param context - Optional context for better generation
+   * @returns Generated draft text
+   */
+  private async executeGenerate(
+    topic: string,
+    options: WriterOptions,
+    context?: string
+  ): Promise<string> {
+    // Map tone and length to Writer API values
+    const apiTone = this.mapTone(options.tone);
+    const apiLength = this.mapLength(options.length);
+
+    // Build shared context from provided context
+    const sharedContext = context
+      ? `Context: ${context}\n\nGenerate a reflective paragraph about: ${topic}`
+      : `Generate a reflective paragraph about: ${topic}`;
+
+    // Create session with configuration
+    const session = await this.createSession({
+      sharedContext,
+      tone: apiTone,
+      format: 'plain-text',
+      length: apiLength,
+    });
+
+    if (!session) {
+      throw new Error('Failed to create writer session');
+    }
+
+    // Generate draft
+    const result = await session.write(topic);
+
+    // Format response as clean paragraph text
+    const cleanedText = result.trim();
+
+    // Validate word count based on length parameter
+    const wordCount = cleanedText.split(/\s+/).length;
+    const range = LENGTH_RANGES[options.length];
+
+    console.log(
+      `Generated draft: ${wordCount} words (target: ${range.min}-${range.max})`
+    );
+
+    return cleanedText;
+  }
+
+  /**
+   * Generate draft with streaming support
+   * Updates progressively as text generates
+   * @param topic - Topic or prompt for draft generation
+   * @param options - Writer options (tone, length)
+   * @param context - Optional context for better generation
+   * @param onChunk - Callback for each text chunk
+   * @returns Complete generated text
+   */
+  async generateStreaming(
+    topic: string,
+    options: WriterOptions,
+    context: string | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<string> {
+    // Check availability first
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Writer API is not available');
+      }
+    }
+
+    try {
+      // Map tone and length to Writer API values
+      const apiTone = this.mapTone(options.tone);
+      const apiLength = this.mapLength(options.length);
+
+      // Build shared context
+      const sharedContext = context
+        ? `Context: ${context}\n\nGenerate a reflective paragraph about: ${topic}`
+        : `Generate a reflective paragraph about: ${topic}`;
+
+      // Create session with configuration
+      const session = await this.createSession({
+        sharedContext,
+        tone: apiTone,
+        format: 'plain-text',
+        length: apiLength,
+      });
+
+      if (!session) {
+        throw new Error('Failed to create writer session');
       }
 
-      const stream = writer.writeStreaming(prompt);
+      // Get streaming response
+      const stream = session.writeStreaming(topic);
       const reader = stream.getReader();
       const decoder = new TextDecoder();
+      let fullText = '';
 
       try {
         while (true) {
@@ -151,25 +359,67 @@ export class WriterManager {
           const done = result.done;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const value = result.value;
-          if (done) break;
 
+          if (done) {
+            break;
+          }
+
+          // Decode chunk and append to full text
           if (value) {
             const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            yield chunk;
+            fullText += chunk;
+
+            // Call chunk callback for progressive UI updates
+            onChunk(chunk);
           }
         }
+
+        return fullText.trim();
       } finally {
         reader.releaseLock();
       }
     } catch (error) {
-      console.error('Error in writeStreaming:', error);
+      console.error('Streaming generation failed:', error);
+      throw new Error(
+        `Streaming generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
+  /**
+   * Clean up all active sessions
+   * Should be called when the manager is no longer needed
+   */
   destroy(): void {
-    for (const writer of this.writers.values()) {
-      writer.destroy();
+    for (const [key, session] of this.sessions.entries()) {
+      try {
+        session.destroy();
+        console.log(`Destroyed writer session: ${key}`);
+      } catch (error) {
+        console.error(`Error destroying session ${key}:`, error);
+      }
     }
-    this.writers.clear();
+    this.sessions.clear();
+  }
+
+  /**
+   * Clean up a specific session
+   * @param options - Writer options to identify the session
+   */
+  destroySession(options: WriterOptions): void {
+    const apiTone = this.mapTone(options.tone);
+    const apiLength = this.mapLength(options.length);
+    const sessionKey = `${apiTone}-plain-text-${apiLength}`;
+
+    const session = this.sessions.get(sessionKey);
+    if (session) {
+      try {
+        session.destroy();
+        this.sessions.delete(sessionKey);
+        console.log(`Destroyed writer session: ${sessionKey}`);
+      } catch (error) {
+        console.error(`Error destroying session ${sessionKey}:`, error);
+      }
+    }
   }
 }

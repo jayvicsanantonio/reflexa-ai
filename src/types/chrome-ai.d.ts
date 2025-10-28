@@ -25,11 +25,33 @@ export interface AISummarizerFactory {
 }
 
 /**
+ * Writer API types
+ */
+export interface AIWriter {
+  write(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  writeStreaming(input: string): ReadableStream;
+  destroy(): void;
+}
+
+export interface AIWriterFactory {
+  create(options?: {
+    sharedContext?: string;
+    tone?: 'formal' | 'neutral' | 'casual';
+    format?: 'plain-text' | 'markdown';
+    length?: 'short' | 'medium' | 'long';
+    signal?: AbortSignal;
+  }): Promise<AIWriter>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
-  writer?: unknown;
+  writer?: AIWriterFactory;
   rewriter?: unknown;
   languageDetector?: unknown;
   translator?: unknown;
