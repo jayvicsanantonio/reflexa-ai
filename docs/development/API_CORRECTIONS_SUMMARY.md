@@ -1,52 +1,56 @@
 # API Corrections Summary
 
-## Critical Correction: LanguageModel vs ai.languageModel
+## Correct API Usage
 
-### What Was Wrong
+According to the official Chrome documentation (https://developer.chrome.com/docs/ai/prompt-api), the Prompt API is accessed via a **global `LanguageModel` object**, NOT through `ai.languageModel`.
 
-The previous implementation incorrectly referenced `ai.languageModel` or `window.ai.languageModel`, which doesn't exist in the Chrome Prompt API.
+### ✅ What's Correct
 
-### What's Correct
-
-The Chrome Prompt API exposes a **global `LanguageModel` object** directly, not nested under `ai`.
+The Chrome Prompt API is accessed through the global `LanguageModel` object (capital L).
 
 ## Corrected API Usage
 
-### ✅ Correct (Current Implementation)
+### ✅ Correct (According to Official Chrome Docs)
 
 ```typescript
 // Check availability
 const availability = await LanguageModel.availability();
 
-// Get parameters
+// Get parameters (capabilities)
 const params = await LanguageModel.params();
 
 // Create session
 const session = await LanguageModel.create({
   temperature: params.defaultTemperature,
   topK: params.defaultTopK,
-  initialPrompts: [{ role: 'system', content: 'You are helpful.' }],
+  initialPrompts: [
+    { role: 'system', content: 'You are helpful.' },
+    { role: 'user', content: 'Hello' },
+  ],
 });
 
 // Prompt
 const result = await session.prompt('Summarize this...');
 
-// Stream
+// Stream (returns ReadableStream<string>)
 const stream = session.promptStreaming('Write a poem...');
 for await (const chunk of stream) {
-  console.log(chunk);
+  console.log(chunk); // chunk is already a string
 }
 
 // Cleanup
 session.destroy();
 ```
 
-### ❌ Incorrect (Old Pattern)
+### ❌ Incorrect Patterns
 
 ```typescript
-// WRONG - These don't exist
-await window.ai.languageModel.availability();
+// WRONG - ai.languageModel doesn't exist
+await ai.languageModel.availability();
 await ai.languageModel.create();
+
+// WRONG - window.ai.languageModel pattern
+await window.ai.languageModel.availability();
 ```
 
 ## Files Updated

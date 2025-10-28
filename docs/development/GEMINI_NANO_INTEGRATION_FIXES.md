@@ -6,27 +6,29 @@ This document outlines the issues found in the Reflexa AI Chrome Extension's int
 
 ## Issues Found
 
-### 1. ❌ Incorrect API Access Pattern
+### 1. ✅ Correct API Access Pattern
 
-**Problem:**
-
-```typescript
-// Old code - overly complex type casting
-const aiAPI =
-  (self as typeof globalThis & { ai?: typeof self.ai }).ai ??
-  (globalThis as typeof globalThis & { ai?: typeof self.ai }).ai;
-```
-
-**Solution:**
+**Correct Usage:**
 
 ```typescript
-// New code - direct access to global 'LanguageModel' object
+// ✅ CORRECT - Direct access to global 'LanguageModel' object
 if (typeof LanguageModel === 'undefined') {
   // Handle unavailable
 }
+
+const availability = await LanguageModel.availability();
+const session = await LanguageModel.create({...});
 ```
 
-**Why:** The Chrome Prompt API exposes a global `LanguageModel` object that's available in both window and service worker contexts. The complex type casting was unnecessary and potentially incorrect.
+**Incorrect Patterns:**
+
+```typescript
+// ❌ WRONG - These don't exist
+await ai.languageModel.availability();
+await window.ai.languageModel.create();
+```
+
+**Why:** The Chrome Prompt API exposes a global `LanguageModel` object (capital L) that's available in both window and service worker contexts. It is NOT accessed through `ai.languageModel` or `window.ai.languageModel`.
 
 ### 2. ❌ Missing Type Definitions
 

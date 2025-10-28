@@ -5,6 +5,8 @@
  * Implements timeout logic, retry mechanism, and session lifecycle management
  */
 
+/// <reference types="../types/chrome-ai.d.ts" />
+
 import type { SummaryFormat, TonePreset, WriterOptions } from '../types';
 import type { AILanguageModel } from '../types/chrome-ai';
 import { capabilityDetector } from './capabilityDetector';
@@ -44,11 +46,25 @@ export class PromptManager {
    */
   async checkAvailability(): Promise<boolean> {
     try {
+      // First check if API exists
       const capabilities = await Promise.resolve(
         capabilityDetector.getCapabilities()
       );
-      this.available = Boolean(capabilities.prompt);
-      return this.available;
+
+      if (!capabilities.prompt) {
+        this.available = false;
+        return false;
+      }
+
+      // Then check actual availability status using global LanguageModel
+      if (typeof LanguageModel !== 'undefined') {
+        const status = await LanguageModel.availability();
+        this.available = status === 'available' || status === 'downloadable';
+        return this.available;
+      }
+
+      this.available = false;
+      return false;
     } catch (error) {
       console.error('Error checking Prompt API availability:', error);
       this.available = false;
@@ -78,6 +94,13 @@ export class PromptManager {
     }[];
     temperature?: number;
     topK?: number;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
+    signal?: AbortSignal;
   }): Promise<AILanguageModel | null> {
     const sessionKey = `${config.systemPrompt ?? 'default'}-${config.temperature ?? 0.7}`;
 
@@ -87,18 +110,20 @@ export class PromptManager {
     }
 
     try {
-      // Access ai.languageModel from globalThis (service worker context)
-      if (typeof ai === 'undefined' || !ai?.languageModel) {
+      // Access global LanguageModel (service worker context)
+      if (typeof LanguageModel === 'undefined') {
         console.warn('Prompt API (Language Model) not available');
         return null;
       }
 
       // Create new session with specified options
-      const session = await ai.languageModel.create({
+      const session = await LanguageModel.create({
         systemPrompt: config.systemPrompt,
         initialPrompts: config.initialPrompts,
         temperature: config.temperature ?? TEMPERATURE_SETTINGS.balanced,
         topK: config.topK ?? 40,
+        monitor: config.monitor,
+        signal: config.signal,
       });
 
       // Cache the session
@@ -485,30 +510,25 @@ export class PromptManager {
         throw new Error('Failed to create prompt session');
       }
 
-      // Get streaming response
+      // Get streaming response - returns ReadableStream<string>
       const stream = session.promptStreaming(text);
       const reader = stream.getReader();
-      const decoder = new TextDecoder();
       let fullText = '';
 
       try {
         while (true) {
-          const result = await reader.read();
-          const done = result.done;
+          const { done, value } = await reader.read();
 
           if (done) {
             break;
           }
 
-          // Decode chunk and append to full text
-          if (result.value) {
-            const chunk = decoder.decode(result.value as Uint8Array, {
-              stream: true,
-            });
-            fullText += chunk;
+          // Value is already a string chunk, no need to decode
+          if (value) {
+            fullText += value;
 
             // Call chunk callback for progressive UI updates
-            onChunk(chunk);
+            onChunk(value);
           }
         }
 
@@ -556,6 +576,82 @@ export class PromptManager {
       } catch (error) {
         console.error(`Error destroying session ${sessionKey}:`, error);
       }
+    }
+  }
+
+  /**
+   * Get model capabilities (token limits, temperature ranges)
+   * @returns Model capabilities or null if unavailable
+   */
+  async getCapabilities(): Promise<{
+    available: 'readily' | 'after-download' | 'no';
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+  } | null> {
+    try {
+      if (typeof LanguageModel === 'undefined') {
+        return null;
+      }
+
+      return await LanguageModel.capabilities();
+    } catch (error) {
+      console.error('Error getting model capabilities:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clone an existing session
+   * Useful for creating variations without re-downloading the model
+   * @param sessionKey - Key of the session to clone
+   * @returns Cloned session or null
+   */
+  async cloneSession(sessionKey: string): Promise<AILanguageModel | null> {
+    const session = this.sessions.get(sessionKey);
+    if (!session) {
+      console.warn(`Session ${sessionKey} not found for cloning`);
+      return null;
+    }
+
+    try {
+      const clonedSession = await session.clone();
+      const cloneKey = `${sessionKey}-clone-${Date.now()}`;
+      this.sessions.set(cloneKey, clonedSession);
+      console.log(`Cloned session: ${cloneKey}`);
+      return clonedSession;
+    } catch (error) {
+      console.error('Error cloning session:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Count tokens in a prompt without executing it
+   * Useful for checking if prompt fits within limits
+   * @param text - Text to count tokens for
+   * @param sessionKey - Optional session key to use for counting
+   * @returns Token count or null if unavailable
+   */
+  async countTokens(text: string, sessionKey?: string): Promise<number | null> {
+    try {
+      let session: AILanguageModel | null = null;
+
+      if (sessionKey && this.sessions.has(sessionKey)) {
+        session = this.sessions.get(sessionKey)!;
+      } else {
+        // Create a temporary session for counting
+        session = await this.createSession({});
+      }
+
+      if (!session) {
+        return null;
+      }
+
+      return await session.countPromptTokens(text);
+    } catch (error) {
+      console.error('Error counting tokens:', error);
+      return null;
     }
   }
 

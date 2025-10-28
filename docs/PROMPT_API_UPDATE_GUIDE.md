@@ -25,8 +25,8 @@ This document analyzes the official Chrome Prompt API documentation and compares
 
 ### ✅ What We're Already Doing Right
 
-1. **Correct API Access**: Using global `ai` object properly
-2. **Availability Checking**: Calling `availability()` before use
+1. **Correct API Access**: Using global `LanguageModel` object properly
+2. **Availability Checking**: Calling `LanguageModel.availability()` before use
 3. **Session Management**: 5-minute TTL with recreation
 4. **Timeout Handling**: 4-second timeout with retry logic
 5. **Download Monitoring**: Tracking model download progress
@@ -67,6 +67,7 @@ This document analyzes the official Chrome Prompt API documentation and compares
 **API Usage**:
 
 ```typescript
+// ✅ CORRECT: Use global LanguageModel object
 const session = await LanguageModel.create({
   expectedInputs: [
     {

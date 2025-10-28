@@ -5,7 +5,9 @@
 
 ## Overview
 
-All documentation has been updated to reflect the correct Chrome Prompt API usage. The key correction is that the API exposes a global `LanguageModel` object, not `window.ai.languageModel` or `ai.languageModel`.
+All documentation has been updated to reflect the correct Chrome Prompt API usage. The key correction is that the API exposes a global `LanguageModel` object (capital L), not `window.ai.languageModel` or `ai.languageModel`.
+
+See the official Chrome documentation: https://developer.chrome.com/docs/ai/prompt-api
 
 ## Files Updated
 

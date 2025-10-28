@@ -48,8 +48,10 @@
    ```javascript
    LanguageModel;
    ```
-4. You should see the LanguageModel API object
+4. You should see the LanguageModel factory object (not undefined)
 5. If you see `undefined`, the flags didn't take effect - restart Chrome again
+
+**Note**: The Prompt API is accessed via the global `LanguageModel` object (capital L), NOT through `ai.languageModel` or `window.ai.languageModel`.
 
 ### 5. Check AI Availability
 
