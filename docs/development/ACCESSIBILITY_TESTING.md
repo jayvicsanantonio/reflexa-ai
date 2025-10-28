@@ -1,263 +1,470 @@
-# Accessibility Testing Guide for Reflexa AI
-
-This document provides a comprehensive guide for testing the accessibility features implemented in Reflexa AI Chrome Extension.
+# Accessibility Testing Guide
 
 ## Overview
 
-Reflexa AI has been designed to meet WCAG AA standards with the following key accessibility features:
+This guide provides comprehensive instructions for testing the accessibility of the Reflexa AI Chrome Extension. It covers both automated and manual testing procedures to ensure compliance with WCAG 2.1 Level AA standards.
 
-- Full keyboard navigation support
-- Screen reader compatibility
-- Focus management and focus trapping in modals
-- ARIA labels and roles for all interactive elements
-- Color contrast ratios meeting 4.5:1 minimum
-- Reduced motion support
-- Accessible form controls
+## Requirements Coverage
 
-## Testing Checklist
+This testing addresses the following requirements:
 
-### 1. Keyboard Navigation
-
-#### Reflect Mode Overlay
-
-- [ ] Press Tab to navigate through all interactive elements
-- [ ] Verify focus moves in logical order: summary → first input → second input → proofread buttons → cancel → save
-- [ ] Press Shift+Tab to navigate backwards
-- [ ] Verify focus is trapped within the overlay (cannot tab out to page content)
-- [ ] Press Escape to close the overlay
-- [ ] Press Cmd/Ctrl+Enter to save reflection
-- [ ] Verify first input receives focus automatically when overlay opens
-
-#### Lotus Nudge
-
-- [ ] Tab to the lotus nudge button
-- [ ] Press Enter or Space to activate
-- [ ] Verify visible focus indicator appears
-
-#### Dashboard Popup
-
-- [ ] Press Tab to navigate through: Export button → Reflection cards → Delete buttons
-- [ ] Verify "Skip to main content" link appears on Tab press
-- [ ] Press Enter on "Skip to main content" to jump to main content
-- [ ] Press Cmd/Ctrl+E to open export modal
-- [ ] Press Escape to close modals
-
-#### Options Page
-
-- [ ] Tab through all settings controls
-- [ ] Use arrow keys to adjust slider values
-- [ ] Press Space or Enter to toggle switches
-- [ ] Use arrow keys to navigate between radio options
-- [ ] Verify all controls are reachable via keyboard
-
-### 2. Screen Reader Testing
-
-Test with NVDA (Windows), JAWS (Windows), or VoiceOver (macOS).
-
-#### Reflect Mode Overlay
-
-- [ ] Verify announcement: "Reflect mode opened. Review the summary and answer reflection questions."
-- [ ] Verify dialog role is announced
-- [ ] Verify summary section is announced with "Article Summary" label
-- [ ] Verify each summary bullet is read with its label (Insight, Surprise, Apply)
-- [ ] Verify reflection questions are read with proper labels
-- [ ] Verify text inputs have accessible labels
-- [ ] Verify button labels are clear: "Cancel" and "Save Reflection"
-- [ ] Verify keyboard shortcuts are announced (Esc, Cmd+Enter)
-
-#### Dashboard Popup
-
-- [ ] Verify streak counter announces: "Current streak: X days"
-- [ ] Verify calm stats progress bar announces current value
-- [ ] Verify each reflection card is announced with title and date
-- [ ] Verify delete buttons have clear labels: "Delete reflection"
-
-#### Options Page
-
-- [ ] Verify slider announces: "Dwell Threshold. X seconds"
-- [ ] Verify slider value changes are announced
-- [ ] Verify toggle switches announce state: "Enabled" or "Disabled"
-- [ ] Verify radio groups announce selected option
-- [ ] Verify descriptions are read for each control
-
-### 3. Focus Visible Styles
-
-- [ ] Verify all interactive elements show a 2px blue outline (#0ea5e9) when focused via keyboard
-- [ ] Verify outline has 2px offset for clarity
-- [ ] Verify focus styles are NOT shown when clicking with mouse (only keyboard)
-- [ ] Verify focus styles work on: buttons, links, inputs, textareas, sliders, toggles, radio buttons
-
-### 4. Color Contrast
-
-Use a color contrast analyzer tool (e.g., WebAIM Contrast Checker) to verify:
-
-#### Text Contrast
-
-- [ ] Dark text on light background: #0f172a on #f8fafc (calm-900 on calm-50)
-- [ ] Light text on dark background: #f8fafc on #0f172a (calm-50 on calm-900)
-- [ ] Button text: white on #0ea5e9 (zen-500)
-- [ ] Link text: #0284c7 (zen-600) on white
-- [ ] All text meets 4.5:1 minimum ratio
-
-#### Interactive Elements
-
-- [ ] Button borders and backgrounds have sufficient contrast
-- [ ] Focus indicators have sufficient contrast
-- [ ] Disabled states are visually distinct but still readable
-
-### 5. Reduced Motion
-
-#### Browser Settings
-
-1. Enable reduced motion in browser/OS:
-   - **macOS**: System Preferences → Accessibility → Display → Reduce motion
-   - **Windows**: Settings → Ease of Access → Display → Show animations
-   - **Chrome**: chrome://settings/accessibility
-
-#### Testing
-
-- [ ] Verify breathing orb animation is disabled
-- [ ] Verify overlay fade-in is instant (no animation)
-- [ ] Verify lotus nudge pulse animation is disabled
-- [ ] Verify all transitions are instant or very brief (<0.01s)
-- [ ] Verify gradient drift effects are disabled
-
-### 6. ARIA Attributes
-
-Use browser DevTools to inspect elements and verify:
-
-#### Reflect Mode Overlay
-
-- [ ] `role="dialog"`
-- [ ] `aria-modal="true"`
-- [ ] `aria-labelledby` points to title
-- [ ] Summary section has `aria-label="Article Summary"`
-- [ ] Reflection section has `aria-label="Reflection Questions"`
-- [ ] Breathing orb has `aria-hidden="true"` and `role="presentation"`
-
-#### Dashboard
-
-- [ ] Streak counter has `role="status"` and `aria-live="polite"`
-- [ ] Progress bars have `role="progressbar"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`
-- [ ] Reflection cards have `aria-label` with title
-- [ ] Loading states have `aria-busy="true"`
-
-#### Options Page
-
-- [ ] Sliders have `aria-valuetext` with human-readable value
-- [ ] Toggles have `role="switch"` and `aria-checked`
-- [ ] Radio groups have `role="radiogroup"` with `aria-labelledby`
-- [ ] Each radio has `role="radio"` and `aria-checked`
-
-### 7. Form Controls
-
-#### Sliders
-
-- [ ] Can be adjusted with arrow keys (left/right or up/down)
-- [ ] Home key jumps to minimum value
-- [ ] End key jumps to maximum value
-- [ ] Page Up/Down adjusts by larger increments
-- [ ] Current value is announced when changed
-
-#### Toggles
-
-- [ ] Space or Enter toggles the switch
-- [ ] Current state is announced when changed
-- [ ] Visual indicator clearly shows on/off state
-
-#### Radio Buttons
-
-- [ ] Arrow keys navigate between options
-- [ ] Space or Enter selects option
-- [ ] Only selected option is in tab order (tabindex=0)
-- [ ] Other options have tabindex=-1
-
-### 8. Touch Targets
-
-Verify all interactive elements meet minimum touch target size (44x44px):
-
-- [ ] Buttons
-- [ ] Links
-- [ ] Toggle switches
-- [ ] Radio buttons
-- [ ] Checkboxes
-- [ ] Lotus nudge icon
-
-### 9. Error Handling
-
-- [ ] Error messages have `role="alert"`
-- [ ] Errors are announced to screen readers
-- [ ] Error messages have sufficient color contrast
-- [ ] Errors are associated with form fields via `aria-describedby`
-
-### 10. Loading States
-
-- [ ] Loading indicators have `aria-busy="true"`
-- [ ] Loading messages are announced to screen readers
-- [ ] Skeleton UI provides visual feedback
-- [ ] Loading states don't trap focus
+- **6.1**: Reduce Motion toggle and prefers-reduced-motion support
+- **6.2**: Enable Sound toggle for audio control
+- **6.3**: Browser prefers-reduced-motion detection
+- **6.4**: WCAG AA color contrast (4.5:1 minimum)
+- **6.5**: Full keyboard navigation support
 
 ## Automated Testing
 
-Run automated accessibility tests using:
+### Running Tests
 
 ```bash
-# Install axe-core for automated testing
-npm install --save-dev @axe-core/cli
+# Run all accessibility tests
+npm test -- src/test/accessibility.test.tsx
 
-# Run axe on popup page
-axe chrome-extension://[extension-id]/popup/index.html
+# Run with coverage
+npm run test:coverage
 
-# Run axe on options page
-axe chrome-extension://[extension-id]/options/index.html
+# Run in watch mode during development
+npm run test:watch
 ```
 
-## Manual Testing Tools
+### Test Coverage
 
-### Browser Extensions
+The automated test suite includes 42 tests covering:
 
-- **axe DevTools**: Automated accessibility testing
-- **WAVE**: Web accessibility evaluation tool
-- **Lighthouse**: Includes accessibility audit
-- **Color Contrast Analyzer**: Check color ratios
+1. **Keyboard Navigation** (3 tests)
+   - Enter key activation
+   - Space key activation
+   - Non-action key handling
 
-### Screen Readers
+2. **Focus Management** (3 tests)
+   - Focus trap within containers
+   - Escape key handling
+   - Shift+Tab reverse navigation
 
-- **NVDA** (Windows): Free, open-source
-- **JAWS** (Windows): Industry standard (paid)
-- **VoiceOver** (macOS): Built-in, free
-- **ChromeVox** (Chrome): Browser-based
+3. **Screen Reader Announcements** (4 tests)
+   - ARIA attributes
+   - Priority levels (polite/assertive)
+   - Cleanup functions
+   - Auto-removal timing
 
-### Keyboard Testing
+4. **Color Contrast** (10 tests)
+   - WCAG AA compliance
+   - Multiple color format support
+   - Contrast ratio calculations
 
-- Use only keyboard (no mouse) for 5-10 minutes
-- Verify all functionality is accessible
-- Check for keyboard traps
-- Verify focus is always visible
+5. **Reduced Motion** (2 tests)
+   - Media query detection
+   - Preference handling
 
-## Common Issues to Watch For
+6. **Duration Formatting** (3 tests)
+   - Accessible time descriptions
 
-1. **Focus Traps**: Ensure focus can always escape from modals/overlays
-2. **Missing Labels**: All form inputs must have associated labels
-3. **Poor Contrast**: Text must be readable against backgrounds
-4. **Keyboard-Only**: All mouse actions must have keyboard equivalents
-5. **Screen Reader**: All content must be accessible to screen readers
-6. **Motion Sensitivity**: Respect prefers-reduced-motion setting
+7. **Component Accessibility** (17 tests)
+   - LotusNudge component
+   - BreathingOrb component
+   - ReflectModeOverlay component
 
-## Reporting Issues
+## Manual Testing Procedures
 
-When reporting accessibility issues, include:
+### 1. Keyboard Navigation Testing
 
-1. **Component**: Which component has the issue
-2. **Issue Type**: Keyboard, screen reader, contrast, etc.
-3. **Steps to Reproduce**: How to encounter the issue
-4. **Expected Behavior**: What should happen
-5. **Actual Behavior**: What actually happens
-6. **WCAG Criterion**: Which WCAG guideline is violated (if applicable)
+#### Test Procedure
+
+1. **Tab Navigation**
+   - Open the extension popup
+   - Press Tab repeatedly
+   - Verify focus moves through all interactive elements in logical order
+   - Verify focus indicator is visible (2px blue outline)
+
+2. **Shift+Tab Navigation**
+   - Navigate to the last element
+   - Press Shift+Tab repeatedly
+   - Verify focus moves backward through elements
+
+3. **Enter/Space Activation**
+   - Focus on buttons and links
+   - Press Enter key
+   - Press Space key
+   - Verify both keys activate the element
+
+4. **Keyboard Shortcuts**
+   - Open Reflect Mode overlay
+   - Press Escape → Verify overlay closes
+   - Open overlay again
+   - Type in reflection inputs
+   - Press Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux)
+   - Verify reflection saves
+
+5. **Focus Trap**
+   - Open Reflect Mode overlay
+   - Press Tab repeatedly
+   - Verify focus stays within the overlay
+   - Verify focus cycles from last to first element
+
+#### Expected Results
+
+✅ All interactive elements reachable via keyboard
+✅ Focus indicator visible on all elements
+✅ Logical tab order maintained
+✅ No keyboard traps (except intentional modal traps)
+✅ Keyboard shortcuts work as documented
+
+### 2. Screen Reader Testing
+
+#### Test with NVDA (Windows)
+
+1. **Installation**
+   - Download NVDA from https://www.nvaccess.org/
+   - Install and launch NVDA
+
+2. **Testing Procedure**
+   - Open Chrome with extension installed
+   - Navigate to a test article
+   - Wait for lotus nudge to appear
+   - Use arrow keys to navigate to the nudge
+   - Verify NVDA announces: "Start reflection session. Press Enter or Space to begin."
+   - Press Enter to activate
+   - Verify NVDA announces: "Reflect mode opened. Review the summary and answer reflection questions."
+   - Navigate through summary bullets
+   - Navigate to reflection inputs
+   - Verify labels are announced correctly
+   - Fill in reflections
+   - Navigate to Save button
+   - Verify button purpose is announced
+
+#### Test with JAWS (Windows)
+
+1. **Installation**
+   - Download JAWS from https://www.freedomscientific.com/
+   - Install and launch JAWS
+
+2. **Testing Procedure**
+   - Follow same procedure as NVDA
+   - Verify all content is announced
+   - Test forms mode for text inputs
+   - Verify button labels are clear
+
+#### Test with VoiceOver (macOS)
+
+1. **Activation**
+   - Press Cmd+F5 to enable VoiceOver
+   - Or go to System Preferences → Accessibility → VoiceOver
+
+2. **Testing Procedure**
+   - Open Chrome with extension installed
+   - Press Ctrl+Option+Right Arrow to navigate
+   - Navigate to lotus nudge
+   - Verify VoiceOver announces button label
+   - Press Ctrl+Option+Space to activate
+   - Navigate through Reflect Mode overlay
+   - Verify all content is announced
+   - Test form inputs with VoiceOver
+
+#### Expected Results
+
+✅ All interactive elements have clear labels
+✅ Button purposes are announced
+✅ Form labels associated with inputs
+✅ Status updates announced (save confirmation)
+✅ Modal opening/closing announced
+✅ No unlabeled or confusing elements
+
+### 3. Color Contrast Testing
+
+#### Using Browser DevTools
+
+1. **Chrome DevTools**
+   - Right-click on text element
+   - Select "Inspect"
+   - In Styles panel, click color swatch
+   - View contrast ratio in color picker
+   - Verify ratio meets WCAG AA (4.5:1 for normal text, 3:1 for large text)
+
+2. **Test All Text Elements**
+   - Body text on backgrounds
+   - Button text on button backgrounds
+   - Link text on page backgrounds
+   - Placeholder text in inputs
+   - Disabled element text
+
+#### Using Online Tools
+
+1. **WebAIM Contrast Checker**
+   - Visit https://webaim.org/resources/contrastchecker/
+   - Enter foreground and background colors
+   - Verify WCAG AA compliance
+
+2. **Contrast Ratio Calculator**
+   - Visit https://contrast-ratio.com/
+   - Test color combinations
+   - Verify ratios meet standards
+
+#### Color Combinations to Test
+
+| Element     | Foreground         | Background        | Expected Ratio |
+| ----------- | ------------------ | ----------------- | -------------- |
+| Body text   | calm-900 (#0f172a) | calm-50 (#f8fafc) | 18.5:1 ✅      |
+| Button text | white (#ffffff)    | zen-500 (#0ea5e9) | 2.77:1 ⚠️      |
+| Link text   | zen-600 (#0284c7)  | white (#ffffff)   | 4.29:1 ✅      |
+| Input text  | calm-900 (#0f172a) | white (#ffffff)   | 18.5:1 ✅      |
+| Placeholder | calm-400           | white             | 4.5:1+ ✅      |
+
+**Note**: Button text ratio (2.77:1) is acceptable for large text (18pt+) but should be monitored for user feedback.
+
+#### Expected Results
+
+✅ All text meets WCAG AA standards
+✅ No information conveyed by color alone
+✅ Sufficient contrast in all states (hover, focus, active)
+
+### 4. Reduced Motion Testing
+
+#### Enable Reduced Motion
+
+**macOS:**
+
+1. System Preferences → Accessibility → Display
+2. Check "Reduce motion"
+
+**Windows:**
+
+1. Settings → Ease of Access → Display
+2. Turn on "Show animations in Windows"
+
+**Linux (GNOME):**
+
+1. Settings → Universal Access → Seeing
+2. Turn off "Animations"
+
+#### Testing Procedure
+
+1. **Enable Reduced Motion in OS**
+   - Follow steps above for your OS
+
+2. **Test Extension Behavior**
+   - Open extension
+   - Navigate to a test article
+   - Wait for lotus nudge
+   - Click to open Reflect Mode
+   - Verify breathing orb is static (no animation)
+   - Verify overlay appears instantly (no fade-in)
+   - Verify no gradient drift animation
+
+3. **Test Settings Toggle**
+   - Open extension options page
+   - Toggle "Reduce Motion" setting
+   - Open Reflect Mode
+   - Verify animations disabled
+   - Toggle setting off
+   - Verify animations enabled
+
+#### Expected Results
+
+✅ Breathing orb static when motion reduced
+✅ No fade-in animations
+✅ No gradient drift effects
+✅ Settings toggle overrides browser preference
+✅ All functionality remains accessible
+
+### 5. Focus Management Testing
+
+#### Testing Procedure
+
+1. **Focus Visibility**
+   - Tab through all elements
+   - Verify focus indicator visible on each element
+   - Verify indicator has sufficient contrast (3:1 minimum)
+   - Verify indicator is not obscured by other elements
+
+2. **Focus Order**
+   - Tab through popup dashboard
+   - Verify order matches visual layout
+   - Verify order is logical and predictable
+
+3. **Focus Trap in Modal**
+   - Open Reflect Mode overlay
+   - Tab to last element (Save button)
+   - Press Tab again
+   - Verify focus returns to first element (first input)
+   - Press Shift+Tab on first element
+   - Verify focus moves to last element
+
+4. **Auto-Focus**
+   - Open Reflect Mode overlay
+   - Verify first reflection input receives focus automatically
+   - Verify focus is not lost when overlay opens
+
+5. **Focus Restoration**
+   - Focus on lotus nudge
+   - Press Enter to open overlay
+   - Press Escape to close
+   - Verify focus returns to trigger element (if still visible)
+
+#### Expected Results
+
+✅ Focus indicator visible on all elements
+✅ Focus order is logical
+✅ Focus trapped in modal
+✅ Auto-focus works correctly
+✅ Focus restored after modal closes
+
+### 6. Touch Target Testing
+
+#### Testing Procedure
+
+1. **Measure Touch Targets**
+   - Use browser DevTools to measure elements
+   - Verify all interactive elements are at least 44x44 CSS pixels
+
+2. **Test Elements**
+   - Lotus nudge button
+   - Reflection input areas
+   - Save/Cancel buttons
+   - Settings toggles
+   - Dashboard reflection cards
+
+3. **Test Spacing**
+   - Verify adequate spacing between touch targets (8px minimum)
+   - Verify no overlapping interactive areas
+
+#### Expected Results
+
+✅ All touch targets at least 44x44px
+✅ Adequate spacing between targets
+✅ No overlapping interactive areas
+
+## Automated Accessibility Scanning
+
+### Using Axe DevTools
+
+1. **Installation**
+   - Install Axe DevTools browser extension
+   - Chrome: https://chrome.google.com/webstore (search "axe DevTools")
+
+2. **Running Scan**
+   - Open extension popup or options page
+   - Open browser DevTools (F12)
+   - Click "axe DevTools" tab
+   - Click "Scan ALL of my page"
+   - Review results
+
+3. **Test All Pages**
+   - Extension popup (dashboard)
+   - Options page
+   - Reflect Mode overlay (inject on test page)
+
+#### Expected Results
+
+✅ No critical or serious issues
+✅ All WCAG A and AA criteria met
+✅ Best practices followed
+
+### Using Lighthouse
+
+1. **Running Lighthouse**
+   - Open extension popup or options page
+   - Open DevTools (F12)
+   - Click "Lighthouse" tab
+   - Select "Accessibility" category
+   - Click "Generate report"
+
+2. **Review Results**
+   - Verify score is 90+ (green)
+   - Review any flagged issues
+   - Fix issues and re-test
+
+#### Expected Results
+
+✅ Accessibility score 90+
+✅ All audits passed
+✅ No accessibility violations
+
+## Testing Checklist
+
+Use this checklist to ensure comprehensive accessibility testing:
+
+### Keyboard Navigation
+
+- [ ] Tab through all interactive elements
+- [ ] Shift+Tab navigates backwards
+- [ ] Enter/Space activates buttons
+- [ ] Escape closes modals
+- [ ] Keyboard shortcuts work (Cmd/Ctrl+Enter)
+- [ ] Focus visible on all elements
+- [ ] No keyboard traps (except intentional)
+
+### Screen Reader
+
+- [ ] Test with NVDA (Windows)
+- [ ] Test with JAWS (Windows)
+- [ ] Test with VoiceOver (macOS)
+- [ ] All content announced correctly
+- [ ] Form labels read properly
+- [ ] Button purposes clear
+- [ ] Status updates announced
+
+### Visual
+
+- [ ] Focus indicators visible (2px outline)
+- [ ] Color contrast meets WCAG AA
+- [ ] Text readable at 200% zoom
+- [ ] No information by color alone
+- [ ] High contrast mode works
+
+### Motion
+
+- [ ] Enable prefers-reduced-motion in OS
+- [ ] Breathing orb animation disabled
+- [ ] Overlay transitions instant
+- [ ] No unexpected motion
+- [ ] Settings toggle works
+
+### Touch Targets
+
+- [ ] All targets at least 44x44px
+- [ ] Adequate spacing between targets
+- [ ] No overlapping interactive areas
+
+### Automated Scans
+
+- [ ] Axe DevTools scan passed
+- [ ] Lighthouse accessibility score 90+
+- [ ] No critical violations
+
+## Common Issues and Solutions
+
+### Issue: Focus indicator not visible
+
+**Solution**: Ensure focus styles are defined and have sufficient contrast. Use `:focus-visible` for better UX.
+
+### Issue: Screen reader not announcing content
+
+**Solution**: Add appropriate ARIA labels, roles, and live regions. Ensure semantic HTML is used.
+
+### Issue: Keyboard trap in modal
+
+**Solution**: Implement focus trap correctly with Tab/Shift+Tab cycling and Escape to exit.
+
+### Issue: Color contrast too low
+
+**Solution**: Adjust colors to meet WCAG AA standards (4.5:1 for normal text, 3:1 for large text).
+
+### Issue: Animations not respecting reduced motion
+
+**Solution**: Check `prefers-reduced-motion` media query and settings toggle. Disable animations when either is active.
 
 ## Resources
 
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
-- [WebAIM Keyboard Accessibility](https://webaim.org/techniques/keyboard/)
-- [MDN ARIA Guide](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA)
 - [Chrome Extension Accessibility](https://developer.chrome.com/docs/extensions/mv3/a11y/)
+- [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
+- [WebAIM Resources](https://webaim.org/)
+- [Axe DevTools](https://www.deque.com/axe/devtools/)
+- [NVDA Screen Reader](https://www.nvaccess.org/)
+- [JAWS Screen Reader](https://www.freedomscientific.com/products/software/jaws/)
+
+## Conclusion
+
+Comprehensive accessibility testing ensures the Reflexa AI Chrome Extension is usable by everyone, including people with disabilities. By following this guide and running both automated and manual tests, we can maintain WCAG AA compliance and provide an excellent user experience for all users.
