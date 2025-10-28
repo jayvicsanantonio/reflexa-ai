@@ -75,8 +75,37 @@ export const STORAGE_KEYS = {
 
 /**
  * AI prompts for Gemini Nano
+ *
+ * These prompts are carefully designed based on learning science research:
+ *
+ * SUMMARIZE:
+ * - Three-bullet format follows cognitive load theory (3-5 items optimal for retention)
+ * - "Insight" connects new information to existing knowledge (elaborative encoding)
+ * - "Surprise" highlights novel elements that aid memory formation (von Restorff effect)
+ * - "Apply" encourages practical application, improving long-term retention (transfer-appropriate processing)
+ * - 20-word limit ensures conciseness and forces prioritization of key information
+ *
+ * REFLECT:
+ * - Two questions balance depth with brevity (prevents cognitive overload)
+ * - Action-oriented questions promote active learning and application
+ * - 15-word limit keeps questions focused and clear
+ * - Designed to trigger deeper processing (levels of processing theory)
+ *
+ * PROOFREAD:
+ * - Preserves user's authentic voice (important for personal reflections)
+ * - Minimal editing (max 2 per sentence) maintains original meaning
+ * - Focuses on clarity over perfection (reduces friction in reflection process)
  */
 export const AI_PROMPTS = {
+  /**
+   * Summarization prompt
+   * Generates a three-bullet summary with specific structure:
+   * - Insight: Main idea or key takeaway
+   * - Surprise: Unexpected or counterintuitive element
+   * - Apply: Practical application or action item
+   *
+   * Placeholder: {content} - The article text to summarize
+   */
   SUMMARIZE: `Summarize the following article into exactly 3 concise bullets. Each bullet should be no more than 20 words.
 
 Format your response as:
@@ -87,6 +116,16 @@ Format your response as:
 Article content:
 {content}`,
 
+  /**
+   * Reflection prompt generation
+   * Creates two action-oriented questions to deepen understanding.
+   * Questions should be:
+   * - Thought-provoking and open-ended
+   * - Focused on application or deeper analysis
+   * - Concise (max 15 words each)
+   *
+   * Placeholder: {summary} - The three-bullet summary to base questions on
+   */
   REFLECT: `Based on this article summary, generate exactly 2 thoughtful reflection questions that help the reader think deeper about the content. Each question should be:
 - Action-oriented and practical
 - No more than 15 words
@@ -99,6 +138,16 @@ Format your response as:
 1. [First reflection question]
 2. [Second reflection question]`,
 
+  /**
+   * Proofreading prompt
+   * Improves grammar and clarity while preserving the user's voice.
+   * Guidelines:
+   * - Maximum 2 edits per sentence (minimal intervention)
+   * - Preserve original tone and style
+   * - Focus on clarity and correctness, not perfection
+   *
+   * Placeholder: {text} - The user's reflection text to proofread
+   */
   PROOFREAD: `Proofread the following text for grammar and clarity. Preserve the original tone and voice. Make no more than 2 edits per sentence. Only fix clear errors or improve clarity.
 
 Original text:
