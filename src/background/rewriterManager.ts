@@ -89,9 +89,10 @@ export class RewriterManager {
   private async createSession(config: {
     sharedContext?: string;
     tone?: 'as-is' | 'more-formal' | 'more-casual';
+    format?: 'as-is' | 'markdown' | 'plain-text';
     length?: 'as-is' | 'shorter' | 'longer';
   }): Promise<AIRewriter | null> {
-    const sessionKey = `${config.tone ?? 'as-is'}-${config.length ?? 'as-is'}`;
+    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -99,16 +100,18 @@ export class RewriterManager {
     }
 
     try {
-      // Access ai.rewriter from globalThis (service worker context)
-      if (typeof ai === 'undefined' || !ai?.rewriter) {
+      // Access Rewriter from globalThis (service worker context)
+      // Note: Rewriter API is accessed via global Rewriter, not ai.rewriter
+      if (typeof Rewriter === 'undefined') {
         console.warn('Rewriter API not available');
         return null;
       }
 
       // Create new session with specified options
-      const session = await ai.rewriter.create({
+      const session = await Rewriter.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
+        format: config.format,
         length: config.length,
       });
 
@@ -223,6 +226,7 @@ export class RewriterManager {
     const session = await this.createSession({
       sharedContext,
       tone,
+      format: 'plain-text',
       length,
     });
 
@@ -273,6 +277,7 @@ export class RewriterManager {
       const session = await this.createSession({
         sharedContext,
         tone,
+        format: 'plain-text',
         length,
       });
 
@@ -280,37 +285,18 @@ export class RewriterManager {
         throw new Error('Failed to create rewriter session');
       }
 
-      // Get streaming response
+      // Get streaming response and iterate using for await...of
       const stream = session.rewriteStreaming(text, { context });
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
       let fullText = '';
 
-      try {
-        while (true) {
-          const result = await reader.read();
-          const done = result.done;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const value = result.value;
-
-          if (done) {
-            break;
-          }
-
-          // Decode chunk and append to full text
-          if (value) {
-            const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            fullText += chunk;
-
-            // Call chunk callback for progressive UI updates
-            onChunk(chunk);
-          }
-        }
-
-        return { original: text, rewritten: fullText.trim() };
-      } finally {
-        reader.releaseLock();
+      // Use for await...of to iterate over the stream as per documentation
+      for await (const chunk of stream) {
+        fullText += chunk;
+        // Call chunk callback for progressive UI updates
+        onChunk(chunk);
       }
+
+      return { original: text, rewritten: fullText.trim() };
     } catch (error) {
       console.error('Streaming rewrite failed:', error);
       throw new Error(

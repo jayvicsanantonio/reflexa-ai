@@ -19,15 +19,20 @@ The Chrome Writer API helps create new content that conforms to a specified writ
 
 ### Writer Factory
 
-The Writer API is accessed via `ai.writer` (or global `Writer` in some contexts):
+The Writer API is accessed via the global `Writer` object:
 
 ```typescript
+// Feature detection
+if ('Writer' in self) {
+  // Writer API is supported
+}
+
 // Check availability
-const availability = await ai.writer.availability();
+const availability = await Writer.availability();
 // Returns: 'available' | 'downloadable' | 'downloading' | 'unavailable'
 
 // Create a writer session
-const writer = await ai.writer.create(options);
+const writer = await Writer.create(options);
 ```
 
 ### Writer Session
@@ -188,7 +193,7 @@ console.log('Complete text:', fullText);
 
 ```typescript
 // Create a multilingual writer
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   tone: 'formal',
   expectedInputLanguages: ['en', 'es', 'ja'],
   expectedContextLanguages: ['en', 'es'],
@@ -207,7 +212,7 @@ writer.destroy();
 
 ```typescript
 // Create a writer for multiple tasks
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   tone: 'casual',
   format: 'plain-text',
   length: 'short',
@@ -232,7 +237,7 @@ const controller = new AbortController();
 setTimeout(() => controller.abort(), 5000);
 
 try {
-  const writer = await ai.writer.create({
+  const writer = await Writer.create({
     tone: 'neutral',
     signal: controller.signal,
   });
@@ -254,7 +259,7 @@ try {
 ### 1. Check Availability First
 
 ```typescript
-const availability = await ai.writer.availability();
+const availability = await Writer.availability();
 
 if (availability === 'unavailable') {
   // Fall back to manual input or alternative method
@@ -271,7 +276,7 @@ if (availability === 'downloadable') {
 
 ```typescript
 // Good: Shared context for multiple related generations
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   sharedContext: 'Writing reflective journal entries about articles read.',
 });
 
@@ -370,7 +375,7 @@ async function generateReflectionDraft(summary: string[]) {
 
 ```typescript
 async function generateCustomPrompts(topic: string) {
-  const writer = await ai.writer.create({
+  const writer = await Writer.create({
     tone: 'neutral',
     format: 'plain-text',
     length: 'short',
@@ -473,11 +478,11 @@ This balances responsiveness with reliability.
 1. Open Chrome DevTools console
 2. Check availability:
    ```javascript
-   await ai.writer.availability();
+   await Writer.availability();
    ```
 3. Create and test:
    ```javascript
-   const writer = await ai.writer.create({ tone: 'casual' });
+   const writer = await Writer.create({ tone: 'casual' });
    const result = await writer.write('Write a haiku about coding');
    console.log(result);
    writer.destroy();

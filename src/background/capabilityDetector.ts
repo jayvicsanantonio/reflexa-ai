@@ -33,12 +33,25 @@ export class CapabilityDetector {
    */
   private checkAPIAvailability(apiName: string): boolean {
     try {
-      // Check if globalThis.ai exists (for service workers)
+      // Check if globalThis exists
       if (typeof globalThis === 'undefined') {
         return false;
       }
 
-      // Access ai from globalThis
+      // Note: Rewriter, Writer, and Proofreader APIs are accessed as globals,
+      // not through the ai object
+      if (
+        apiName === 'rewriter' ||
+        apiName === 'writer' ||
+        apiName === 'proofreader'
+      ) {
+        // Check for capital-case global (e.g., 'Rewriter' in self)
+        const capitalizedName =
+          apiName.charAt(0).toUpperCase() + apiName.slice(1);
+        return capitalizedName in globalThis;
+      }
+
+      // For other APIs, check through ai object
       const ai = (
         globalThis as typeof globalThis & { ai?: Record<string, unknown> }
       ).ai;

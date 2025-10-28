@@ -32,7 +32,10 @@ export interface AIWriter {
     input: string,
     options?: { context?: string; signal?: AbortSignal }
   ): Promise<string>;
-  writeStreaming(input: string, options?: { context?: string }): ReadableStream;
+  writeStreaming(
+    input: string,
+    options?: { context?: string }
+  ): ReadableStream & AsyncIterable<string>;
   destroy(): void;
 }
 ```
@@ -41,6 +44,7 @@ export interface AIWriter {
 
 - Added `context` parameter to `write()` method options
 - Added `context` parameter to `writeStreaming()` method options
+- Added `AsyncIterable<string>` to streaming return type for `for await...of` support
 
 #### AIWriterFactory Interface
 
@@ -111,6 +115,53 @@ declare global {
 ```
 
 ### 2. Implementation (`src/background/writerManager.ts`)
+
+#### API Access Method - CRITICAL
+
+**Before**:
+
+```typescript
+if (typeof ai === 'undefined' || !ai?.writer) {
+  console.warn('Writer API not available');
+  return null;
+}
+const session = await ai.writer.create({...});
+```
+
+**After**:
+
+```typescript
+if (typeof Writer === 'undefined') {
+  console.warn('Writer API not available');
+  return null;
+}
+const session = await Writer.create({...});
+```
+
+**Reason**: Official documentation shows Writer API is accessed via global `Writer` object, not `ai.writer`.
+
+#### Streaming Implementation
+
+**Before**:
+
+```typescript
+const stream = session.writeStreaming(topic, { context });
+const reader = stream.getReader();
+const decoder = new TextDecoder();
+// ... manual reader handling
+```
+
+**After**:
+
+```typescript
+const stream = session.writeStreaming(topic, { context });
+for await (const chunk of stream) {
+  fullText += chunk;
+  onChunk(chunk);
+}
+```
+
+**Reason**: Official documentation shows streaming should use `for await...of` iteration.
 
 #### Default Format
 
@@ -185,11 +236,16 @@ const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-$
 ### Correct API Pattern
 
 ```typescript
-// 1. Check availability
-const availability = await ai.writer.availability();
+// 1. Feature detection
+if ('Writer' in self) {
+  // Writer API is supported
+}
 
-// 2. Create session with configuration
-const writer = await ai.writer.create({
+// 2. Check availability
+const availability = await Writer.availability();
+
+// 3. Create session with configuration
+const writer = await Writer.create({
   sharedContext: 'Context for all operations',
   tone: 'neutral', // 'formal' | 'neutral' | 'casual'
   format: 'markdown', // 'plain-text' | 'markdown' (default: 'markdown')
@@ -198,12 +254,12 @@ const writer = await ai.writer.create({
   outputLanguage: 'en', // Optional
 });
 
-// 3. Generate text with optional per-request context
+// 4. Generate text with optional per-request context
 const result = await writer.write('Write about topic', {
   context: 'Additional context for this specific request',
 });
 
-// 4. Or use streaming
+// 5. Or use streaming with for await...of
 const stream = writer.writeStreaming('Write about topic', {
   context: 'Additional context',
 });
@@ -212,7 +268,7 @@ for await (const chunk of stream) {
   console.log(chunk);
 }
 
-// 5. Clean up
+// 6. Clean up
 writer.destroy();
 ```
 

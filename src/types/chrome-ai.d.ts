@@ -32,7 +32,10 @@ export interface AIWriter {
     input: string,
     options?: { context?: string; signal?: AbortSignal }
   ): Promise<string>;
-  writeStreaming(input: string, options?: { context?: string }): ReadableStream;
+  writeStreaming(
+    input: string,
+    options?: { context?: string }
+  ): ReadableStream & AsyncIterable<string>;
   destroy(): void;
 }
 
@@ -69,7 +72,7 @@ export interface AIRewriter {
   rewriteStreaming(
     input: string,
     options?: { context?: string }
-  ): ReadableStream;
+  ): ReadableStream & AsyncIterable<string>;
   destroy(): void;
 }
 
@@ -77,7 +80,17 @@ export interface AIRewriterFactory {
   create(options?: {
     sharedContext?: string;
     tone?: 'as-is' | 'more-formal' | 'more-casual';
+    format?: 'as-is' | 'markdown' | 'plain-text';
     length?: 'as-is' | 'shorter' | 'longer';
+    expectedInputLanguages?: string[];
+    expectedContextLanguages?: string[];
+    outputLanguage?: string;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
     signal?: AbortSignal;
   }): Promise<AIRewriter>;
   availability(): Promise<
@@ -201,11 +214,13 @@ interface ChromeAI {
 declare global {
   interface Window {
     ai?: ChromeAI;
-    // Writer API is also available as a global
+    // Writer and Rewriter APIs are also available as globals
     Writer?: AIWriterFactory;
+    Rewriter?: AIRewriterFactory;
   }
 
-  // For service workers
+  // For service workers and global scope
   const ai: ChromeAI | undefined;
   const Writer: AIWriterFactory | undefined;
+  const Rewriter: AIRewriterFactory | undefined;
 }

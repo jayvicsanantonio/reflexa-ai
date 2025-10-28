@@ -111,14 +111,15 @@ export class WriterManager {
     }
 
     try {
-      // Access ai.writer from globalThis (service worker context)
-      if (typeof ai === 'undefined' || !ai?.writer) {
+      // Access Writer from globalThis (service worker context)
+      // Note: Writer API is accessed via global Writer, not ai.writer
+      if (typeof Writer === 'undefined') {
         console.warn('Writer API not available');
         return null;
       }
 
       // Create new session with specified options
-      const session = await ai.writer.create({
+      const session = await Writer.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
         format: config.format ?? 'markdown', // Default is markdown per docs
@@ -349,39 +350,20 @@ export class WriterManager {
         throw new Error('Failed to create writer session');
       }
 
-      // Get streaming response - pass context in options per API spec
+      // Get streaming response and iterate using for await...of
       const stream = session.writeStreaming(topic, {
         context: context,
       });
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
       let fullText = '';
 
-      try {
-        while (true) {
-          const result = await reader.read();
-          const done = result.done;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const value = result.value;
-
-          if (done) {
-            break;
-          }
-
-          // Decode chunk and append to full text
-          if (value) {
-            const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            fullText += chunk;
-
-            // Call chunk callback for progressive UI updates
-            onChunk(chunk);
-          }
-        }
-
-        return fullText.trim();
-      } finally {
-        reader.releaseLock();
+      // Use for await...of to iterate over the stream as per documentation
+      for await (const chunk of stream) {
+        fullText += chunk;
+        // Call chunk callback for progressive UI updates
+        onChunk(chunk);
       }
+
+      return fullText.trim();
     } catch (error) {
       console.error('Streaming generation failed:', error);
       throw new Error(

@@ -7,11 +7,16 @@ Generate new content with tone and length control using Chrome's built-in Writer
 ## Basic Usage
 
 ```typescript
+// Feature detection
+if ('Writer' in self) {
+  // Writer API is supported
+}
+
 // Check availability
-const available = await ai.writer.availability();
+const available = await Writer.availability();
 
 // Create session
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   tone: 'neutral',
   format: 'markdown',
   length: 'medium',
@@ -62,7 +67,7 @@ writer.destroy();
 ### With Context
 
 ```typescript
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   sharedContext: 'Writing reflective journal entries',
   tone: 'neutral',
 });
@@ -87,7 +92,7 @@ for await (const chunk of stream) {
 ### Multiple Generations
 
 ```typescript
-const writer = await ai.writer.create({ tone: 'casual' });
+const writer = await Writer.create({ tone: 'casual' });
 
 const post1 = await writer.write('Topic 1');
 const post2 = await writer.write('Topic 2');
@@ -102,7 +107,7 @@ writer.destroy();
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 5000);
 
-const writer = await ai.writer.create({
+const writer = await Writer.create({
   tone: 'neutral',
   signal: controller.signal,
 });
@@ -148,7 +153,7 @@ manager.destroy();
 
 ```typescript
 try {
-  const writer = await ai.writer.create({ tone: 'neutral' });
+  const writer = await Writer.create({ tone: 'neutral' });
   const result = await writer.write('Write something');
   writer.destroy();
 } catch (error) {
