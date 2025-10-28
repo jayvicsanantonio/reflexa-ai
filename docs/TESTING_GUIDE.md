@@ -61,7 +61,7 @@ Gemini Nano is Chrome's built-in AI that powers Reflexa AI. You need to enable i
 5. **Verify AI is Available** (Optional):
    - Open DevTools (F12) on any page
    - Go to the Console tab
-   - Type: `await window.ai?.languageModel?.availability()`
+   - Type: `await LanguageModel.availability()`
    - Press Enter
    - Should return: `"available"` or `"downloadable"`
 
@@ -766,7 +766,7 @@ npm run format:check
 
 ```javascript
 // Check AI availability
-await window.ai?.languageModel?.availability();
+await LanguageModel.availability();
 
 // Check if content script loaded
 document.querySelector('#reflexa-shadow-root');
@@ -874,7 +874,7 @@ DwellTracker: Threshold reached
 4. Wait for model download (check `chrome://components/`)
 5. Check AI availability in console:
    ```javascript
-   await window.ai?.languageModel?.availability();
+   await LanguageModel.availability();
    ```
 
 ---

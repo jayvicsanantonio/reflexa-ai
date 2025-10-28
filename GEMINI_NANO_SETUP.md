@@ -46,9 +46,9 @@
 2. Go to Console tab
 3. Run this command:
    ```javascript
-   window.ai;
+   LanguageModel;
    ```
-4. You should see an object with `languageModel` property
+4. You should see the LanguageModel API object
 5. If you see `undefined`, the flags didn't take effect - restart Chrome again
 
 ### 5. Check AI Availability
@@ -56,31 +56,31 @@
 Run this in the console:
 
 ```javascript
-await window.ai.languageModel.availability();
+await LanguageModel.availability();
 ```
 
 Expected responses:
 
 - `"available"` - Model is ready to use ✅
-- `"downloadable"` or `"after-download"` - Model needs to be downloaded
+- `"downloadable"` - Model needs to be downloaded
 - `"downloading"` - Model is currently downloading
 - `"unavailable"` - Not supported on this device ❌
 
 ### 6. Download Gemini Nano Model (if needed)
 
-If availability returns `"downloadable"` or `"after-download"`:
+If availability returns `"downloadable"`:
 
 ```javascript
-await window.ai.languageModel.create();
+await LanguageModel.create();
 ```
 
-This will download the model (~1.5GB). It may take several minutes.
+This will download the model (~22GB). It may take several minutes.
 
 **Monitor download progress:**
 The model downloads in the background. You can check status by running:
 
 ```javascript
-await window.ai.languageModel.availability();
+await LanguageModel.availability();
 ```
 
 When it returns `"available"`, you're ready!
@@ -90,7 +90,7 @@ When it returns `"available"`, you're ready!
 Once available, test it:
 
 ```javascript
-const session = await window.ai.languageModel.create();
+const session = await LanguageModel.create();
 const result = await session.prompt('Say hello!');
 console.log(result);
 session.destroy();
@@ -100,7 +100,7 @@ You should see a response from Gemini Nano!
 
 ## Troubleshooting
 
-### "ai is not defined" error
+### "LanguageModel is not defined" error
 
 - Flags are not enabled properly
 - Chrome wasn't restarted after enabling flags
@@ -124,7 +124,7 @@ You should see a response from Gemini Nano!
 
 ### Extension still shows "AI Unavailable"
 
-1. Verify `window.ai` exists in page console
+1. Verify `LanguageModel` exists in page console
 2. Check background service worker console for detailed errors
 3. Reload the extension after enabling AI
 4. Try on a different webpage
@@ -137,8 +137,8 @@ Before using Reflexa AI with Gemini Nano:
 - [ ] `chrome://flags/#prompt-api-for-gemini-nano` = Enabled
 - [ ] `chrome://flags/#optimization-guide-on-device-model` = Enabled BypassPerfRequirement
 - [ ] Chrome restarted completely
-- [ ] `window.ai` is defined in console
-- [ ] `await window.ai.languageModel.availability()` returns "available"
+- [ ] `LanguageModel` is defined in console
+- [ ] `await LanguageModel.availability()` returns "available"
 - [ ] Test prompt works successfully
 
 ## Still Having Issues?

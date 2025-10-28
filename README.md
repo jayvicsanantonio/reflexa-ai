@@ -210,7 +210,7 @@ Reflexa AI is built as a Chrome Manifest V3 extension with four primary componen
 │  │          │                                      │        │
 │  │          ▼                                      │        │
 │  │   ┌──────────────────────────────────┐         │        │
-│  │   │  chrome.ai.languageModel         │         │        │
+│  │   │  LanguageModel                   │         │        │
 │  │   │  (Gemini Nano)                   │         │        │
 │  │   │                                  │         │        │
 │  │   │  • Local AI Inference            │         │        │

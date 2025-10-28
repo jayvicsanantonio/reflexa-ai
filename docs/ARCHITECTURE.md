@@ -576,12 +576,19 @@ Reflexa AI uses Chrome's built-in Prompt API to access Gemini Nano.
 
 ```typescript
 // Check availability
-const availability = await window.ai.languageModel.availability();
+const availability = await LanguageModel.availability();
 // Returns: 'available' | 'downloadable' | 'downloading' | 'unavailable'
 
+// Get model parameters
+const params = await LanguageModel.params();
+
 // Create session
-const model = await window.ai.languageModel.create({
-  systemPrompt: 'You are a helpful assistant...',
+const model = await LanguageModel.create({
+  temperature: params.defaultTemperature,
+  topK: params.defaultTopK,
+  initialPrompts: [
+    { role: 'system', content: 'You are a helpful assistant...' },
+  ],
   monitor: (m) => {
     m.addEventListener('downloadprogress', (e) => {
       console.log(`Download: ${e.loaded * 100}%`);
@@ -599,6 +606,9 @@ const stream = model.promptStreaming('Summarize...');
 for await (const chunk of stream) {
   console.log(chunk);
 }
+
+// Check usage
+console.log(`${model.inputUsage}/${model.inputQuota} tokens used`);
 
 // Cleanup
 model.destroy();

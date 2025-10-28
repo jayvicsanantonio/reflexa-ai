@@ -1,5 +1,7 @@
 # Task 5 Implementation: AI Manager for Gemini Nano Integration
 
+> **⚠️ HISTORICAL DOCUMENT NOTICE**: This document contains outdated API references from the initial implementation. The Chrome Prompt API has been corrected to use the global `LanguageModel` object instead of `window.ai.languageModel`. See [API_CORRECTIONS_SUMMARY.md](../API_CORRECTIONS_SUMMARY.md) for the correct API usage.
+
 ## Overview
 
 This document details the complete implementation of Task 5, which involved creating an AI Manager class to integrate Chrome's built-in Gemini Nano AI model. The task required implementing a robust wrapper around Chrome's Prompt API with comprehensive error handling, timeout management, content truncation, and intelligent response parsing.
