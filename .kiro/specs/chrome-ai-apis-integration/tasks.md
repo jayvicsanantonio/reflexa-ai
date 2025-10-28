@@ -20,21 +20,21 @@
     - Implement getter method to expose capabilities to other components
     - _Requirements: 1.2, 1.5, 10.2_
 
-- [ ] 3. Build Summarizer Manager module
-  - [ ] 3.1 Implement SummarizerManager class with availability check
+- [x] 3. Build Summarizer Manager module
+  - [x] 3.1 Implement SummarizerManager class with availability check
     - Create isAvailable() method using capability detection
     - Implement session creation with appropriate options
     - Add session cleanup and lifecycle management
     - _Requirements: 2.1, 2.2, 8.1_
 
-  - [ ] 3.2 Create summarize method with format support
+  - [x] 3.2 Create summarize method with format support
     - Implement bullets format (3 bullet points, max 20 words each)
     - Implement paragraph format (max 150 words)
     - Implement headline + bullets format (10-word headline + 3 bullets)
     - Parse API responses into standardized array format
     - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 3.3 Add error handling and timeout logic
+  - [x] 3.3 Add error handling and timeout logic
     - Wrap API calls in Promise.race with 5-second timeout
     - Implement retry logic for transient failures
     - Handle session errors gracefully
