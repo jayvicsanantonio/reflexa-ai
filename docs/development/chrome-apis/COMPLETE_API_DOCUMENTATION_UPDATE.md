@@ -31,16 +31,23 @@ This fundamental difference in API access was causing potential issues and not f
 - **Access**: Global `Rewriter` object
 - **Documentation**: Complete guide, quick reference, and update summary
 
+### 3. Proofreader API ✅
+
+- **Purpose**: Fix grammar, spelling, and punctuation errors
+- **Access**: Global `Proofreader` object
+- **Documentation**: Corrections summary with detailed fixes
+
 ## Files Modified
 
-### Source Code (4 files)
+### Source Code (5 files)
 
 1. ✅ `src/background/writerManager.ts` - Fixed API access and streaming
 2. ✅ `src/background/rewriterManager.ts` - Fixed API access and streaming
-3. ✅ `src/background/capabilityDetector.ts` - Fixed capability detection for both APIs
-4. ✅ `src/types/chrome-ai.d.ts` - Enhanced type definitions with missing parameters
+3. ✅ `src/background/proofreaderManager.ts` - Fixed API access and return type handling
+4. ✅ `src/background/capabilityDetector.ts` - Fixed capability detection for all APIs
+5. ✅ `src/types/chrome-ai.d.ts` - Enhanced type definitions with missing parameters
 
-### Documentation (13 files)
+### Documentation (14 files)
 
 #### Writer API Documentation
 
@@ -57,11 +64,15 @@ This fundamental difference in API access was causing potential issues and not f
 8. ✅ `docs/development/chrome-apis/REWRITER_API_UPDATE_SUMMARY.md` - Detailed changelog
 9. ✅ `docs/development/chrome-apis/REWRITER_API_INTEGRATION_REVIEW.md` - Integration review
 
+#### Proofreader API Documentation
+
+10. ✅ `docs/development/chrome-apis/PROOFREADER_API_CORRECTIONS.md` - Complete corrections summary
+
 #### Combined Documentation
 
-10. ✅ `docs/development/chrome-apis/WRITER_REWRITER_API_CORRECTIONS.md` - Side-by-side comparison
-11. ✅ `CHROME_AI_API_CORRECTIONS_COMPLETE.md` - Initial completion summary
-12. ✅ `COMPLETE_API_DOCUMENTATION_UPDATE.md` - This file
+11. ✅ `docs/development/chrome-apis/WRITER_REWRITER_API_CORRECTIONS.md` - Side-by-side comparison
+12. ✅ `CHROME_AI_API_CORRECTIONS_COMPLETE.md` - Initial completion summary
+13. ✅ `COMPLETE_API_DOCUMENTATION_UPDATE.md` - This file
 
 ## Key Corrections Applied
 
@@ -139,8 +150,11 @@ Chrome Built-in AI APIs
 │
 ├── Global Objects (NOT in ai namespace)
 │   ├── Writer ← Accessed directly as Writer.create()
+│   │   └── Returns: string (generated text)
 │   ├── Rewriter ← Accessed directly as Rewriter.create()
+│   │   └── Returns: string (rewritten text)
 │   └── Proofreader ← Accessed directly as Proofreader.create()
+│       └── Returns: ProofreadResult { correction, corrections[] }
 │
 └── ai Object (accessed via ai.*)
     ├── summarizer ← Accessed via ai.summarizer
@@ -323,6 +337,12 @@ rewriter.destroy();
 - [Update Summary](docs/development/chrome-apis/REWRITER_API_UPDATE_SUMMARY.md)
 - [Official Docs](https://developer.chrome.com/docs/ai/rewriter-api)
 
+### Proofreader API
+
+- [Corrections Summary](docs/development/chrome-apis/PROOFREADER_API_CORRECTIONS.md)
+- [Official Docs](https://developer.chrome.com/docs/ai/proofreader-api)
+- [Explainer](https://github.com/explainers-by-googlers/proofreader-api)
+
 ### Combined Resources
 
 - [API Corrections Summary](docs/development/chrome-apis/WRITER_REWRITER_API_CORRECTIONS.md)
@@ -376,6 +396,7 @@ The codebase now correctly implements Chrome's Built-in AI APIs according to off
 
 **Completed**: October 28, 2025
 **Build Status**: ✅ Passing (68/68 tests)
-**Documentation**: ✅ Complete (13 files)
+**Documentation**: ✅ Complete (14 files)
 **Code Quality**: ✅ Verified
+**APIs Covered**: Writer, Rewriter, Proofreader ✅
 **Ready for**: Production Deployment ✅

@@ -169,15 +169,22 @@ export interface WriterOptions {
 }
 
 /**
- * Result from proofreading operation
+ * Result from proofreading operation (application format)
+ * This extends the Chrome API result with additional metadata
  */
 export interface ProofreadResult {
   correctedText: string;
-  changes: TextChange[];
+  corrections: {
+    startIndex: number;
+    endIndex: number;
+    original: string;
+  }[];
 }
 
 /**
- * Individual text change from proofreading
+ * Individual text change from proofreading (legacy format)
+ * Note: The Chrome API doesn't provide type categorization
+ * This is kept for backward compatibility
  */
 export interface TextChange {
   original: string;

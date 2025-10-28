@@ -169,7 +169,7 @@ async function handleProofread(payload: {
       // Prompt API returns just the corrected text, so we create a ProofreadResult
       result = {
         correctedText,
-        changes: [], // Prompt API doesn't provide detailed changes
+        corrections: [], // Prompt API doesn't provide detailed corrections
       };
       apiUsed = 'prompt';
     }

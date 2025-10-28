@@ -38,14 +38,14 @@ export class CapabilityDetector {
         return false;
       }
 
-      // Note: Rewriter, Writer, and Proofreader APIs are accessed as globals,
+      // Note: Writer, Rewriter, and Proofreader APIs are accessed as globals,
       // not through the ai object
       if (
-        apiName === 'rewriter' ||
         apiName === 'writer' ||
+        apiName === 'rewriter' ||
         apiName === 'proofreader'
       ) {
-        // Check for capital-case global (e.g., 'Rewriter' in self)
+        // Check for capital-case global (e.g., 'Writer', 'Rewriter', 'Proofreader')
         const capitalizedName =
           apiName.charAt(0).toUpperCase() + apiName.slice(1);
         return capitalizedName in globalThis;
@@ -80,7 +80,7 @@ export class CapabilityDetector {
     const summarizer = this.checkAPIAvailability('summarizer');
     const writer = this.checkAPIAvailability('writer');
     const rewriter = this.checkAPIAvailability('rewriter');
-    const proofreader = this.checkAPIAvailability('languageDetector'); // Note: proofreader uses languageDetector
+    const proofreader = this.checkAPIAvailability('proofreader');
     const languageDetector = this.checkAPIAvailability('languageDetector');
     const translator = this.checkAPIAvailability('translator');
     const prompt = this.checkAPIAvailability('languageModel');

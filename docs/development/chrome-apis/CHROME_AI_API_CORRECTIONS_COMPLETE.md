@@ -6,35 +6,37 @@
 
 ## What Was Done
 
-Comprehensive review and correction of Writer and Rewriter API integrations based on official Chrome documentation.
+Comprehensive review and correction of Writer, Rewriter, and Proofreader API integrations based on official Chrome documentation.
 
 ## Critical Discovery
 
-Both Writer and Rewriter APIs were being accessed incorrectly:
+All three writing assistance APIs were being accessed incorrectly:
 
-❌ **Incorrect**: `ai.writer` and `ai.rewriter`
-✅ **Correct**: Global `Writer` and `Rewriter` objects
+❌ **Incorrect**: `ai.writer`, `ai.rewriter`, and `ai.proofreader`
+✅ **Correct**: Global `Writer`, `Rewriter`, and `Proofreader` objects
 
 This is a fundamental difference in how Chrome exposes these APIs compared to other AI APIs.
 
 ## Files Updated
 
-### Source Code (4 files)
+### Source Code (5 files)
 
 1. `src/background/writerManager.ts` - Fixed API access and streaming
 2. `src/background/rewriterManager.ts` - Fixed API access and streaming
-3. `src/background/capabilityDetector.ts` - Fixed capability detection
-4. `src/types/chrome-ai.d.ts` - Enhanced type definitions
+3. `src/background/proofreaderManager.ts` - Fixed API access and return type handling
+4. `src/background/capabilityDetector.ts` - Fixed capability detection for all APIs
+5. `src/types/chrome-ai.d.ts` - Enhanced type definitions
 
-### Documentation (7 files)
+### Documentation (8 files)
 
 1. `WRITER_API_DOCUMENTATION_UPDATE.md` - Updated with corrections
 2. `docs/development/chrome-apis/WRITER_API_GUIDE.md` - All examples corrected
 3. `docs/development/chrome-apis/WRITER_API_QUICK_REFERENCE.md` - All examples corrected
 4. `docs/development/chrome-apis/WRITER_API_UPDATE_SUMMARY.md` - Updated changelog
 5. `docs/development/chrome-apis/REWRITER_API_INTEGRATION_REVIEW.md` - New review document
-6. `docs/development/chrome-apis/WRITER_REWRITER_API_CORRECTIONS.md` - Comprehensive summary
-7. `CHROME_AI_API_CORRECTIONS_COMPLETE.md` - This file
+6. `docs/development/chrome-apis/PROOFREADER_API_CORRECTIONS.md` - Proofreader corrections
+7. `docs/development/chrome-apis/WRITER_REWRITER_API_CORRECTIONS.md` - Comprehensive summary
+8. `CHROME_AI_API_CORRECTIONS_COMPLETE.md` - This file
 
 ## Key Corrections
 
@@ -44,10 +46,12 @@ This is a fundamental difference in how Chrome exposes these APIs compared to ot
 // Before (WRONG)
 const writer = await ai.writer.create({...});
 const rewriter = await ai.rewriter.create({...});
+const proofreader = await ai.proofreader.create({...});
 
 // After (CORRECT)
 const writer = await Writer.create({...});
 const rewriter = await Rewriter.create({...});
+const proofreader = await Proofreader.create({...});
 ```
 
 ### 2. Feature Detection
@@ -58,11 +62,15 @@ if (ai && 'writer' in ai) {
 }
 if (ai && 'rewriter' in ai) {
 }
+if (ai && 'proofreader' in ai) {
+}
 
 // After (CORRECT)
 if ('Writer' in self) {
 }
 if ('Rewriter' in self) {
+}
+if ('Proofreader' in self) {
 }
 ```
 
@@ -82,11 +90,24 @@ for await (const chunk of stream) {
 }
 ```
 
-### 4. Missing Parameters
+### 4. Return Type Handling (Proofreader)
 
-- Added `format` parameter to both APIs
-- Added language support parameters
+```typescript
+// Before (WRONG)
+const correctedText: string = await proofreader.proofread(text);
+
+// After (CORRECT)
+const result: ProofreadResult = await proofreader.proofread(text);
+// result.correction contains the corrected text
+// result.corrections contains array of corrections with indices
+```
+
+### 5. Missing Parameters
+
+- Added `format` parameter to Writer and Rewriter APIs
+- Added language support parameters to all APIs
 - Added `monitor` callback for download progress
+- Changed Proofreader config from `sharedContext` to `expectedInputLanguages`
 
 ## Chrome AI API Architecture
 
@@ -167,11 +188,13 @@ Chrome Built-in AI APIs
 - [Writer API Quick Reference](docs/development/chrome-apis/WRITER_API_QUICK_REFERENCE.md)
 - [Writer API Guide](docs/development/chrome-apis/WRITER_API_GUIDE.md)
 - [Rewriter API Review](docs/development/chrome-apis/REWRITER_API_INTEGRATION_REVIEW.md)
+- [Proofreader API Corrections](docs/development/chrome-apis/PROOFREADER_API_CORRECTIONS.md)
 
 ### Official Chrome Documentation
 
 - [Writer API](https://developer.chrome.com/docs/ai/writer-api)
 - [Rewriter API](https://developer.chrome.com/docs/ai/rewriter-api)
+- [Proofreader API](https://developer.chrome.com/docs/ai/proofreader-api)
 - [Built-in AI APIs Overview](https://developer.chrome.com/docs/ai/built-in-apis)
 
 ## Next Steps
@@ -185,11 +208,12 @@ Chrome Built-in AI APIs
 
 ## Summary
 
-All Writer and Rewriter API integrations have been corrected to match official Chrome documentation. The changes ensure:
+All Writer, Rewriter, and Proofreader API integrations have been corrected to match official Chrome documentation. The changes ensure:
 
-- Correct API access patterns
-- Proper streaming implementation
-- Complete parameter support
+- Correct API access patterns (global objects, not `ai` namespace)
+- Proper streaming implementation (for Writer and Rewriter)
+- Correct return type handling (ProofreadResult for Proofreader)
+- Complete parameter support (format, languages, monitor)
 - Accurate type definitions
 - Comprehensive documentation
 

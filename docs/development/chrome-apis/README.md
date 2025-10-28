@@ -2,6 +2,8 @@
 
 Complete documentation for Chrome's Built-in AI APIs integration in Reflexa AI.
 
+📋 **[Complete Documentation Index](./INDEX.md)** - Navigate all 15+ documentation files
+
 ## Quick Navigation
 
 ### Writer API
@@ -17,8 +19,13 @@ Complete documentation for Chrome's Built-in AI APIs integration in Reflexa AI.
 - 📝 [Update Summary](./REWRITER_API_UPDATE_SUMMARY.md) - What changed and why
 - 🔍 [Integration Review](./REWRITER_API_INTEGRATION_REVIEW.md) - Detailed review
 
+### Proofreader API
+
+- 📝 [Corrections Summary](./PROOFREADER_API_CORRECTIONS.md) - What was fixed and why
+
 ### Combined Resources
 
+- 📚 [Writing Assistance APIs Complete Guide](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs in one place
 - 🔄 [API Corrections Summary](./WRITER_REWRITER_API_CORRECTIONS.md) - Side-by-side comparison
 
 ## Overview
@@ -90,15 +97,42 @@ if ('Rewriter' in self) {
 }
 ```
 
+### Proofreader API
+
+```typescript
+// Feature detection
+if ('Proofreader' in self) {
+  // Check availability
+  const availability = await Proofreader.availability();
+
+  // Create session
+  const proofreader = await Proofreader.create({
+    expectedInputLanguages: ['en'],
+  });
+
+  // Proofread text
+  const result = await proofreader.proofread('I seen him yesterday.');
+
+  // result.correction contains corrected text
+  // result.corrections contains array of corrections
+  console.log(result.correction); // "I saw him yesterday."
+
+  // Clean up
+  proofreader.destroy();
+}
+```
+
 ## Key Differences
 
-| Aspect             | Writer API              | Rewriter API                    |
-| ------------------ | ----------------------- | ------------------------------- |
-| **Purpose**        | Generate new content    | Improve existing content        |
-| **Input**          | Prompt/topic            | Existing text                   |
-| **Tone Options**   | formal, neutral, casual | as-is, more-formal, more-casual |
-| **Length Options** | short, medium, long     | as-is, shorter, longer          |
-| **Use Case**       | Draft creation          | Text refinement                 |
+| Aspect             | Writer API              | Rewriter API                    | Proofreader API        |
+| ------------------ | ----------------------- | ------------------------------- | ---------------------- |
+| **Purpose**        | Generate new content    | Improve existing content        | Fix grammar & spelling |
+| **Input**          | Prompt/topic            | Existing text                   | Text to correct        |
+| **Tone Options**   | formal, neutral, casual | as-is, more-formal, more-casual | N/A                    |
+| **Length Options** | short, medium, long     | as-is, shorter, longer          | N/A                    |
+| **Config**         | tone, format, length    | tone, format, length            | expectedInputLanguages |
+| **Output**         | String                  | String                          | ProofreadResult object |
+| **Use Case**       | Draft creation          | Text refinement                 | Error correction       |
 
 ## System Requirements
 
@@ -114,6 +148,7 @@ if ('Rewriter' in self) {
 2. Enable these flags:
    - `#writer-api-for-gemini-nano`
    - `#rewriter-api-for-gemini-nano`
+   - `#proofreader-api-for-gemini-nano`
    - `#optimization-guide-on-device-model`
 3. Restart Chrome
 
@@ -220,14 +255,17 @@ await rewriterManager.rewriteStreaming(
 
 - [Writer API Documentation](https://developer.chrome.com/docs/ai/writer-api)
 - [Rewriter API Documentation](https://developer.chrome.com/docs/ai/rewriter-api)
+- [Proofreader API Documentation](https://developer.chrome.com/docs/ai/proofreader-api)
 - [Built-in AI APIs Overview](https://developer.chrome.com/docs/ai/built-in-apis)
 - [Writing Assistance APIs Explainer](https://github.com/explainers-by-googlers/writing-assistance-apis/)
+- [Proofreader API Explainer](https://github.com/explainers-by-googlers/proofreader-api)
 - [Gemini Nano Information](https://deepmind.google/technologies/gemini/nano/)
 
 ## Source Code
 
 - [WriterManager](../../../src/background/writerManager.ts)
 - [RewriterManager](../../../src/background/rewriterManager.ts)
+- [ProofreaderManager](../../../src/background/proofreaderManager.ts)
 - [CapabilityDetector](../../../src/background/capabilityDetector.ts)
 - [Type Definitions](../../../src/types/chrome-ai.d.ts)
 

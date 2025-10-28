@@ -100,16 +100,33 @@ export interface AIRewriterFactory {
 
 /**
  * Proofreader API types
+ * Note: The Proofreader API returns a ProofreadResult object, not a string
  */
+export interface ProofreadResult {
+  correction: string; // Fully corrected text
+  corrections: {
+    startIndex: number;
+    endIndex: number;
+  }[];
+}
+
 export interface AIProofreader {
-  proofread(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  proofreadStreaming(input: string): ReadableStream;
+  proofread(
+    input: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<ProofreadResult>;
   destroy(): void;
 }
 
 export interface AIProofreaderFactory {
   create(options?: {
-    sharedContext?: string;
+    expectedInputLanguages?: string[];
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
     signal?: AbortSignal;
   }): Promise<AIProofreader>;
   availability(): Promise<
@@ -197,12 +214,10 @@ export interface AILanguageModelFactory {
 
 /**
  * Chrome AI namespace containing all built-in AI APIs
+ * Note: Writer, Rewriter, and Proofreader are NOT in the ai namespace
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
-  writer?: AIWriterFactory;
-  rewriter?: AIRewriterFactory;
-  proofreader?: AIProofreaderFactory;
   languageDetector?: AILanguageDetectorFactory;
   translator?: AITranslatorFactory;
   languageModel?: AILanguageModelFactory;
@@ -214,13 +229,23 @@ interface ChromeAI {
 declare global {
   interface Window {
     ai?: ChromeAI;
-    // Writer and Rewriter APIs are also available as globals
+    // Writer, Rewriter, and Proofreader APIs are available as globals
     Writer?: AIWriterFactory;
     Rewriter?: AIRewriterFactory;
+    Proofreader?: AIProofreaderFactory;
   }
 
   // For service workers and global scope
   const ai: ChromeAI | undefined;
   const Writer: AIWriterFactory | undefined;
   const Rewriter: AIRewriterFactory | undefined;
+  const Proofreader: AIProofreaderFactory | undefined;
+
+  // Extend globalThis to include the AI APIs
+  namespace globalThis {
+    const ai: ChromeAI | undefined;
+    const Writer: AIWriterFactory | undefined;
+    const Rewriter: AIRewriterFactory | undefined;
+    const Proofreader: AIProofreaderFactory | undefined;
+  }
 }
