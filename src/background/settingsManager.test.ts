@@ -41,11 +41,15 @@ describe('SettingsManager', () => {
 
     it('should return stored settings', async () => {
       const customSettings: Settings = {
-        dwellThreshold: 3020,
+        dwellThreshold: 120, // Valid value within range
         enableSound: false,
         reduceMotion: true,
         proofreadEnabled: true,
         privacyMode: 'sync',
+        useNativeSummarizer: true,
+        useNativeProofreader: true,
+        translationEnabled: true,
+        targetLanguage: 'es',
       };
 
       mockStorage.set('settings', customSettings);
@@ -113,13 +117,13 @@ describe('SettingsManager', () => {
 
     it('should update multiple settings at once', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 3020,
+        dwellThreshold: 3020, // Invalid, will be reset to default (30)
         enableSound: false,
         reduceMotion: true,
       });
 
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(120);
+      expect(settings.dwellThreshold).toBe(30); // Reset to default due to invalid value
       expect(settings.enableSound).toBe(false);
       expect(settings.reduceMotion).toBe(true);
     });

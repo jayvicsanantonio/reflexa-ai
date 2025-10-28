@@ -392,6 +392,10 @@ describe('Accessibility Tests', () => {
         reduceMotion: false,
         proofreadEnabled: false,
         privacyMode: 'local',
+        useNativeSummarizer: false,
+        useNativeProofreader: false,
+        translationEnabled: false,
+        targetLanguage: 'en',
       };
 
       const defaultProps = {

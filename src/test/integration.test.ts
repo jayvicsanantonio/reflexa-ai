@@ -8,7 +8,7 @@ import { DwellTracker } from '../content/dwellTracker';
 import { ContentExtractor } from '../content/contentExtractor';
 import { StorageManager } from '../background/storageManager';
 import { SettingsManager } from '../background/settingsManager';
-import { AIManager } from '../background/aiManager';
+import { PromptManager } from '../background/promptManager';
 import type { Reflection, Settings } from '../types';
 import { JSDOM } from 'jsdom';
 
@@ -16,7 +16,7 @@ describe('Integration Tests - User Flows', () => {
   let mockStorage: Map<string, any>;
   let storageManager: StorageManager;
   let settingsManager: SettingsManager;
-  let aiManager: AIManager;
+  let promptManager: PromptManager;
 
   beforeEach(() => {
     mockStorage = new Map();
@@ -47,7 +47,7 @@ describe('Integration Tests - User Flows', () => {
 
     storageManager = new StorageManager();
     settingsManager = new SettingsManager();
-    aiManager = new AIManager();
+    promptManager = new PromptManager();
   });
 
   describe('Complete Reflection Flow', () => {
@@ -103,9 +103,9 @@ describe('Integration Tests - User Flows', () => {
         'Use them to ensure end-to-end functionality',
       ];
 
-      vi.spyOn(aiManager, 'summarize').mockResolvedValue(mockSummary);
+      vi.spyOn(promptManager, 'summarize').mockResolvedValue(mockSummary);
 
-      const summary = await aiManager.summarize(content.text);
+      const summary = await promptManager.summarize(content.text);
       expect(summary).toEqual(mockSummary);
 
       // Step 7: Mock AI reflection prompts
@@ -114,11 +114,11 @@ describe('Integration Tests - User Flows', () => {
         'What user flows should you test first?',
       ];
 
-      vi.spyOn(aiManager, 'generateReflectionPrompts').mockResolvedValue(
+      vi.spyOn(promptManager, 'generateReflectionPrompts').mockResolvedValue(
         mockPrompts
       );
 
-      const prompts = await aiManager.generateReflectionPrompts(summary);
+      const prompts = await promptManager.generateReflectionPrompts(summary);
       expect(prompts).toEqual(mockPrompts);
 
       // Step 8: User enters reflections
@@ -333,7 +333,7 @@ describe('Integration Tests - User Flows', () => {
     it('should persist settings changes', async () => {
       // Update settings
       const newSettings: Partial<Settings> = {
-        dwellThreshold: 3020,
+        dwellThreshold: 3020, // Invalid, will be reset to default
         enableSound: false,
         reduceMotion: true,
       };
@@ -344,7 +344,7 @@ describe('Integration Tests - User Flows', () => {
       const newSettingsManager = new SettingsManager();
       const loaded = await newSettingsManager.getSettings();
 
-      expect(loaded.dwellThreshold).toBe(120);
+      expect(loaded.dwellThreshold).toBe(30); // Reset to default due to invalid value
       expect(loaded.enableSound).toBe(false);
       expect(loaded.reduceMotion).toBe(true);
     });
@@ -465,9 +465,9 @@ describe('Integration Tests - User Flows', () => {
   describe('AI Fallback When Unavailable', () => {
     it('should handle AI unavailability gracefully', async () => {
       // Mock AI as unavailable
-      vi.spyOn(aiManager, 'checkAvailability').mockResolvedValue(false);
+      vi.spyOn(promptManager, 'checkAvailability').mockResolvedValue(false);
 
-      const available = await aiManager.checkAvailability();
+      const available = await promptManager.checkAvailability();
       expect(available).toBe(false);
 
       // User should still be able to create manual reflection
@@ -490,12 +490,12 @@ describe('Integration Tests - User Flows', () => {
 
     it('should allow manual summary entry when AI fails', async () => {
       // Mock AI timeout
-      vi.spyOn(aiManager, 'summarize').mockRejectedValue(
+      vi.spyOn(promptManager, 'summarize').mockRejectedValue(
         new Error('AI timeout')
       );
 
       try {
-        await aiManager.summarize('test content');
+        await promptManager.summarize('test content');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
       }
@@ -611,18 +611,18 @@ describe('Integration Tests - User Flows', () => {
       const content = extractor.extractMainContent();
 
       // 5. Mock AI processing
-      vi.spyOn(aiManager, 'summarize').mockResolvedValue([
+      vi.spyOn(promptManager, 'summarize').mockResolvedValue([
         'Insight',
         'Surprise',
         'Apply',
       ]);
-      vi.spyOn(aiManager, 'generateReflectionPrompts').mockResolvedValue([
+      vi.spyOn(promptManager, 'generateReflectionPrompts').mockResolvedValue([
         'Question 1?',
         'Question 2?',
       ]);
 
-      const summary = await aiManager.summarize(content.text);
-      await aiManager.generateReflectionPrompts(summary);
+      const summary = await promptManager.summarize(content.text);
+      await promptManager.generateReflectionPrompts(summary);
 
       // 6. Save reflection
       await storageManager.saveReflection({

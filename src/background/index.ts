@@ -3,7 +3,7 @@
  * Orchestrates AI operations, manages data persistence, and coordinates between components
  */
 
-import { AIManager } from './aiManager';
+import { PromptManager } from './promptManager';
 import { StorageManager } from './storageManager';
 import { SettingsManager } from './settingsManager';
 import type {
@@ -18,7 +18,7 @@ import { ERROR_MESSAGES } from '../constants';
 console.log('Reflexa AI background service worker initialized');
 
 // Initialize managers
-const aiManager = new AIManager();
+const promptManager = new PromptManager();
 const storageManager = new StorageManager();
 const settingsManager = new SettingsManager();
 
@@ -153,7 +153,7 @@ async function handleMessage(message: Message): Promise<AIResponse> {
  */
 async function handleCheckAI(): Promise<AIResponse<boolean>> {
   try {
-    const available = await aiManager.checkAvailability();
+    const available = await promptManager.checkAvailability();
     aiAvailable = available;
 
     return {
@@ -193,7 +193,7 @@ async function handleSummarize(
     // Check AI availability
     if (!aiAvailable) {
       console.log('[Summarize] Checking AI availability...');
-      const available = await aiManager.checkAvailability();
+      const available = await promptManager.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
@@ -205,9 +205,9 @@ async function handleSummarize(
       }
     }
 
-    // Call AI manager to summarize
-    console.log('[Summarize] Calling AI manager...');
-    const summary = await aiManager.summarize(payload);
+    // Call Prompt manager to summarize
+    console.log('[Summarize] Calling Prompt manager...');
+    const summary = await promptManager.summarize(payload);
     const duration = Date.now() - startTime;
 
     // Check if summarization failed
@@ -256,7 +256,7 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
     // Check AI availability
     if (!aiAvailable) {
       console.log('[Reflect] Checking AI availability...');
-      const available = await aiManager.checkAvailability();
+      const available = await promptManager.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
@@ -268,9 +268,9 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
       }
     }
 
-    // Call AI manager to generate reflection prompts
-    console.log('[Reflect] Calling AI manager...');
-    const prompts = await aiManager.generateReflectionPrompts(
+    // Call Prompt manager to generate reflection prompts
+    console.log('[Reflect] Calling Prompt manager...');
+    const prompts = await promptManager.generateReflectionPrompts(
       payload as string[]
     );
     const duration = Date.now() - startTime;
@@ -326,7 +326,7 @@ async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
 
     // Check AI availability
     if (!aiAvailable) {
-      const available = await aiManager.checkAvailability();
+      const available = await promptManager.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
@@ -337,8 +337,8 @@ async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
       }
     }
 
-    // Call AI manager to proofread
-    const proofreadText = await aiManager.proofread(payload);
+    // Call Prompt manager to proofread
+    const proofreadText = await promptManager.proofread(payload);
 
     return {
       success: true,
@@ -541,7 +541,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   console.log('Reflexa AI extension installed');
 
   // Check if Gemini Nano is available
-  const available = await aiManager.checkAvailability();
+  const available = await promptManager.checkAvailability();
   aiAvailable = available;
 
   console.log('Gemini Nano available:', available);
@@ -561,7 +561,7 @@ chrome.runtime.onStartup.addListener(async () => {
   console.log('Reflexa AI service worker started');
 
   // Check if Gemini Nano is available
-  const available = await aiManager.checkAvailability();
+  const available = await promptManager.checkAvailability();
   aiAvailable = available;
 
   console.log('Gemini Nano available:', available);

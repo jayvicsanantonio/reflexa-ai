@@ -4,14 +4,20 @@ This document provides detailed API documentation for all major classes and modu
 
 ## Table of Contents
 
-1. [AIManager](#aimanager)
-2. [StorageManager](#storagemanager)
-3. [SettingsManager](#settingsmanager)
-4. [DwellTracker](#dwelltracker)
-5. [ContentExtractor](#contentextractor)
-6. [Utility Functions](#utility-functions)
-7. [Type Definitions](#type-definitions)
-8. [Message API](#message-api)
+1. [PromptManager](#promptmanager) (formerly AIManager)
+2. [ProofreaderManager](#proofreadermanager) (new)
+3. [SummarizerManager](#summarizermanager) (new)
+4. [TranslatorManager](#translatormanager) (new)
+5. [WriterManager](#writermanager) (new)
+6. [RewriterManager](#rewritermanager) (new)
+7. [UnifiedAIService](#unifiedaiservice) (new)
+8. [StorageManager](#storagemanager)
+9. [SettingsManager](#settingsmanager)
+10. [DwellTracker](#dwelltracker)
+11. [ContentExtractor](#contentextractor)
+12. [Utility Functions](#utility-functions)
+13. [Type Definitions](#type-definitions)
+14. [Message API](#message-api)
 
 ---
 
@@ -144,7 +150,7 @@ Generates summary with streaming response for progressive display.
 **Example**:
 
 ```typescript
-for await (const chunk of aiManager.summarizeStreaming(content)) {
+for await (const chunk of promptManager.summarizeStreaming(content)) {
   console.log('Received chunk:', chunk);
   // Update UI progressively
 }

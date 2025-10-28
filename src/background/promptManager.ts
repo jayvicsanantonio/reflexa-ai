@@ -1,6 +1,6 @@
 /**
- * AI Manager for Gemini Nano integration
- * Handles all interactions with Chrome's built-in AI (Gemini Nano)
+ * Prompt Manager for Gemini Nano Prompt API
+ * Handles all interactions with Chrome's built-in Prompt API (Gemini Nano)
  */
 
 import { AI_PROMPTS, CONTENT_LIMITS, TIMING } from '../constants';
@@ -56,9 +56,9 @@ declare global {
 }
 
 /**
- * AIManager class that wraps Chrome's Prompt API (Gemini Nano)
+ * PromptManager class that wraps Chrome's Prompt API (Gemini Nano)
  */
-export class AIManager {
+export class PromptManager {
   private isAvailable = false;
   private model: AILanguageModel | null = null;
   private modelCreatedAt = 0;

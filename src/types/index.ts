@@ -29,6 +29,11 @@ export interface Settings {
   reduceMotion: boolean; // default false
   proofreadEnabled: boolean; // default false
   privacyMode: 'local' | 'sync'; // default 'local'
+  // New AI API settings
+  useNativeSummarizer: boolean; // Use Summarizer API instead of Prompt API
+  useNativeProofreader: boolean; // Use Proofreader API instead of Prompt API
+  translationEnabled: boolean; // Enable translation feature
+  targetLanguage: string; // Target language code (e.g., 'en', 'es')
 }
 
 /**
@@ -82,7 +87,11 @@ export type MessageType =
   | 'getSettings'
   | 'updateSettings'
   | 'resetSettings'
-  | 'checkAI';
+  | 'checkAI'
+  | 'translate'
+  | 'rewrite'
+  | 'write'
+  | 'checkAllAI';
 
 /**
  * Message structure for background worker communication

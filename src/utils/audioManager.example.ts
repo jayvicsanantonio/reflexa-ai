@@ -17,6 +17,10 @@ function initializeAudioInContentScript() {
     reduceMotion: false,
     proofreadEnabled: false,
     privacyMode: 'local',
+    useNativeSummarizer: false,
+    useNativeProofreader: false,
+    translationEnabled: false,
+    targetLanguage: 'en',
   };
 
   // Create AudioManager instance

@@ -13,6 +13,11 @@ export const DEFAULT_SETTINGS: Settings = {
   reduceMotion: false,
   proofreadEnabled: false,
   privacyMode: 'local',
+  // New AI API settings
+  useNativeSummarizer: false, // Use Summarizer API instead of Prompt API
+  useNativeProofreader: false, // Use Proofreader API instead of Prompt API
+  translationEnabled: false,
+  targetLanguage: 'en',
 };
 
 /**
@@ -201,4 +206,28 @@ export const ERROR_MESSAGES = {
   STORAGE_FULL: 'Storage full. Export older reflections to free space.',
   NETWORK_ERROR: 'Network error. Changes will sync when online.',
   GENERIC_ERROR: 'Something went wrong. Please try again.',
+  PROOFREADER_UNAVAILABLE: 'Proofreader API not available.',
+  SUMMARIZER_UNAVAILABLE: 'Summarizer API not available.',
+  TRANSLATOR_UNAVAILABLE: 'Translator API not available.',
+  WRITER_UNAVAILABLE: 'Writer API not available.',
+  REWRITER_UNAVAILABLE: 'Rewriter API not available.',
 };
+
+/**
+ * Supported languages for translation
+ * Common languages that users might want to translate to/from
+ */
+export const COMMON_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ko', name: 'Korean' },
+  { code: 'zh', name: 'Chinese' },
+  { code: 'ar', name: 'Arabic' },
+  { code: 'hi', name: 'Hindi' },
+] as const;
