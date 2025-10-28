@@ -103,7 +103,7 @@ export class WriterManager {
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
   }): Promise<AIWriter | null> {
-    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'plain-text'}-${config.length ?? 'medium'}`;
+    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -121,7 +121,7 @@ export class WriterManager {
       const session = await ai.writer.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
-        format: config.format ?? 'plain-text',
+        format: config.format ?? 'markdown', // Default is markdown per docs
         length: config.length,
       });
 
@@ -285,8 +285,10 @@ export class WriterManager {
       throw new Error('Failed to create writer session');
     }
 
-    // Generate draft
-    const result = await session.write(topic);
+    // Generate draft - pass context in the options parameter per API spec
+    const result = await session.write(topic, {
+      context: context,
+    });
 
     // Format response as clean paragraph text
     const cleanedText = result.trim();
@@ -347,8 +349,10 @@ export class WriterManager {
         throw new Error('Failed to create writer session');
       }
 
-      // Get streaming response
-      const stream = session.writeStreaming(topic);
+      // Get streaming response - pass context in options per API spec
+      const stream = session.writeStreaming(topic, {
+        context: context,
+      });
       const reader = stream.getReader();
       const decoder = new TextDecoder();
       let fullText = '';

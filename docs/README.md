@@ -73,7 +73,9 @@ We've integrated all 6 Gemini Nano APIs and renamed `AIManager` to `PromptManage
 
 **Key Resources:**
 
-- [Gemini Nano APIs Guide](./GEMINI_NANO_APIS_GUIDE.md) - Complete guide
+- [Gemini Nano APIs Guide](./development/GEMINI_NANO_APIS_GUIDE.md) - Complete guide
+- [Writer API Guide](./development/WRITER_API_GUIDE.md) - Writer API integration ⭐ NEW
+- [Writer API Quick Reference](./development/WRITER_API_QUICK_REFERENCE.md) - Quick reference card ⭐ NEW
 - [Migration Guide](./MIGRATION_GUIDE.md) - How to update your code
 - [Integration Example](./examples/INTEGRATION_EXAMPLE.md) - Working examples
 

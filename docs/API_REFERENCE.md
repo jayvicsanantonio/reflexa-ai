@@ -10,14 +10,197 @@ This document provides detailed API documentation for all major classes and modu
 4. [TranslatorManager](#translatormanager) (new)
 5. [WriterManager](#writermanager) (new)
 6. [RewriterManager](#rewritermanager) (new)
-7. [UnifiedAIService](#unifiedaiservice) (new)
-8. [StorageManager](#storagemanager)
-9. [SettingsManager](#settingsmanager)
-10. [DwellTracker](#dwelltracker)
-11. [ContentExtractor](#contentextractor)
-12. [Utility Functions](#utility-functions)
-13. [Type Definitions](#type-definitions)
-14. [Message API](#message-api)
+7. [LanguageDetectorManager](#languagedetectormanager) (new)
+8. [UnifiedAIService](#unifiedaiservice) (new)
+9. [StorageManager](#storagemanager)
+10. [SettingsManager](#settingsmanager)
+11. [DwellTracker](#dwelltracker)
+12. [ContentExtractor](#contentextractor)
+13. [Utility Functions](#utility-functions)
+14. [Type Definitions](#type-definitions)
+15. [Message API](#message-api)
+
+---
+
+## WriterManager
+
+Manages Chrome Writer API sessions for creative content generation with tone and length control.
+
+### Constructor
+
+```typescript
+const writerManager = new WriterManager();
+```
+
+No parameters required. The manager initializes lazily on first use.
+
+### Methods
+
+#### `checkAvailability(): Promise<boolean>`
+
+Checks if Writer API is available on the user's system.
+
+**Returns**: `Promise<boolean>` - `true` if Writer API is available, `false` otherwise
+
+**Example**:
+
+```typescript
+const available = await writerManager.checkAvailability();
+if (available) {
+  console.log('Writer API is ready to use');
+}
+```
+
+---
+
+#### `isAvailable(): boolean`
+
+Synchronously checks if Writer API is available (after calling `checkAvailability()`).
+
+**Returns**: `boolean` - `true` if Writer API is available
+
+**Example**:
+
+```typescript
+if (writerManager.isAvailable()) {
+  // Use Writer API
+}
+```
+
+---
+
+#### `generate(topic: string, options: WriterOptions, context?: string): Promise<string>`
+
+Generates draft text with specified tone and length options.
+
+**Parameters**:
+
+- `topic` (string): The topic or prompt for text generation
+- `options` (WriterOptions): Configuration object with `tone` and `length`
+  - `tone`: `'calm'` | `'professional'` | `'casual'`
+  - `length`: `'short'` | `'medium'` | `'long'`
+- `context` (string, optional): Additional context to guide generation
+
+**Returns**: `Promise<string>` - Generated draft text
+
+**Example**:
+
+```typescript
+const draft = await writerManager.generate(
+  'Write about the importance of mindful reading',
+  {
+    tone: 'calm',
+    length: 'medium',
+  },
+  'This is for a reflection journal entry'
+);
+```
+
+**Notes**:
+
+- Implements 5-second timeout with automatic retry (8 seconds)
+- Tone mapping: `calm` → `neutral`, `professional` → `formal`, `casual` → `casual`
+- Length ranges: short (50-100 words), medium (100-200 words), long (200-300 words)
+- Sessions are cached and reused for same configuration
+
+---
+
+#### `write(prompt: string, options?: WriterOptions): Promise<string>`
+
+Alternative method for generating text (used by message handlers).
+
+**Parameters**:
+
+- `prompt` (string): The writing prompt
+- `options` (WriterOptions, optional): Tone and length configuration
+
+**Returns**: `Promise<string>` - Generated text
+
+**Example**:
+
+```typescript
+const result = await writerManager.write(
+  'Draft a motivational message about learning',
+  {
+    tone: 'professional',
+    length: 'short',
+  }
+);
+```
+
+---
+
+#### `generateStreaming(topic: string, options: WriterOptions, context: string | undefined, onChunk: (chunk: string) => void): Promise<string>`
+
+Generates text with streaming support for progressive UI updates.
+
+**Parameters**:
+
+- `topic` (string): The topic or prompt
+- `options` (WriterOptions): Tone and length configuration
+- `context` (string | undefined): Optional context
+- `onChunk` (function): Callback invoked for each text chunk
+
+**Returns**: `Promise<string>` - Complete generated text
+
+**Example**:
+
+```typescript
+let progressiveText = '';
+
+const fullText = await writerManager.generateStreaming(
+  'Write about reflection benefits',
+  { tone: 'calm', length: 'medium' },
+  'For a mindfulness app',
+  (chunk) => {
+    progressiveText += chunk;
+    updateUI(progressiveText); // Update UI progressively
+  }
+);
+```
+
+**Notes**:
+
+- Provides real-time updates as text generates
+- Useful for showing progress to users
+- Returns complete text when generation finishes
+
+---
+
+#### `destroy(): void`
+
+Destroys all active writer sessions and frees resources.
+
+**Example**:
+
+```typescript
+writerManager.destroy();
+```
+
+**Notes**:
+
+- Call this when the manager is no longer needed
+- Cleans up all cached sessions
+- Sessions are automatically recreated on next use
+
+---
+
+#### `destroySession(options: WriterOptions): void`
+
+Destroys a specific writer session.
+
+**Parameters**:
+
+- `options` (WriterOptions): Configuration identifying the session to destroy
+
+**Example**:
+
+```typescript
+writerManager.destroySession({
+  tone: 'calm',
+  length: 'medium',
+});
+```
 
 ---
 

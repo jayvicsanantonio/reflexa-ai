@@ -28,8 +28,11 @@ export interface AISummarizerFactory {
  * Writer API types
  */
 export interface AIWriter {
-  write(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  writeStreaming(input: string): ReadableStream;
+  write(
+    input: string,
+    options?: { context?: string; signal?: AbortSignal }
+  ): Promise<string>;
+  writeStreaming(input: string, options?: { context?: string }): ReadableStream;
   destroy(): void;
 }
 
@@ -39,6 +42,15 @@ export interface AIWriterFactory {
     tone?: 'formal' | 'neutral' | 'casual';
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
+    expectedInputLanguages?: string[];
+    expectedContextLanguages?: string[];
+    outputLanguage?: string;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
     signal?: AbortSignal;
   }): Promise<AIWriter>;
   availability(): Promise<
@@ -189,8 +201,11 @@ interface ChromeAI {
 declare global {
   interface Window {
     ai?: ChromeAI;
+    // Writer API is also available as a global
+    Writer?: AIWriterFactory;
   }
 
   // For service workers
   const ai: ChromeAI | undefined;
+  const Writer: AIWriterFactory | undefined;
 }
