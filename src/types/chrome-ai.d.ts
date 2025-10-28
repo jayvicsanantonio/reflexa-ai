@@ -47,12 +47,39 @@ export interface AIWriterFactory {
 }
 
 /**
+ * Rewriter API types
+ */
+export interface AIRewriter {
+  rewrite(
+    input: string,
+    options?: { context?: string; signal?: AbortSignal }
+  ): Promise<string>;
+  rewriteStreaming(
+    input: string,
+    options?: { context?: string }
+  ): ReadableStream;
+  destroy(): void;
+}
+
+export interface AIRewriterFactory {
+  create(options?: {
+    sharedContext?: string;
+    tone?: 'as-is' | 'more-formal' | 'more-casual';
+    length?: 'as-is' | 'shorter' | 'longer';
+    signal?: AbortSignal;
+  }): Promise<AIRewriter>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
   writer?: AIWriterFactory;
-  rewriter?: unknown;
+  rewriter?: AIRewriterFactory;
   languageDetector?: unknown;
   translator?: unknown;
   languageModel?: unknown;

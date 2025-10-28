@@ -59,14 +59,14 @@
     - Update UI progressively as text generates
     - _Requirements: 3.5_
 
-- [ ] 5. Build Rewriter Manager module
-  - [ ] 5.1 Implement RewriterManager class with tone mapping
+- [x] 5. Build Rewriter Manager module
+  - [x] 5.1 Implement RewriterManager class with tone mapping
     - Create isAvailable() method
     - Map Reflexa tone presets to API parameters (calm→neutral, concise→shorter, empathetic→more-casual, academic→more-formal)
     - Implement session creation with RewriterConfig
     - _Requirements: 4.1, 4.2, 8.3_
 
-  - [ ] 5.2 Create rewrite method with style preservation
+  - [x] 5.2 Create rewrite method with style preservation
     - Implement rewriting while preserving paragraph structure
     - Maintain original meaning while adjusting tone
     - Return both original and rewritten versions for comparison

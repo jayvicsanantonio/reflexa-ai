@@ -4,7 +4,7 @@
  */
 
 import { unifiedAI } from './unifiedAIService';
-import type { Message, AIResponse } from '../types';
+import type { Message, AIResponse, TonePreset } from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
 
 /**
@@ -218,12 +218,9 @@ async function handleTranslate(payload: {
  */
 async function handleRewrite(payload: {
   text: string;
-  options?: {
-    tone?: 'as-is' | 'more-formal' | 'more-casual';
-    format?: 'as-is' | 'plain-text' | 'markdown';
-    length?: 'as-is' | 'shorter' | 'longer';
-  };
-}): Promise<AIResponse<string>> {
+  preset?: TonePreset;
+  context?: string;
+}): Promise<AIResponse<{ original: string; rewritten: string }>> {
   const startTime = Date.now();
   try {
     const available = await unifiedAI.rewriter.checkAvailability();
@@ -236,9 +233,13 @@ async function handleRewrite(payload: {
       );
     }
 
+    // Default to 'calm' preset if not specified
+    const preset = payload.preset ?? 'calm';
+
     const result = await unifiedAI.rewriter.rewrite(
       payload.text,
-      payload.options
+      preset,
+      payload.context
     );
 
     return createSuccessResponse(result, 'rewriter', Date.now() - startTime);
