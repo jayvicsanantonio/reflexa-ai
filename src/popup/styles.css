@@ -1,4 +1,9 @@
 @import 'tailwindcss';
+@import '../styles/theme.css';
 @import '../styles/accessibility.css';
 
-/* Popup dashboard styles */
+/**
+ * POPUP DASHBOARD STYLES
+ * Component-specific styles for popup dashboard UI
+ * Theme tokens are imported from ../styles/theme.css
+ */

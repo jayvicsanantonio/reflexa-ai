@@ -1,0 +1,304 @@
+/**
+ * REFLEXA AI DESIGN SYSTEM
+ * Version: 1.0.0
+ * Last Updated: 2024-10-27
+ *
+ * This theme defines all design tokens for the Reflexa AI Chrome Extension.
+ * All colors, spacing, typography, shadows, and animations are centralized here.
+ *
+ * Color Format: Oklch (perceptually uniform, modern CSS)
+ * Spacing: 4px base unit system
+ * Typography: Inter (UI), Noto Sans Display (headings), Lora (reflection), JetBrains Mono (code)
+ */
+
+@theme {
+  /* ===== ZEN SPECTRUM COLOR PALETTE ===== */
+  /**
+   * Primary Blue Palette
+   * Used for: Primary actions, links, focus states, interactive elements
+   * Accessibility: All shades meet WCAG AA contrast requirements
+   * Format: oklch(lightness chroma hue)
+   */
+  --color-zen-50: oklch(
+    0.985 0.008 232.5
+  ); /* Lightest - backgrounds, hover states */
+  --color-zen-100: oklch(0.96 0.02 232.5); /* Very light - subtle backgrounds */
+  --color-zen-200: oklch(0.92 0.04 232.5); /* Light - borders, dividers */
+  --color-zen-300: oklch(0.85 0.08 232.5); /* Medium light - disabled states */
+  --color-zen-400: oklch(0.75 0.14 232.5); /* Medium - secondary actions */
+  --color-zen-500: oklch(
+    0.65 0.19 232.5
+  ); /* Base - primary actions, brand color */
+  --color-zen-600: oklch(0.55 0.18 232.5); /* Medium dark - hover states */
+  --color-zen-700: oklch(0.45 0.15 232.5); /* Dark - active states */
+  --color-zen-800: oklch(0.35 0.12 232.5); /* Very dark - text on light */
+  --color-zen-900: oklch(0.28 0.09 232.5); /* Darkest - headings, emphasis */
+
+  /* ===== CALM NEUTRALS COLOR PALETTE ===== */
+  /**
+   * Gray Palette
+   * Used for: Text, backgrounds, borders, neutral UI elements
+   * Accessibility: Carefully calibrated for optimal readability
+   */
+  --color-calm-50: oklch(0.99 0.002 264); /* Lightest - page backgrounds */
+  --color-calm-100: oklch(0.97 0.004 264); /* Very light - card backgrounds */
+  --color-calm-200: oklch(0.93 0.008 264); /* Light - borders, dividers */
+  --color-calm-300: oklch(0.87 0.012 264); /* Medium light - disabled text */
+  --color-calm-400: oklch(0.71 0.022 264); /* Medium - placeholder text */
+  --color-calm-500: oklch(0.55 0.027 264); /* Base - secondary text */
+  --color-calm-600: oklch(0.45 0.03 264); /* Medium dark - body text */
+  --color-calm-700: oklch(0.37 0.034 264); /* Dark - headings */
+  --color-calm-800: oklch(0.28 0.033 264); /* Very dark - emphasis */
+  --color-calm-900: oklch(0.21 0.034 264); /* Darkest - high contrast text */
+
+  /* ===== LOTUS ACCENTS COLOR PALETTE ===== */
+  /**
+   * Purple Palette
+   * Used for: Highlights, special features, accent elements
+   * Accessibility: Use with care on backgrounds for sufficient contrast
+   */
+  --color-lotus-50: oklch(0.985 0.02 320); /* Lightest - subtle highlights */
+  --color-lotus-100: oklch(0.96 0.04 320); /* Very light - backgrounds */
+  --color-lotus-200: oklch(0.92 0.08 320); /* Light - borders */
+  --color-lotus-300: oklch(0.85 0.14 320); /* Medium light - hover states */
+  --color-lotus-400: oklch(0.75 0.2 320); /* Medium - secondary accents */
+  --color-lotus-500: oklch(0.65 0.25 320); /* Base - primary accents */
+  --color-lotus-600: oklch(0.55 0.24 320); /* Medium dark - active states */
+  --color-lotus-700: oklch(0.45 0.2 320); /* Dark - emphasis */
+  --color-lotus-800: oklch(0.38 0.17 320); /* Very dark - text on light */
+  --color-lotus-900: oklch(0.32 0.14 320); /* Darkest - high contrast */
+
+  /* ===== SEMANTIC COLORS ===== */
+  /**
+   * Semantic color mappings for common UI patterns
+   * These reference the palette colors above for consistency
+   */
+  --color-bg-primary: var(--color-calm-50);
+  --color-bg-secondary: var(--color-zen-100);
+  --color-accent: oklch(0.8 0.1 232.5);
+  --color-accent-deep: oklch(0.7 0.15 232.5);
+  --color-text-primary: var(--color-calm-800);
+  --color-text-secondary: var(--color-calm-600);
+  --color-success: oklch(0.85 0.12 145);
+  --color-warning: oklch(0.9 0.12 85);
+  --color-error: oklch(0.75 0.15 25);
+  --color-overlay: oklch(0.99 0.002 264 / 0.85);
+  --color-gradient-start: var(--color-zen-100);
+  --color-gradient-end: oklch(0.92 0.06 280);
+
+  /* ===== TYPOGRAPHY ===== */
+  /**
+   * Font Family System
+   * - Sans: Primary UI font (Inter) with system fallbacks
+   * - Display: Headings and emphasis (Noto Sans Display)
+   * - Serif: Reflective content (Lora) for calm reading
+   * - Mono: Code and technical content (JetBrains Mono)
+   */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Noto Sans Display', 'Inter', system-ui, sans-serif;
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-mono:
+    'JetBrains Mono', 'Courier New', Consolas, 'Liberation Mono', monospace;
+
+  /**
+   * Semantic Font Utilities
+   * Use these for consistent typography across components
+   */
+  --font-family-heading: var(--font-display);
+  --font-family-body: var(--font-sans);
+  --font-family-reflection: var(--font-serif);
+  --font-family-code: var(--font-mono);
+
+  /* ===== SPACING SCALE ===== */
+  /**
+   * 4px Base Unit System
+   * Provides consistent spacing throughout the application
+   * Usage: Use semantic names (xs, sm, md) for better readability
+   */
+
+  /* Numeric scale (Tailwind-compatible) */
+  --spacing-1: 4px; /* 0.25rem - minimal spacing, tight layouts */
+  --spacing-2: 8px; /* 0.5rem - compact spacing */
+  --spacing-3: 12px; /* 0.75rem - small spacing */
+  --spacing-4: 16px; /* 1rem - base spacing unit */
+  --spacing-6: 24px; /* 1.5rem - medium spacing */
+  --spacing-8: 32px; /* 2rem - large spacing */
+  --spacing-12: 48px; /* 3rem - extra large spacing */
+
+  /* Semantic scale (for clarity) */
+  --spacing-xxs: 4px; /* Extra extra small */
+  --spacing-xs: 8px; /* Extra small */
+  --spacing-sm: 12px; /* Small */
+  --spacing-md: 16px; /* Medium (base) */
+  --spacing-lg: 24px; /* Large */
+  --spacing-xl: 32px; /* Extra large */
+  --spacing-2xl: 48px; /* Extra extra large */
+
+  /* ===== BORDER RADIUS ===== */
+  /**
+   * Border Radius Scale
+   * Creates consistent rounded corners across components
+   */
+  --radius-sm: 8px; /* Small - buttons, inputs */
+  --radius-md: 16px; /* Medium - cards, modals */
+  --radius-lg: 24px; /* Large - containers */
+  --radius-xl: 16px; /* Extra large - special elements */
+  --radius-2xl: 24px; /* Extra extra large - hero elements */
+  --radius-full: 9999px; /* Full - circles, pills */
+
+  /* ===== SHADOWS ===== */
+  /**
+   * Shadow System (Modern CSS Color Level 4 format)
+   * Format: rgb(r g b / alpha) for better browser support
+   * Provides depth and elevation to UI elements
+   */
+  --shadow-soft: 0 2px 6px 0 rgb(0 0 0 / 0.05);
+  --shadow-medium: 0 4px 12px 0 rgb(0 0 0 / 0.08);
+  --shadow-large: 0 8px 24px 0 rgb(0 0 0 / 0.12);
+  --shadow-inner: inset 0 2px 4px 0 rgb(255 255 255 / 0.2);
+
+  /* Elevation system (Tailwind-compatible) */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* ===== ANIMATIONS ===== */
+  /**
+   * Animation Definitions
+   * All animations respect prefers-reduced-motion
+   * Durations calibrated for calm, mindful experience
+   */
+  --animate-breathing: breathing 7s ease-in-out infinite;
+  --animate-fade-in: fadeIn 1s ease-in-out;
+  --animate-fade-out: fadeOut 1s ease-in-out;
+  --animate-pulse-gentle: pulseGentle 2s ease-in-out infinite;
+  --animate-gradient-drift: gradientDrift 8s linear infinite;
+}
+
+/* ===== ANIMATION KEYFRAMES ===== */
+/**
+ * Keyframe definitions for custom animations
+ * These are referenced by the --animate-* variables above
+ */
+
+@keyframes breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulseGentle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes gradientDrift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+/**
+ * Custom utility classes for common patterns
+ * These extend Tailwind's built-in utilities
+ */
+
+@layer utilities {
+  /* Gradient utilities */
+  .gradient-zen {
+    background: linear-gradient(
+      135deg,
+      var(--color-gradient-start),
+      var(--color-gradient-end)
+    );
+  }
+
+  .gradient-zen-animated {
+    background: linear-gradient(
+      135deg,
+      var(--color-gradient-start),
+      var(--color-gradient-end)
+    );
+    background-size: 200% 200%;
+    animation: var(--animate-gradient-drift);
+  }
+
+  /* Backdrop blur utility */
+  .backdrop-blur-zen {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* Text balance utility (modern CSS) */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* ===== ACCESSIBILITY: REDUCED MOTION ===== */
+  /**
+   * Respect user's motion preferences
+   * Disables or reduces animations for users who prefer reduced motion
+   * WCAG 2.1 Level AAA compliance
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .gradient-zen-animated {
+      animation: none;
+      background-size: 100% 100%;
+    }
+
+    [class*='animate-'] {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

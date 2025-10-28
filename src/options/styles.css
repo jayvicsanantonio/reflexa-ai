@@ -1,4 +1,9 @@
 @import 'tailwindcss';
+@import '../styles/theme.css';
 @import '../styles/accessibility.css';
 
-/* Options page styles */
+/**
+ * OPTIONS PAGE STYLES
+ * Component-specific styles for settings/options page UI
+ * Theme tokens are imported from ../styles/theme.css
+ */
