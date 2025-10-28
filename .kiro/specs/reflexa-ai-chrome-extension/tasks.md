@@ -289,7 +289,7 @@
   - Run automated Axe accessibility scan
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 29. Conduct performance testing
+- [x] 29. Conduct performance testing
 
   - Measure overlay render time with Performance API
   - Monitor animation frame rate during breathing orb cycle
