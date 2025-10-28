@@ -171,7 +171,7 @@ export interface AIResponse {
 
 ```typescript
 export const DEFAULT_SETTINGS: Settings = {
-  dwellThreshold: 1, // 60 seconds default
+  dwellThreshold: 30, // 60 seconds default
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,
@@ -947,7 +947,7 @@ const reflection: Reflection = {
 ```typescript
 // Test 2: Settings validation
 const validSettings = {
-  dwellThreshold: 1,
+  dwellThreshold: 30,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,

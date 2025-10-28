@@ -452,7 +452,7 @@ const showReflectModeOverlay = async () => {
  * @returns Default Settings object
  */
 const getDefaultSettings = (): Settings => ({
-  dwellThreshold: 1,
+  dwellThreshold: 30,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,
@@ -694,7 +694,7 @@ const getSettings = async (): Promise<Settings> => {
     console.error('Failed to load settings:', response.error);
     // Return default settings as fallback
     return {
-      dwellThreshold: 1,
+      dwellThreshold: 30,
       enableSound: true,
       reduceMotion: false,
       proofreadEnabled: false,

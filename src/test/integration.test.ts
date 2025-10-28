@@ -333,7 +333,7 @@ describe('Integration Tests - User Flows', () => {
     it('should persist settings changes', async () => {
       // Update settings
       const newSettings: Partial<Settings> = {
-        dwellThreshold: 120,
+        dwellThreshold: 3020,
         enableSound: false,
         reduceMotion: true,
       };
@@ -385,7 +385,7 @@ describe('Integration Tests - User Flows', () => {
       await settingsManager.resetToDefaults();
 
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(60);
+      expect(settings.dwellThreshold).toBe(30);
       expect(settings.enableSound).toBe(true);
     });
   });
@@ -587,7 +587,7 @@ describe('Integration Tests - User Flows', () => {
 
       // 1. Load settings
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(60);
+      expect(settings.dwellThreshold).toBe(30);
 
       // 2. Initialize dwell tracker with settings
       const dwellTracker = new DwellTracker(settings.dwellThreshold);

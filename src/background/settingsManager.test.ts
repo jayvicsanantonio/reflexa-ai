@@ -41,7 +41,7 @@ describe('SettingsManager', () => {
 
     it('should return stored settings', async () => {
       const customSettings: Settings = {
-        dwellThreshold: 120,
+        dwellThreshold: 3020,
         enableSound: false,
         reduceMotion: true,
         proofreadEnabled: true,
@@ -113,7 +113,7 @@ describe('SettingsManager', () => {
 
     it('should update multiple settings at once', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 120,
+        dwellThreshold: 3020,
         enableSound: false,
         reduceMotion: true,
       });
@@ -128,7 +128,7 @@ describe('SettingsManager', () => {
   describe('resetToDefaults', () => {
     it('should reset all settings to defaults', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 120,
+        dwellThreshold: 3020,
         enableSound: false,
       });
 

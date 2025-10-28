@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:watch": "vite build --watch --mode development",
-    "build": "npm run check && vite build",
+    "build": "npm run check && npm run test && vite build",
     "build:dev": "vite build --mode development",
     "build:prod": "npm run check && vite build --mode production",
     "build:only": "vite build",

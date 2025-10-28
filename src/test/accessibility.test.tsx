@@ -387,7 +387,7 @@ describe('Accessibility Tests', () => {
 
     describe('ReflectModeOverlay', () => {
       const defaultSettings: Settings = {
-        dwellThreshold: 1,
+        dwellThreshold: 30,
         enableSound: true,
         reduceMotion: false,
         proofreadEnabled: false,
