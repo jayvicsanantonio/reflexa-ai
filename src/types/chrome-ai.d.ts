@@ -139,6 +139,38 @@ export interface AITranslatorFactory {
 }
 
 /**
+ * Prompt API (Language Model) types
+ */
+export interface AILanguageModel {
+  prompt(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  promptStreaming(input: string): ReadableStream;
+  countPromptTokens(input: string): Promise<number>;
+  maxTokens: number;
+  tokensSoFar: number;
+  tokensLeft: number;
+  topK: number;
+  temperature: number;
+  destroy(): void;
+  clone(): Promise<AILanguageModel>;
+}
+
+export interface AILanguageModelFactory {
+  create(options?: {
+    systemPrompt?: string;
+    initialPrompts?: {
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }[];
+    topK?: number;
+    temperature?: number;
+    signal?: AbortSignal;
+  }): Promise<AILanguageModel>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
@@ -148,7 +180,7 @@ interface ChromeAI {
   proofreader?: AIProofreaderFactory;
   languageDetector?: AILanguageDetectorFactory;
   translator?: AITranslatorFactory;
-  languageModel?: unknown;
+  languageModel?: AILanguageModelFactory;
 }
 
 /**

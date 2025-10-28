@@ -112,14 +112,14 @@
     - Handle auto-detection of source language if not provided
     - _Requirements: 7.3, 7.4, 7.5_
 
-- [ ] 9. Build Prompt Manager module
-  - [ ] 9.1 Implement PromptManager class as universal fallback
+- [x] 9. Build Prompt Manager module
+  - [x] 9.1 Implement PromptManager class as universal fallback
     - Create isAvailable() method
     - Implement session creation with system prompts
     - Add conversation context management
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 9.2 Create specialized prompts for each API fallback
+  - [x] 9.2 Create specialized prompts for each API fallback
     - Write summarization prompt that mimics Summarizer API behavior
     - Write draft generation prompt that mimics Writer API behavior
     - Write rewriting prompt that mimics Rewriter API behavior
