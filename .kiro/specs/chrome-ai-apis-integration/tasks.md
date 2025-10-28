@@ -87,13 +87,13 @@
     - Generate TextChange objects with position information
     - _Requirements: 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 7. Build Language Detector Manager module
-  - [ ] 7.1 Implement LanguageDetectorManager class
+- [x] 7. Build Language Detector Manager module
+  - [x] 7.1 Implement LanguageDetectorManager class
     - Create isAvailable() method
     - Implement detect method using first 500 characters for speed
     - _Requirements: 6.1, 8.5_
 
-  - [ ] 7.2 Add language code mapping and caching
+  - [x] 7.2 Add language code mapping and caching
     - Map ISO 639-1 codes to human-readable language names
     - Implement per-page caching to avoid redundant detection calls
     - Return LanguageDetection object with code, confidence, and name

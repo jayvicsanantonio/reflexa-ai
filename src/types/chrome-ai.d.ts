@@ -93,6 +93,29 @@ export interface AIProofreaderFactory {
 }
 
 /**
+ * Language Detector API types
+ */
+export interface LanguageDetectionResult {
+  detectedLanguage: string; // ISO 639-1 language code
+  confidence: number; // 0-1 confidence score
+}
+
+export interface AILanguageDetector {
+  detect(
+    input: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<LanguageDetectionResult[]>;
+  destroy(): void;
+}
+
+export interface AILanguageDetectorFactory {
+  create(options?: { signal?: AbortSignal }): Promise<AILanguageDetector>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
@@ -100,7 +123,7 @@ interface ChromeAI {
   writer?: AIWriterFactory;
   rewriter?: AIRewriterFactory;
   proofreader?: AIProofreaderFactory;
-  languageDetector?: unknown;
+  languageDetector?: AILanguageDetectorFactory;
   translator?: unknown;
   languageModel?: unknown;
 }
