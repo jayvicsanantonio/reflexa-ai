@@ -269,7 +269,7 @@
   - Test streak calculation logic
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 7.4, 9.3, 9.4_
 
-- [ ] 27. Create integration tests for user flows
+- [x] 27. Create integration tests for user flows
 
   - Test complete reflection flow from dwell detection to save
   - Test overlay rendering and interaction
