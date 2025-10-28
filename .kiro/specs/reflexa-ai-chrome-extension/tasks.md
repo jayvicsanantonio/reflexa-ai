@@ -298,7 +298,7 @@
   - Run Lighthouse audit on popup and options pages
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 30. Create build and packaging scripts
+- [x] 30. Create build and packaging scripts
 
   - Add npm scripts for development build with watch mode
   - Create production build script with minification

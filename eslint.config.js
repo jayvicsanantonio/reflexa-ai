@@ -7,7 +7,15 @@ import prettier from 'eslint-plugin-prettier/recommended';
 export default tseslint.config(
   // Ignore patterns
   {
-    ignores: ['dist/**', 'node_modules/**', '.kiro/**', 'eslint.config.js'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '.kiro/**',
+      'eslint.config.js',
+      'vitest.config.ts',
+      'scripts/**',
+      'build/**',
+    ],
   },
 
   // Base configurations
@@ -57,6 +65,29 @@ export default tseslint.config(
         'error',
         { checksVoidReturn: false },
       ],
+    },
+  },
+
+  // Relaxed rules for test files
+  {
+    files: ['**/*.test.{ts,tsx}', '**/test/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+    },
+  },
+
+  // Ignore vitest config
+  {
+    files: ['vitest.config.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
     },
   },
 

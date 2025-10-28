@@ -68,8 +68,3 @@ Object.defineProperty(document, 'hidden', {
   writable: true,
   value: false,
 });
-
-// Reset mocks before each test
-beforeEach(() => {
-  vi.clearAllMocks();
-});

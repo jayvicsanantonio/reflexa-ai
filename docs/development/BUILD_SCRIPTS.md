@@ -1,95 +1,63 @@
-# Build Scripts Guide
+# Build and Packaging Scripts
 
-## Overview
+This document describes the build and packaging scripts available for the Reflexa AI Chrome Extension.
 
-This document explains all available npm scripts and their purposes in the Reflexa AI Chrome Extension project.
-
-## Script Categories
+## Available Scripts
 
 ### Development Scripts
 
 #### `npm run dev`
 
-Starts the Vite development server with Hot Module Replacement (HMR).
-
-**What it does**:
-
-- Starts Vite dev server
-- Enables HMR for instant updates
-- Watches for file changes
-- Serves extension for development
-
-**When to use**:
-
-- During active development
-- When you want instant feedback
-- For testing changes quickly
-
-**Example**:
+Starts the Vite development server for rapid development with hot module replacement (HMR).
 
 ```bash
 npm run dev
+```
+
+#### `npm run dev:watch`
+
+Builds the extension in development mode with watch mode enabled. Automatically rebuilds when files change.
+
+```bash
+npm run dev:watch
 ```
 
 ### Build Scripts
 
 #### `npm run build`
 
-**Recommended for production builds**
-
-Runs all quality checks before building the extension.
-
-**What it does**:
-
-1. ✅ Type checking (`tsc --noEmit`)
-2. ✅ ESLint checking (`eslint .`)
-3. ✅ Prettier format checking
-4. ✅ Vite production build
-
-**When to use**:
-
-- Before committing code
-- Before deploying to production
-- When you want to ensure code quality
-
-**Example**:
+Full production build with all quality checks (type checking, linting, formatting).
 
 ```bash
 npm run build
 ```
 
-**Output**:
+This runs:
 
+1. Type checking (`tsc --noEmit`)
+2. ESLint validation
+3. Prettier format checking
+4. Vite production build with minification
+
+#### `npm run build:dev`
+
+Development build without quality checks. Faster for testing.
+
+```bash
+npm run build:dev
 ```
-> reflexa-ai-chrome-extension@1.0.0 check
-> npm run type-check && npm run lint && npm run format:check
 
-✓ Type checking passed
-✓ Linting passed (2 warnings)
-✓ Formatting passed
+#### `npm run build:prod`
 
-> vite build
-✓ built in 309ms
+Production build with all quality checks (same as `npm run build`).
+
+```bash
+npm run build:prod
 ```
 
 #### `npm run build:only`
 
-Builds the extension without running quality checks.
-
-**What it does**:
-
-- Runs Vite production build only
-- Skips type checking
-- Skips linting
-- Skips format checking
-
-**When to use**:
-
-- When you've already run checks separately
-- For quick builds during testing
-- When you're confident code is correct
-
-**Example**:
+Build without running quality checks. Use when you've already validated code.
 
 ```bash
 npm run build:only
@@ -101,98 +69,35 @@ npm run build:only
 
 Runs all quality checks without building.
 
-**What it does**:
-
-1. ✅ Type checking
-2. ✅ ESLint checking
-3. ✅ Prettier format checking
-
-**When to use**:
-
-- Before committing
-- To verify code quality
-- In CI/CD pipelines
-
-**Example**:
-
 ```bash
 npm run check
 ```
 
+Includes:
+
+- Type checking
+- Linting
+- Format checking
+
 #### `npm run type-check`
 
-Runs TypeScript type checking without emitting files.
-
-**What it does**:
-
-- Checks TypeScript types
-- Validates type safety
-- Reports type errors
-
-**When to use**:
-
-- To verify TypeScript types
-- After making type changes
-- Before committing
-
-**Example**:
+TypeScript type checking only.
 
 ```bash
 npm run type-check
 ```
 
-**Output**:
-
-```
-> tsc --noEmit
-# No output = success
-```
-
 #### `npm run lint`
 
-Checks code with ESLint.
-
-**What it does**:
-
-- Runs ESLint on all files
-- Reports errors and warnings
-- Does NOT auto-fix
-
-**When to use**:
-
-- To check for linting issues
-- Before committing
-- In CI/CD pipelines
-
-**Example**:
+ESLint validation.
 
 ```bash
 npm run lint
 ```
 
-**Output**:
-
-```
-✖ 2 problems (0 errors, 2 warnings)
-```
-
 #### `npm run lint:fix`
 
-Checks code with ESLint and auto-fixes issues.
-
-**What it does**:
-
-- Runs ESLint on all files
-- Automatically fixes fixable issues
-- Reports remaining issues
-
-**When to use**:
-
-- To fix linting errors automatically
-- Before committing
-- After making code changes
-
-**Example**:
+Auto-fix ESLint issues where possible.
 
 ```bash
 npm run lint:fix
@@ -200,291 +105,236 @@ npm run lint:fix
 
 #### `npm run format`
 
-Formats all source files with Prettier.
-
-**What it does**:
-
-- Formats TypeScript files
-- Formats TSX (React) files
-- Formats CSS files
-- Formats JSON files
-- Sorts Tailwind classes automatically
-
-**When to use**:
-
-- To format code automatically
-- Before committing
-- After making changes
-
-**Example**:
+Format all source files with Prettier.
 
 ```bash
 npm run format
 ```
 
-**Output**:
-
-```
-src/background/index.ts 30ms
-src/content/index.tsx 4ms
-src/popup/App.tsx 6ms
-```
-
 #### `npm run format:check`
 
-Checks if files are formatted correctly without modifying them.
-
-**What it does**:
-
-- Checks Prettier formatting
-- Does NOT modify files
-- Reports unformatted files
-
-**When to use**:
-
-- In CI/CD pipelines
-- To verify formatting
-- Before committing
-
-**Example**:
+Check if files are formatted correctly without modifying them.
 
 ```bash
 npm run format:check
 ```
 
-**Output**:
+### Packaging Scripts
 
-```
-Checking formatting...
-All matched files use Prettier code style!
-```
+#### `npm run package`
 
-### Preview Script
-
-#### `npm run preview`
-
-Previews the production build locally.
-
-**What it does**:
-
-- Serves the built extension
-- Simulates production environment
-- Useful for testing builds
-
-**When to use**:
-
-- After building
-- To test production build
-- Before deploying
-
-**Example**:
+Creates a production-ready ZIP file for Chrome Web Store distribution.
 
 ```bash
-npm run build
-npm run preview
+npm run package
 ```
 
-## Recommended Workflows
+This:
 
-### Before Committing
+1. Runs full production build with quality checks
+2. Creates a ZIP archive in the `build/` directory
+3. Names the file: `reflexa-ai-chrome-extension-v{version}-{date}.zip`
 
-Run all checks and build:
+#### `npm run package:dev`
+
+Creates a development ZIP file without quality checks.
 
 ```bash
-npm run build
+npm run package:dev
 ```
 
-Or run checks separately:
+### Test Scripts
+
+#### `npm run test`
+
+Runs all tests once (non-watch mode).
 
 ```bash
-npm run check
+npm run test
 ```
 
-### Quick Development Cycle
+#### `npm run test:watch`
 
-1. Start dev server:
+Runs tests in watch mode for development.
 
 ```bash
+npm run test:watch
+```
+
+#### `npm run test:ui`
+
+Opens Vitest UI for interactive test running.
+
+```bash
+npm run test:ui
+```
+
+#### `npm run test:coverage`
+
+Runs tests with coverage reporting.
+
+```bash
+npm run test:coverage
+```
+
+## Git Hooks
+
+The project uses Husky for Git hooks to ensure code quality.
+
+### Pre-commit Hook
+
+Runs automatically before each commit:
+
+- Type checking
+- Linting
+- Format checking
+
+If any check fails, the commit is blocked.
+
+### Pre-push Hook
+
+Runs automatically before pushing:
+
+- All tests
+
+If tests fail, the push is blocked.
+
+### Skipping Hooks
+
+To skip hooks temporarily (not recommended):
+
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+## Build Output
+
+### Development Build
+
+- Output directory: `dist/`
+- Source maps: Enabled
+- Minification: Disabled
+- Optimizations: Minimal
+
+### Production Build
+
+- Output directory: `dist/`
+- Source maps: Disabled
+- Minification: Enabled
+- Optimizations: Maximum
+- Tree shaking: Enabled
+- Code splitting: Enabled
+
+### Package Output
+
+- Output directory: `build/`
+- Format: ZIP archive
+- Compression: Maximum (level 9)
+- Includes: All files from `dist/`
+
+## Workflow Examples
+
+### Standard Development Workflow
+
+```bash
+# Start development server
 npm run dev
+
+# Make changes...
+
+# Run tests
+npm run test
+
+# Commit (hooks run automatically)
+git add .
+git commit -m "feat: add new feature"
+
+# Push (tests run automatically)
+git push
 ```
 
-2. Make changes (auto-reloads)
-
-3. Before commit:
+### Creating a Release
 
 ```bash
+# Update version in package.json
+npm version patch  # or minor, or major
+
+# Create production package
+npm run package
+
+# Upload build/reflexa-ai-chrome-extension-v*.zip to Chrome Web Store
+```
+
+### Quick Testing Build
+
+```bash
+# Build without checks
+npm run build:dev
+
+# Or build and package
+npm run package:dev
+```
+
+### Fixing Code Quality Issues
+
+```bash
+# Auto-fix linting issues
 npm run lint:fix
-npm run format
-npm run build
-```
 
-### CI/CD Pipeline
-
-```bash
-# Install dependencies
-npm ci
-
-# Run all checks
-npm run check
-
-# Build
-npm run build:only
-```
-
-### Fix All Issues
-
-```bash
-# Fix linting issues
-npm run lint:fix
-
-# Format code
+# Auto-format code
 npm run format
 
-# Verify everything
+# Check if everything passes
 npm run check
 ```
-
-## Script Dependencies
-
-### `npm run build` Flow
-
-```
-npm run build
-  ├─> npm run check
-  │     ├─> npm run type-check (tsc --noEmit)
-  │     ├─> npm run lint (eslint .)
-  │     └─> npm run format:check (prettier --check)
-  └─> vite build
-```
-
-### `npm run check` Flow
-
-```
-npm run check
-  ├─> npm run type-check
-  ├─> npm run lint
-  └─> npm run format:check
-```
-
-## Exit Codes
-
-All scripts follow standard exit code conventions:
-
-- **0**: Success
-- **1**: Error (build failed, checks failed)
-- **2**: Warning (linting warnings, but no errors)
-
-## Performance
-
-Typical execution times on a modern machine:
-
-| Script                 | Time   | Notes               |
-| ---------------------- | ------ | ------------------- |
-| `npm run dev`          | ~500ms | Initial startup     |
-| `npm run build`        | ~2-3s  | Includes all checks |
-| `npm run build:only`   | ~300ms | Build only          |
-| `npm run check`        | ~1-2s  | All checks          |
-| `npm run type-check`   | ~500ms | TypeScript only     |
-| `npm run lint`         | ~500ms | ESLint only         |
-| `npm run format`       | ~100ms | Format all files    |
-| `npm run format:check` | ~50ms  | Check only          |
 
 ## Troubleshooting
 
-### Build Fails with Type Errors
+### Build Fails
 
-```bash
-# Check types first
-npm run type-check
+1. Check Node.js version (requires v22+)
+2. Clear node_modules and reinstall:
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
+3. Clear build cache:
+   ```bash
+   rm -rf dist build
+   ```
 
-# Fix type errors in your code
-# Then try building again
-npm run build
-```
+### Hooks Not Running
 
-### Build Fails with Linting Errors
+1. Ensure you're in a git repository
+2. Reinstall hooks:
+   ```bash
+   npm run prepare
+   ```
+3. Check `.husky/` directory exists
 
-```bash
-# Try auto-fixing
-npm run lint:fix
+### Package Script Fails
 
-# If issues remain, fix manually
-# Then try building again
-npm run build
-```
+1. Ensure build completed successfully
+2. Check `dist/` directory exists
+3. Verify archiver is installed:
+   ```bash
+   npm list archiver
+   ```
 
-### Build Fails with Format Errors
+## Configuration Files
 
-```bash
-# Format all files
-npm run format
+- `vite.config.ts` - Vite build configuration
+- `tsconfig.json` - TypeScript configuration
+- `eslint.config.js` - ESLint rules
+- `.prettierrc` - Prettier formatting rules
+- `package.json` - Scripts and dependencies
+- `.husky/` - Git hook scripts
 
-# Then try building again
-npm run build
-```
+## Performance Tips
 
-### Want to Build Without Checks
-
-```bash
-# Use build:only
-npm run build:only
-```
-
-## Best Practices
-
-### 1. Always Run Checks Before Committing
-
-```bash
-npm run build
-```
-
-### 2. Use Auto-Fix Tools
-
-```bash
-npm run lint:fix
-npm run format
-```
-
-### 3. Run Checks in CI/CD
-
-```yaml
-# .github/workflows/ci.yml
-- run: npm run check
-- run: npm run build:only
-```
-
-### 4. Format on Save (VS Code)
-
-Enable in `.vscode/settings.json`:
-
-```json
-{
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  }
-}
-```
-
-### 5. Pre-commit Hooks (Optional)
-
-Consider using Husky for automatic checks:
-
-```bash
-npm install --save-dev husky lint-staged
-```
-
-## Summary
-
-| Script         | Type Check | Lint     | Format Check | Build |
-| -------------- | ---------- | -------- | ------------ | ----- |
-| `build`        | ✅         | ✅       | ✅           | ✅    |
-| `build:only`   | ❌         | ❌       | ❌           | ✅    |
-| `check`        | ✅         | ✅       | ✅           | ❌    |
-| `type-check`   | ✅         | ❌       | ❌           | ❌    |
-| `lint`         | ❌         | ✅       | ❌           | ❌    |
-| `lint:fix`     | ❌         | ✅ (fix) | ❌           | ❌    |
-| `format`       | ❌         | ❌       | ❌ (fix)     | ❌    |
-| `format:check` | ❌         | ❌       | ✅           | ❌    |
-
-**Recommendation**: Use `npm run build` for production builds to ensure all quality checks pass.
+1. Use `npm run dev:watch` for active development
+2. Use `npm run build:dev` for quick testing builds
+3. Only run `npm run package` for final releases
+4. Use `npm run test:watch` during test development
+5. Run `npm run check` before committing to catch issues early

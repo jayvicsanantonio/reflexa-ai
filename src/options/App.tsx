@@ -17,7 +17,7 @@ export const App: React.FC = () => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const saveTimeoutRef = useRef<number | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load settings on mount
   useEffect(() => {

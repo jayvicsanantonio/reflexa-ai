@@ -177,8 +177,6 @@ describe('Performance Tests', () => {
 
       // Simulate AI processing with various content lengths
       const shortContent = 'A'.repeat(500); // ~500 tokens
-      const mediumContent = 'A'.repeat(1500); // ~1500 tokens
-      const longContent = 'A'.repeat(3000); // ~3000 tokens
 
       // Simulate processing time (proportional to content length)
       const processContent = (content: string) => {

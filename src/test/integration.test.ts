@@ -41,7 +41,9 @@ describe('Integration Tests - User Flows', () => {
       return Promise.resolve();
     });
 
-    vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(1000);
+    vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(
+      1000 as never
+    );
 
     storageManager = new StorageManager();
     settingsManager = new SettingsManager();
@@ -620,7 +622,7 @@ describe('Integration Tests - User Flows', () => {
       ]);
 
       const summary = await aiManager.summarize(content.text);
-      const prompts = await aiManager.generateReflectionPrompts(summary);
+      await aiManager.generateReflectionPrompts(summary);
 
       // 6. Save reflection
       await storageManager.saveReflection({

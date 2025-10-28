@@ -35,7 +35,9 @@ describe('StorageManager', () => {
       return Promise.resolve();
     });
 
-    vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(1000);
+    vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(
+      1000 as never
+    );
   });
 
   describe('saveReflection', () => {
@@ -296,7 +298,9 @@ describe('StorageManager', () => {
 
   describe('isStorageNearLimit', () => {
     it('should return false when storage is not near limit', async () => {
-      vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(1000);
+      vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(
+        1000 as never
+      );
       const nearLimit = await storageManager.isStorageNearLimit();
       expect(nearLimit).toBe(false);
     });
@@ -304,7 +308,7 @@ describe('StorageManager', () => {
     it('should return true when storage is near limit', async () => {
       const quota = chrome.storage.local.QUOTA_BYTES;
       vi.spyOn(chrome.storage.local, 'getBytesInUse').mockResolvedValue(
-        quota * 0.95
+        (quota * 0.95) as never
       );
       const nearLimit = await storageManager.isStorageNearLimit();
       expect(nearLimit).toBe(true);

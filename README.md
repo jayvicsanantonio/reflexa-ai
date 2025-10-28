@@ -54,11 +54,19 @@ This will start the Vite dev server with Hot Module Replacement (HMR). The exten
 **Development**:
 
 - `npm run dev` - Start development server with HMR
+- `npm run dev:watch` - Build in development mode with watch mode
 
 **Building**:
 
-- `npm run build` - Run all checks (type-check, lint, format) then build
+- `npm run build` - Run all checks (type-check, lint, format) then build for production
+- `npm run build:dev` - Build in development mode without checks
+- `npm run build:prod` - Production build with all quality checks
 - `npm run build:only` - Build without running checks
+
+**Packaging**:
+
+- `npm run package` - Create production ZIP file for Chrome Web Store
+- `npm run package:dev` - Create development ZIP file without checks
 
 **Quality Checks**:
 
@@ -68,6 +76,45 @@ This will start the Vite dev server with Hot Module Replacement (HMR). The exten
 - `npm run lint:fix` - Fix auto-fixable ESLint errors
 - `npm run format` - Format code with Prettier
 - `npm run format:check` - Check if code is formatted correctly
+
+**Testing**:
+
+- `npm run test` - Run all tests once
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:ui` - Open Vitest UI
+- `npm run test:coverage` - Run tests with coverage report
+
+### Git Hooks
+
+The project uses Husky for automated code quality checks:
+
+- **Pre-commit**: Runs type checking, linting, and format checking
+- **Pre-push**: Runs all tests
+
+To skip hooks temporarily (not recommended):
+
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+### Creating a Release
+
+1. Update version in `package.json`:
+
+```bash
+npm version patch  # or minor, or major
+```
+
+2. Create production package:
+
+```bash
+npm run package
+```
+
+3. Upload the ZIP file from `build/` directory to Chrome Web Store
+
+For more details, see [Build Scripts Documentation](docs/development/BUILD_SCRIPTS.md).
 
 ## Project Structure
 
