@@ -240,7 +240,7 @@
   - Enable JIT mode for optimal bundle size
   - _Requirements: 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 3.4, 11.1_
 
-- [ ] 24. Create audio assets
+- [x] 24. Create audio assets
 
   - Generate or source entry chime sound (<1 second, gentle tone)
   - Create ambient loop audio (8 seconds, calming hum)

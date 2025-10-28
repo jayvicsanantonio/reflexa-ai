@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Integration Test</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #f5f5f5;
+      }
+      .test-section {
+        background: white;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      h2 {
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+      }
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+      button:hover {
+        background: #5568d3;
+      }
+      .status {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      code {
+        background: #f1f3f5;
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎵 Audio Integration Test</h1>
+    <p>This page tests that audio files can be loaded and played correctly.</p>
+
+    <div class="test-section">
+      <h2>1. File Existence Test</h2>
+      <button onclick="testFileExistence()">Test Files</button>
+      <div id="file-status" class="status" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>2. Audio Loading Test</h2>
+      <button onclick="testAudioLoading()">Load Audio</button>
+      <div id="load-status" class="status" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>3. Playback Test</h2>
+      <p>Note: Placeholder files are silent, so you won't hear anything.</p>
+      <button onclick="playEntryChime()">Play Entry Chime</button>
+      <button onclick="playAmbientLoop()">Play Ambient Loop</button>
+      <button onclick="stopAmbientLoop()">Stop Ambient</button>
+      <button onclick="playCompletionBell()">Play Completion Bell</button>
+      <div id="play-status" class="status" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>4. Duration Verification</h2>
+      <button onclick="verifyDurations()">Verify Durations</button>
+      <div id="duration-status" class="status" style="display: none"></div>
+    </div>
+
+    <script>
+      const audioFiles = {
+        entryChime: 'entry-chime.mp3',
+        ambientLoop: 'ambient-loop.mp3',
+        completionBell: 'completion-bell.mp3',
+      };
+
+      let audioElements = {};
+      let ambientLoopPlaying = false;
+
+      function showStatus(id, message, type) {
+        const el = document.getElementById(id);
+        el.textContent = message;
+        el.className = `status ${type}`;
+        el.style.display = 'block';
+      }
+
+      async function testFileExistence() {
+        showStatus('file-status', 'Testing file existence...', 'info');
+
+        const results = [];
+        for (const [name, file] of Object.entries(audioFiles)) {
+          try {
+            const response = await fetch(file);
+            if (response.ok) {
+              results.push(`✓ ${file} exists`);
+            } else {
+              results.push(`✗ ${file} not found (${response.status})`);
+            }
+          } catch (error) {
+            results.push(`✗ ${file} error: ${error.message}`);
+          }
+        }
+
+        const allExist = results.every((r) => r.startsWith('✓'));
+        showStatus(
+          'file-status',
+          results.join('\n'),
+          allExist ? 'success' : 'error'
+        );
+      }
+
+      async function testAudioLoading() {
+        showStatus('load-status', 'Loading audio files...', 'info');
+
+        try {
+          audioElements.entryChime = new Audio(audioFiles.entryChime);
+          audioElements.ambientLoop = new Audio(audioFiles.ambientLoop);
+          audioElements.completionBell = new Audio(audioFiles.completionBell);
+
+          // Set volume to 30% (as per AudioManager)
+          Object.values(audioElements).forEach((audio) => {
+            audio.volume = 0.3;
+          });
+
+          audioElements.ambientLoop.loop = true;
+
+          showStatus(
+            'load-status',
+            '✓ All audio files loaded successfully',
+            'success'
+          );
+        } catch (error) {
+          showStatus(
+            'load-status',
+            `✗ Error loading audio: ${error.message}`,
+            'error'
+          );
+        }
+      }
+
+      async function playEntryChime() {
+        if (!audioElements.entryChime) {
+          await testAudioLoading();
+        }
+
+        try {
+          audioElements.entryChime.currentTime = 0;
+          await audioElements.entryChime.play();
+          showStatus(
+            'play-status',
+            '✓ Entry chime playing (silent placeholder)',
+            'success'
+          );
+        } catch (error) {
+          showStatus(
+            'play-status',
+            `✗ Error playing entry chime: ${error.message}`,
+            'error'
+          );
+        }
+      }
+
+      async function playAmbientLoop() {
+        if (!audioElements.ambientLoop) {
+          await testAudioLoading();
+        }
+
+        try {
+          audioElements.ambientLoop.currentTime = 0;
+          await audioElements.ambientLoop.play();
+          ambientLoopPlaying = true;
+          showStatus(
+            'play-status',
+            '✓ Ambient loop playing (silent placeholder, looping)',
+            'success'
+          );
+        } catch (error) {
+          showStatus(
+            'play-status',
+            `✗ Error playing ambient loop: ${error.message}`,
+            'error'
+          );
+        }
+      }
+
+      function stopAmbientLoop() {
+        if (audioElements.ambientLoop && ambientLoopPlaying) {
+          audioElements.ambientLoop.pause();
+          audioElements.ambientLoop.currentTime = 0;
+          ambientLoopPlaying = false;
+          showStatus('play-status', '✓ Ambient loop stopped', 'info');
+        }
+      }
+
+      async function playCompletionBell() {
+        if (!audioElements.completionBell) {
+          await testAudioLoading();
+        }
+
+        try {
+          audioElements.completionBell.currentTime = 0;
+          await audioElements.completionBell.play();
+          showStatus(
+            'play-status',
+            '✓ Completion bell playing (silent placeholder)',
+            'success'
+          );
+        } catch (error) {
+          showStatus(
+            'play-status',
+            `✗ Error playing completion bell: ${error.message}`,
+            'error'
+          );
+        }
+      }
+
+      async function verifyDurations() {
+        showStatus('duration-status', 'Verifying durations...', 'info');
+
+        if (!audioElements.entryChime) {
+          await testAudioLoading();
+        }
+
+        // Wait for metadata to load
+        const promises = Object.entries(audioElements).map(([name, audio]) => {
+          return new Promise((resolve) => {
+            if (audio.duration) {
+              resolve({ name, duration: audio.duration });
+            } else {
+              audio.addEventListener(
+                'loadedmetadata',
+                () => {
+                  resolve({ name, duration: audio.duration });
+                },
+                { once: true }
+              );
+            }
+          });
+        });
+
+        try {
+          const results = await Promise.all(promises);
+
+          const expected = {
+            entryChime: 0.6,
+            ambientLoop: 8.0,
+            completionBell: 0.8,
+          };
+
+          const messages = results.map(({ name, duration }) => {
+            const exp = expected[name];
+            const match = Math.abs(duration - exp) < 0.1;
+            return `${match ? '✓' : '✗'} ${name}: ${duration.toFixed(2)}s (expected: ${exp}s)`;
+          });
+
+          const allMatch = messages.every((m) => m.startsWith('✓'));
+          showStatus(
+            'duration-status',
+            messages.join('\n'),
+            allMatch ? 'success' : 'error'
+          );
+        } catch (error) {
+          showStatus(
+            'duration-status',
+            `✗ Error verifying durations: ${error.message}`,
+            'error'
+          );
+        }
+      }
+
+      // Auto-run file existence test on load
+      window.addEventListener('load', () => {
+        setTimeout(testFileExistence, 500);
+      });
+    </script>
+  </body>
+</html>

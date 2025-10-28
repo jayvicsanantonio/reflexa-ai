@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reflexa AI - Audio Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem;
+        color: #333;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        color: #667eea;
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+      }
+
+      .audio-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid #e9ecef;
+      }
+
+      .audio-section h2 {
+        color: #495057;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .audio-section p {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      }
+
+      button:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        background: #adb5bd;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .download-btn {
+        background: #28a745;
+      }
+
+      .download-btn:hover {
+        background: #218838;
+      }
+
+      .status {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+      }
+
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+      }
+
+      .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+        display: block;
+      }
+
+      .note {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 2rem;
+        color: #856404;
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      .note strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #533f03;
+      }
+
+      code {
+        background: #f1f3f5;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'Monaco', 'Courier New', monospace;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎵 Reflexa AI Audio Generator</h1>
+      <p class="subtitle">
+        Generate basic audio files using Web Audio API synthesis
+      </p>
+
+      <!-- Entry Chime -->
+      <div class="audio-section">
+        <h2>1. Entry Chime</h2>
+        <p>
+          Gentle ascending tone (C4 → E4 → G4) that plays when Reflect Mode
+          activates. Duration: ~0.6 seconds.
+        </p>
+        <div class="controls">
+          <button onclick="playEntryChime()">▶️ Preview</button>
+          <button class="download-btn" onclick="downloadEntryChime()">
+            ⬇️ Download MP3
+          </button>
+        </div>
+        <div id="entry-status" class="status"></div>
+      </div>
+
+      <!-- Ambient Loop -->
+      <div class="audio-section">
+        <h2>2. Ambient Loop</h2>
+        <p>
+          Calming 8-second drone with seamless looping. Uses multiple sine waves
+          for a meditative quality.
+        </p>
+        <div class="controls">
+          <button onclick="playAmbientLoop()">▶️ Preview</button>
+          <button onclick="stopAmbientLoop()">⏹️ Stop</button>
+          <button class="download-btn" onclick="downloadAmbientLoop()">
+            ⬇️ Download MP3
+          </button>
+        </div>
+        <div id="ambient-status" class="status"></div>
+      </div>
+
+      <!-- Completion Bell -->
+      <div class="audio-section">
+        <h2>3. Completion Bell</h2>
+        <p>
+          Positive two-note melody (G4 → C5) that plays when saving a
+          reflection. Duration: ~0.8 seconds.
+        </p>
+        <div class="controls">
+          <button onclick="playCompletionBell()">▶️ Preview</button>
+          <button class="download-btn" onclick="downloadCompletionBell()">
+            ⬇️ Download MP3
+          </button>
+        </div>
+        <div id="completion-status" class="status"></div>
+      </div>
+
+      <div class="note">
+        <strong>⚠️ Important Notes:</strong>
+        • These are basic synthesized sounds. For production, consider using
+        professional audio tools or sourcing from royalty-free libraries.<br />
+        • Downloaded files are in WAV format. Convert to MP3 using tools like
+        <code>ffmpeg</code> or Audacity for smaller file sizes.<br />
+        • Place final audio files in <code>public/audio/</code> with names:
+        <code>entry-chime.mp3</code>, <code>ambient-loop.mp3</code>,
+        <code>completion-bell.mp3</code><br />
+        • See <code>AUDIO_REQUIREMENTS.md</code> for detailed specifications and
+        optimization tips.
+      </div>
+    </div>
+
+    <script>
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      let ambientLoopSource = null;
+      let ambientLoopBuffer = null;
+
+      // Helper: Create audio buffer from function
+      function createAudioBuffer(duration, renderFunction) {
+        const sampleRate = audioContext.sampleRate;
+        const buffer = audioContext.createBuffer(
+          1,
+          duration * sampleRate,
+          sampleRate
+        );
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < buffer.length; i++) {
+          const time = i / sampleRate;
+          data[i] = renderFunction(time, i, sampleRate);
+        }
+
+        return buffer;
+      }
+
+      // Helper: Play buffer
+      function playBuffer(buffer) {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.3; // 30% volume
+
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        source.start();
+
+        return source;
+      }
+
+      // Helper: Download buffer as WAV
+      function downloadBuffer(buffer, filename) {
+        const wav = bufferToWave(buffer);
+        const blob = new Blob([wav], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+
+        URL.revokeObjectURL(url);
+      }
+
+      // Convert AudioBuffer to WAV
+      function bufferToWave(buffer) {
+        const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+        const arrayBuffer = new ArrayBuffer(length);
+        const view = new DataView(arrayBuffer);
+        const channels = [];
+        let offset = 0;
+        let pos = 0;
+
+        // Write WAV header
+        const setUint16 = (data) => {
+          view.setUint16(pos, data, true);
+          pos += 2;
+        };
+        const setUint32 = (data) => {
+          view.setUint32(pos, data, true);
+          pos += 4;
+        };
+
+        // RIFF identifier
+        setUint32(0x46464952);
+        // File length
+        setUint32(length - 8);
+        // RIFF type
+        setUint32(0x45564157);
+        // Format chunk identifier
+        setUint32(0x20746d66);
+        // Format chunk length
+        setUint32(16);
+        // Sample format (raw)
+        setUint16(1);
+        // Channel count
+        setUint16(buffer.numberOfChannels);
+        // Sample rate
+        setUint32(buffer.sampleRate);
+        // Byte rate
+        setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels);
+        // Block align
+        setUint16(buffer.numberOfChannels * 2);
+        // Bits per sample
+        setUint16(16);
+        // Data chunk identifier
+        setUint32(0x61746164);
+        // Data chunk length
+        setUint32(length - pos - 4);
+
+        // Write interleaved data
+        for (let i = 0; i < buffer.numberOfChannels; i++) {
+          channels.push(buffer.getChannelData(i));
+        }
+
+        while (pos < length) {
+          for (let i = 0; i < buffer.numberOfChannels; i++) {
+            let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+          }
+          offset++;
+        }
+
+        return arrayBuffer;
+      }
+
+      // Entry Chime: Ascending arpeggio (C4 → E4 → G4)
+      function generateEntryChime() {
+        const duration = 0.6;
+        return createAudioBuffer(duration, (time) => {
+          const frequencies = [261.63, 329.63, 392.0]; // C4, E4, G4
+          const noteDuration = duration / 3;
+          const noteIndex = Math.floor(time / noteDuration);
+
+          if (noteIndex >= frequencies.length) return 0;
+
+          const freq = frequencies[noteIndex];
+          const noteTime = time - noteIndex * noteDuration;
+          const envelope = Math.exp(-noteTime * 8); // Decay
+
+          return Math.sin(2 * Math.PI * freq * noteTime) * envelope * 0.5;
+        });
+      }
+
+      function playEntryChime() {
+        const buffer = generateEntryChime();
+        playBuffer(buffer);
+        showStatus('entry-status', 'Playing entry chime...', 'info');
+        setTimeout(() => hideStatus('entry-status'), 1000);
+      }
+
+      function downloadEntryChime() {
+        const buffer = generateEntryChime();
+        downloadBuffer(buffer, 'entry-chime.wav');
+        showStatus(
+          'entry-status',
+          'Downloaded! Convert to MP3 and rename to entry-chime.mp3',
+          'success'
+        );
+      }
+
+      // Ambient Loop: Multi-layered drone
+      function generateAmbientLoop() {
+        const duration = 8.0;
+        return createAudioBuffer(duration, (time) => {
+          // Multiple sine waves for richness
+          const fundamental = 110; // A2
+          const wave1 = Math.sin(2 * Math.PI * fundamental * time);
+          const wave2 = Math.sin(2 * Math.PI * fundamental * 1.5 * time) * 0.5;
+          const wave3 = Math.sin(2 * Math.PI * fundamental * 2 * time) * 0.3;
+          const wave4 = Math.sin(2 * Math.PI * fundamental * 3 * time) * 0.2;
+
+          // Slow amplitude modulation for movement
+          const lfo = Math.sin(2 * Math.PI * 0.125 * time) * 0.1 + 0.9;
+
+          // Crossfade at loop points for seamless looping
+          let envelope = 1.0;
+          const fadeTime = 0.1;
+          if (time < fadeTime) {
+            envelope = time / fadeTime;
+          } else if (time > duration - fadeTime) {
+            envelope = (duration - time) / fadeTime;
+          }
+
+          return (wave1 + wave2 + wave3 + wave4) * 0.15 * lfo * envelope;
+        });
+      }
+
+      function playAmbientLoop() {
+        stopAmbientLoop();
+
+        if (!ambientLoopBuffer) {
+          ambientLoopBuffer = generateAmbientLoop();
+        }
+
+        ambientLoopSource = audioContext.createBufferSource();
+        ambientLoopSource.buffer = ambientLoopBuffer;
+        ambientLoopSource.loop = true;
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.3;
+
+        ambientLoopSource.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        ambientLoopSource.start();
+
+        showStatus(
+          'ambient-status',
+          'Playing ambient loop (looping)...',
+          'info'
+        );
+      }
+
+      function stopAmbientLoop() {
+        if (ambientLoopSource) {
+          ambientLoopSource.stop();
+          ambientLoopSource = null;
+          hideStatus('ambient-status');
+        }
+      }
+
+      function downloadAmbientLoop() {
+        const buffer = generateAmbientLoop();
+        downloadBuffer(buffer, 'ambient-loop.wav');
+        showStatus(
+          'ambient-status',
+          'Downloaded! Convert to MP3 and rename to ambient-loop.mp3',
+          'success'
+        );
+      }
+
+      // Completion Bell: Two-note melody (G4 → C5)
+      function generateCompletionBell() {
+        const duration = 0.8;
+        return createAudioBuffer(duration, (time) => {
+          const frequencies = [392.0, 523.25]; // G4, C5
+          const noteDuration = duration / 2;
+          const noteIndex = Math.floor(time / noteDuration);
+
+          if (noteIndex >= frequencies.length) return 0;
+
+          const freq = frequencies[noteIndex];
+          const noteTime = time - noteIndex * noteDuration;
+          const envelope = Math.exp(-noteTime * 5); // Slower decay for bell-like quality
+
+          // Add harmonics for richness
+          const fundamental = Math.sin(2 * Math.PI * freq * noteTime);
+          const harmonic2 = Math.sin(2 * Math.PI * freq * 2 * noteTime) * 0.3;
+          const harmonic3 = Math.sin(2 * Math.PI * freq * 3 * noteTime) * 0.15;
+
+          return (fundamental + harmonic2 + harmonic3) * envelope * 0.4;
+        });
+      }
+
+      function playCompletionBell() {
+        const buffer = generateCompletionBell();
+        playBuffer(buffer);
+        showStatus('completion-status', 'Playing completion bell...', 'info');
+        setTimeout(() => hideStatus('completion-status'), 1000);
+      }
+
+      function downloadCompletionBell() {
+        const buffer = generateCompletionBell();
+        downloadBuffer(buffer, 'completion-bell.wav');
+        showStatus(
+          'completion-status',
+          'Downloaded! Convert to MP3 and rename to completion-bell.mp3',
+          'success'
+        );
+      }
+
+      // Status helpers
+      function showStatus(id, message, type) {
+        const status = document.getElementById(id);
+        status.textContent = message;
+        status.className = `status ${type}`;
+      }
+
+      function hideStatus(id) {
+        const status = document.getElementById(id);
+        status.className = 'status';
+      }
+    </script>
+  </body>
+</html>
