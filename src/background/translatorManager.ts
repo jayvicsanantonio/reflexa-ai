@@ -1,199 +1,470 @@
 /**
- * Translator Manager for Gemini Nano Translator API
- * Handles text translation between languages
+ * Translator Manager for Chrome Built-in Translator API
+ * Handles text translation between languages with session management
+ * Implements formatting preservation and language pair validation
  */
+
+import type { AITranslator, AITranslatorFactory } from '../types/chrome-ai';
+import { capabilityDetector } from './capabilityDetector';
 
 /**
- * Type definitions for Chrome's Translator API
- * Based on: https://developer.chrome.com/docs/ai/translator-api
+ * Timeout duration for translation operations (5 seconds)
  */
-interface AITranslator {
-  translate(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  translateStreaming(input: string): ReadableStream;
-  destroy(): void;
+const TRANSLATE_TIMEOUT = 5000;
+
+/**
+ * Extended timeout for retry attempts (8 seconds)
+ */
+const RETRY_TIMEOUT = 8000;
+
+/**
+ * Supported languages for translation
+ * ISO 639-1 language codes
+ */
+export const SUPPORTED_LANGUAGES = [
+  'en', // English
+  'es', // Spanish
+  'fr', // French
+  'de', // German
+  'it', // Italian
+  'pt', // Portuguese
+  'zh', // Chinese
+  'ja', // Japanese
+  'ko', // Korean
+  'ar', // Arabic
+] as const;
+
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+/**
+ * Translation session cache entry
+ */
+interface TranslationSession {
+  session: AITranslator;
+  sourceLanguage: string;
+  targetLanguage: string;
+  lastUsed: number;
 }
 
-interface AITranslatorFactory {
-  create(options: {
-    sourceLanguage: string;
-    targetLanguage: string;
-    signal?: AbortSignal;
-  }): Promise<AITranslator>;
-  availability(options: {
-    sourceLanguage: string;
-    targetLanguage: string;
-  }): Promise<'available' | 'downloadable' | 'downloading' | 'unavailable'>;
-  supportedLanguages(): Promise<string[]>;
-}
-
-declare global {
-  interface Window {
-    Translator?: AITranslatorFactory;
-  }
-  var Translator: AITranslatorFactory | undefined;
-}
-
+/**
+ * TranslatorManager class
+ * Manages Chrome Translator API sessions with language pair validation
+ */
 export class TranslatorManager {
-  private isAvailable = false;
-  private translators = new Map<string, AITranslator>();
-  private supportedLanguages: string[] = [];
+  private sessions = new Map<string, TranslationSession>();
+  private available = false;
+  private readonly SESSION_TTL = 5 * 60 * 1000; // 5 minutes
 
-  async checkAvailability(
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<boolean> {
+  /**
+   * Check if Translator API is available
+   * Uses capability detector for consistent availability checking
+   * @returns Promise resolving to availability status
+   */
+  async checkAvailability(): Promise<boolean> {
     try {
-      if (typeof Translator === 'undefined') {
-        console.warn('Chrome Translator API not available');
-        this.isAvailable = false;
-        return false;
-      }
-
-      const availability = await Translator.availability({
-        sourceLanguage,
-        targetLanguage,
-      });
-      console.log(
-        `Translator availability (${sourceLanguage} -> ${targetLanguage}):`,
-        availability
+      const capabilities = await Promise.resolve(
+        capabilityDetector.getCapabilities()
       );
-
-      this.isAvailable = availability !== 'unavailable';
-      return this.isAvailable;
+      this.available = Boolean(capabilities.translator);
+      return this.available;
     } catch (error) {
       console.error('Error checking Translator availability:', error);
-      this.isAvailable = false;
+      this.available = false;
       return false;
     }
   }
 
-  async getSupportedLanguages(): Promise<string[]> {
-    try {
-      if (typeof Translator === 'undefined') {
-        return [];
-      }
-
-      if (this.supportedLanguages.length === 0) {
-        this.supportedLanguages = await Translator.supportedLanguages();
-      }
-
-      return this.supportedLanguages;
-    } catch (error) {
-      console.error('Error getting supported languages:', error);
-      return [];
-    }
+  /**
+   * Check if Translator API is available (synchronous)
+   * @returns True if Translator API is available
+   */
+  isAvailable(): boolean {
+    return this.available;
   }
 
-  private async ensureTranslator(
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<AITranslator | null> {
-    const key = `${sourceLanguage}-${targetLanguage}`;
-
-    if (this.translators.has(key)) {
-      return this.translators.get(key)!;
-    }
-
+  /**
+   * Get the Translator API factory
+   * @returns AITranslatorFactory or null if unavailable
+   */
+  private getTranslatorFactory(): AITranslatorFactory | null {
     try {
-      if (typeof Translator === 'undefined') {
+      // Access ai.translator from globalThis (service worker context)
+      if (typeof ai === 'undefined' || !ai?.translator) {
+        console.warn('Translator API not available');
         return null;
       }
 
-      const translator = await Translator.create({
-        sourceLanguage,
-        targetLanguage,
-      });
-      this.translators.set(key, translator);
-      return translator;
+      return ai.translator;
     } catch (error) {
-      console.error('Error initializing Translator:', error);
+      console.error('Error accessing Translator API:', error);
       return null;
     }
   }
 
+  /**
+   * Check if translation is available for a specific language pair
+   * @param sourceLanguage - Source language ISO 639-1 code
+   * @param targetLanguage - Target language ISO 639-1 code
+   * @returns Promise resolving to availability status
+   */
+  async canTranslate(
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<boolean> {
+    const factory = this.getTranslatorFactory();
+    if (!factory) {
+      return false;
+    }
+
+    try {
+      const availability = await factory.canTranslate(
+        sourceLanguage,
+        targetLanguage
+      );
+      return availability === 'available';
+    } catch (error) {
+      console.error(
+        `Error checking translation availability for ${sourceLanguage} -> ${targetLanguage}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Create or retrieve a translation session for a language pair
+   * Sessions are cached for better performance
+   * @param sourceLanguage - Source language ISO 639-1 code
+   * @param targetLanguage - Target language ISO 639-1 code
+   * @returns AITranslator session or null if unavailable
+   */
+  private async createSession(
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<AITranslator | null> {
+    const sessionKey = `${sourceLanguage}-${targetLanguage}`;
+
+    // Check for existing session
+    const existing = this.sessions.get(sessionKey);
+    if (existing) {
+      // Check if session is still valid (not expired)
+      const now = Date.now();
+      if (now - existing.lastUsed < this.SESSION_TTL) {
+        existing.lastUsed = now;
+        return existing.session;
+      } else {
+        // Session expired, clean it up
+        try {
+          existing.session.destroy();
+        } catch (error) {
+          console.error('Error destroying expired session:', error);
+        }
+        this.sessions.delete(sessionKey);
+      }
+    }
+
+    const factory = this.getTranslatorFactory();
+    if (!factory) {
+      return null;
+    }
+
+    try {
+      // Create new session
+      const session = await factory.create(sourceLanguage, targetLanguage);
+
+      // Cache the session
+      this.sessions.set(sessionKey, {
+        session,
+        sourceLanguage,
+        targetLanguage,
+        lastUsed: Date.now(),
+      });
+
+      console.log(`Created translator session: ${sessionKey}`);
+
+      return session;
+    } catch (error) {
+      console.error(
+        `Error creating translator session for ${sessionKey}:`,
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Translate text from source language to target language
+   * Implements timeout logic, retry mechanism, and formatting preservation
+   * @param text - Text to translate
+   * @param sourceLanguage - Source language ISO 639-1 code (auto-detect if not provided)
+   * @param targetLanguage - Target language ISO 639-1 code
+   * @returns Translated text
+   * @throws Error if translation fails after retry
+   */
   async translate(
+    text: string,
+    targetLanguage: string,
+    sourceLanguage?: string
+  ): Promise<string> {
+    // Check availability first
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Translator API is not available');
+      }
+    }
+
+    // If source language not provided, we need to detect it first
+    // For now, we'll require source language to be provided
+    // In a full implementation, this would integrate with LanguageDetectorManager
+    if (!sourceLanguage) {
+      throw new Error(
+        'Source language must be provided. Auto-detection requires Language Detector API integration.'
+      );
+    }
+
+    // Validate language pair availability
+    const canTranslate = await this.canTranslate(
+      sourceLanguage,
+      targetLanguage
+    );
+    if (!canTranslate) {
+      throw new Error(
+        `Translation not available for ${sourceLanguage} -> ${targetLanguage}`
+      );
+    }
+
+    try {
+      // First attempt with standard timeout
+      return await this.translateWithTimeout(
+        text,
+        sourceLanguage,
+        targetLanguage,
+        TRANSLATE_TIMEOUT
+      );
+    } catch (error) {
+      console.warn('First translation attempt failed, retrying...', error);
+
+      try {
+        // Retry with extended timeout
+        return await this.translateWithTimeout(
+          text,
+          sourceLanguage,
+          targetLanguage,
+          RETRY_TIMEOUT
+        );
+      } catch (retryError) {
+        console.error('Translation failed after retry:', retryError);
+        throw new Error(
+          `Translation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Translate with timeout wrapper
+   * @param text - Text to translate
+   * @param sourceLanguage - Source language code
+   * @param targetLanguage - Target language code
+   * @param timeout - Timeout in milliseconds
+   * @returns Translated text
+   */
+  private async translateWithTimeout(
+    text: string,
+    sourceLanguage: string,
+    targetLanguage: string,
+    timeout: number
+  ): Promise<string> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Translation timeout')), timeout);
+    });
+
+    const translatePromise = this.executeTranslate(
+      text,
+      sourceLanguage,
+      targetLanguage
+    );
+
+    return Promise.race([translatePromise, timeoutPromise]);
+  }
+
+  /**
+   * Execute translation with formatting preservation
+   * Preserves markdown formatting including bullet points and line breaks
+   * @param text - Text to translate
+   * @param sourceLanguage - Source language code
+   * @param targetLanguage - Target language code
+   * @returns Translated text
+   */
+  private async executeTranslate(
     text: string,
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<string> {
+    // Get or create session for this language pair
+    const session = await this.createSession(sourceLanguage, targetLanguage);
+
+    if (!session) {
+      throw new Error('Failed to create translator session');
+    }
+
     try {
-      const available = await this.checkAvailability(
-        sourceLanguage,
-        targetLanguage
-      );
-      if (!available) {
-        return text;
+      // Detect if text contains markdown formatting
+      const hasMarkdown = this.detectMarkdown(text);
+
+      if (hasMarkdown) {
+        // Preserve markdown formatting by translating segments
+        return await this.translateWithMarkdown(session, text);
+      } else {
+        // Simple translation for plain text
+        const result = await session.translate(text);
+        return result.trim();
       }
-
-      const translator = await this.ensureTranslator(
-        sourceLanguage,
-        targetLanguage
-      );
-
-      if (!translator) {
-        return text;
-      }
-
-      const result = await translator.translate(text);
-      return result.trim() || text;
     } catch (error) {
-      console.error('Error in translate:', error);
-      return text;
+      console.error('Translation execution failed:', error);
+      throw error;
     }
   }
 
-  async *translateStreaming(
-    text: string,
-    sourceLanguage: string,
-    targetLanguage: string
-  ): AsyncGenerator<string> {
-    try {
-      const available = await this.checkAvailability(
-        sourceLanguage,
-        targetLanguage
-      );
-      if (!available) {
-        return;
+  /**
+   * Detect if text contains markdown formatting
+   * @param text - Text to check
+   * @returns True if markdown formatting detected
+   */
+  private detectMarkdown(text: string): boolean {
+    // Check for common markdown patterns
+    const markdownPatterns = [
+      /^[-*+]\s+/m, // Bullet points
+      /^\d+\.\s+/m, // Numbered lists
+      /^#{1,6}\s+/m, // Headers
+      /\*\*.*\*\*/m, // Bold
+      /\*.*\*/m, // Italic
+      /\[.*\]\(.*\)/m, // Links
+    ];
+
+    return markdownPatterns.some((pattern) => pattern.test(text));
+  }
+
+  /**
+   * Translate text while preserving markdown formatting
+   * Splits text into segments and translates each segment
+   * @param session - Translator session
+   * @param text - Text with markdown formatting
+   * @returns Translated text with preserved formatting
+   */
+  private async translateWithMarkdown(
+    session: AITranslator,
+    text: string
+  ): Promise<string> {
+    // Split by line breaks to preserve structure
+    const lines = text.split('\n');
+    const translatedLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.trim().length === 0) {
+        // Preserve empty lines
+        translatedLines.push('');
+        continue;
       }
 
-      const translator = await this.ensureTranslator(
-        sourceLanguage,
-        targetLanguage
-      );
+      // Check if line starts with markdown syntax
+      const bulletMatch = /^([-*+]\s+)(.*)/.exec(line);
+      const numberedMatch = /^(\d+\.\s+)(.*)/.exec(line);
+      const headerMatch = /^(#{1,6}\s+)(.*)/.exec(line);
 
-      if (!translator) {
-        return;
+      if (bulletMatch) {
+        // Translate content after bullet marker
+        const [, marker, content] = bulletMatch;
+        const translatedContent = await session.translate(content);
+        translatedLines.push(`${marker}${translatedContent.trim()}`);
+      } else if (numberedMatch) {
+        // Translate content after number marker
+        const [, marker, content] = numberedMatch;
+        const translatedContent = await session.translate(content);
+        translatedLines.push(`${marker}${translatedContent.trim()}`);
+      } else if (headerMatch) {
+        // Translate content after header marker
+        const [, marker, content] = headerMatch;
+        const translatedContent = await session.translate(content);
+        translatedLines.push(`${marker}${translatedContent.trim()}`);
+      } else {
+        // Translate entire line
+        const translatedLine = await session.translate(line);
+        translatedLines.push(translatedLine.trim());
       }
+    }
 
-      const stream = translator.translateStreaming(text);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
+    return translatedLines.join('\n');
+  }
 
-      try {
-        while (true) {
-          const result = await reader.read();
-          const done = result.done;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const value = result.value;
-          if (done) break;
+  /**
+   * Clean up expired sessions
+   */
+  cleanupSessions(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
 
-          if (value) {
-            const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            yield chunk;
-          }
+    for (const [key, session] of this.sessions.entries()) {
+      if (now - session.lastUsed > this.SESSION_TTL) {
+        keysToDelete.push(key);
+      }
+    }
+
+    for (const key of keysToDelete) {
+      const session = this.sessions.get(key);
+      if (session) {
+        try {
+          session.session.destroy();
+          this.sessions.delete(key);
+          console.log(`Cleaned up expired translator session: ${key}`);
+        } catch (error) {
+          console.error(`Error cleaning up session ${key}:`, error);
         }
-      } finally {
-        reader.releaseLock();
       }
-    } catch (error) {
-      console.error('Error in translateStreaming:', error);
+    }
+
+    if (keysToDelete.length > 0) {
+      console.log(`Cleaned up ${keysToDelete.length} expired sessions`);
     }
   }
 
+  /**
+   * Clean up all active sessions
+   * Should be called when the manager is no longer needed
+   */
   destroy(): void {
-    for (const translator of this.translators.values()) {
-      translator.destroy();
+    for (const [key, session] of this.sessions.entries()) {
+      try {
+        session.session.destroy();
+        console.log(`Destroyed translator session: ${key}`);
+      } catch (error) {
+        console.error(`Error destroying session ${key}:`, error);
+      }
     }
-    this.translators.clear();
+    this.sessions.clear();
+  }
+
+  /**
+   * Clean up a specific session for a language pair
+   * @param sourceLanguage - Source language code
+   * @param targetLanguage - Target language code
+   */
+  destroySession(sourceLanguage: string, targetLanguage: string): void {
+    const sessionKey = `${sourceLanguage}-${targetLanguage}`;
+    const session = this.sessions.get(sessionKey);
+
+    if (session) {
+      try {
+        session.session.destroy();
+        this.sessions.delete(sessionKey);
+        console.log(`Destroyed translator session: ${sessionKey}`);
+      } catch (error) {
+        console.error(`Error destroying session ${sessionKey}:`, error);
+      }
+    }
   }
 }
+
+// Export singleton instance
+export const translatorManager = new TranslatorManager();

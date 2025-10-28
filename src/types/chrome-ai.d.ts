@@ -116,6 +116,29 @@ export interface AILanguageDetectorFactory {
 }
 
 /**
+ * Translator API types
+ */
+export interface AITranslator {
+  translate(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  destroy(): void;
+}
+
+export interface AITranslatorFactory {
+  create(
+    sourceLanguage: string,
+    targetLanguage: string,
+    options?: { signal?: AbortSignal }
+  ): Promise<AITranslator>;
+  canTranslate(
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<'available' | 'downloadable' | 'downloading' | 'unavailable'>;
+  availability(): Promise<
+    'available' | 'downloadable' | 'downloading' | 'unavailable'
+  >;
+}
+
+/**
  * Chrome AI namespace containing all built-in AI APIs
  */
 interface ChromeAI {
@@ -124,7 +147,7 @@ interface ChromeAI {
   rewriter?: AIRewriterFactory;
   proofreader?: AIProofreaderFactory;
   languageDetector?: AILanguageDetectorFactory;
-  translator?: unknown;
+  translator?: AITranslatorFactory;
   languageModel?: unknown;
 }
 

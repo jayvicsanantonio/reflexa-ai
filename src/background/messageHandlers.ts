@@ -194,7 +194,7 @@ async function handleTranslate(payload: {
 }): Promise<AIResponse<string>> {
   const startTime = Date.now();
   try {
-    const available = await unifiedAI.translator.checkAvailability(
+    const available = await unifiedAI.translator.canTranslate(
       payload.source,
       payload.target
     );
@@ -209,8 +209,8 @@ async function handleTranslate(payload: {
 
     const result = await unifiedAI.translator.translate(
       payload.text,
-      payload.source,
-      payload.target
+      payload.target,
+      payload.source
     );
 
     return createSuccessResponse(result, 'translator', Date.now() - startTime);
