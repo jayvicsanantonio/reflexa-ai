@@ -9,6 +9,8 @@ import { SummarizerManager } from './summarizerManager';
 import { TranslatorManager } from './translatorManager';
 import { WriterManager } from './writerManager';
 import { RewriterManager } from './rewriterManager';
+import { CapabilityDetector } from './capabilityDetector';
+import type { AICapabilities } from '../types';
 
 export class UnifiedAIService {
   // Individual API managers
@@ -19,6 +21,15 @@ export class UnifiedAIService {
   public readonly writer: WriterManager;
   public readonly rewriter: RewriterManager;
 
+  // Capability detector
+  private readonly capabilityDetector: CapabilityDetector;
+
+  // Capabilities object storing availability flags
+  private capabilities: AICapabilities | null = null;
+
+  // Initialization state
+  private initialized = false;
+
   constructor() {
     this.prompt = new PromptManager();
     this.proofreader = new ProofreaderManager();
@@ -26,6 +37,65 @@ export class UnifiedAIService {
     this.translator = new TranslatorManager();
     this.writer = new WriterManager();
     this.rewriter = new RewriterManager();
+    this.capabilityDetector = new CapabilityDetector();
+  }
+
+  /**
+   * Initialize the Unified AI Service
+   * Runs capability detection and caches results
+   * @param experimentalMode - Whether to enable experimental features
+   */
+  initialize(experimentalMode = false): void {
+    if (this.initialized) {
+      console.log('UnifiedAIService already initialized');
+      return;
+    }
+
+    console.log('Initializing UnifiedAIService...');
+    const startTime = Date.now();
+
+    // Detect capabilities
+    this.capabilities =
+      this.capabilityDetector.getCapabilities(experimentalMode);
+
+    this.initialized = true;
+    const duration = Date.now() - startTime;
+    console.log(`UnifiedAIService initialized in ${duration}ms`);
+  }
+
+  /**
+   * Get current AI capabilities
+   * @returns AICapabilities object with availability flags
+   * @throws Error if service not initialized
+   */
+  getCapabilities(): AICapabilities {
+    if (!this.initialized || !this.capabilities) {
+      throw new Error(
+        'UnifiedAIService not initialized. Call initialize() first.'
+      );
+    }
+
+    return { ...this.capabilities };
+  }
+
+  /**
+   * Refresh capabilities on demand
+   * Useful when experimental mode is toggled or user requests status update
+   * @param experimentalMode - Whether to enable experimental features
+   */
+  refreshCapabilities(experimentalMode = false): AICapabilities {
+    console.log('Refreshing capabilities...');
+    this.capabilities =
+      this.capabilityDetector.refreshCapabilities(experimentalMode);
+    return { ...this.capabilities };
+  }
+
+  /**
+   * Check if service is initialized
+   * @returns True if initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   /**

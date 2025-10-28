@@ -7,14 +7,14 @@
   - Define CapabilityCache interface for caching API availability
   - _Requirements: 1.5, 9.4, 9.5_
 
-- [ ] 2. Implement capability detection system
-  - [ ] 2.1 Create capability detection module that checks for all seven Chrome AI APIs
+- [x] 2. Implement capability detection system
+  - [x] 2.1 Create capability detection module that checks for all seven Chrome AI APIs
     - Write function to check `'summarizer' in self.ai`, `'writer' in self.ai`, etc.
     - Implement caching mechanism with TTL for capability results
     - Create method to refresh capabilities on demand
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-  - [ ] 2.2 Build capabilities object that stores availability flags
+  - [x] 2.2 Build capabilities object that stores availability flags
     - Initialize AICapabilities object with boolean flags for each API
     - Add experimental mode flag for beta features
     - Implement getter method to expose capabilities to other components
