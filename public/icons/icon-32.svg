@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient-32" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Outer petal gradient -->
+    <linearGradient id="outerPetal-32" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="70%" style="stop-color:#ffffff;stop-opacity:0.85" />
+      <stop offset="100%" style="stop-color:#e0f2fe;stop-opacity:0.7" />
+    </linearGradient>
+
+    <!-- Inner petal gradient -->
+    <linearGradient id="innerPetal-32" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f0f9ff;stop-opacity:0.8" />
+    </linearGradient>
+
+    <!-- Center gradient -->
+    <radialGradient id="centerGradient-32">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#fef9c3;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#fde047;stop-opacity:0.8" />
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="32" height="32" rx="6" fill="url(#bgGradient-32)" />
+
+  <!-- Lotus petals -->
+  <g transform="translate(16, 16)">
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(-90)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(-45)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(0)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(45)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(90)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(135)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(180)" />
+    <ellipse cx="0" cy="6.125" rx="4.5" ry="7"
+      fill="url(#outerPetal-32)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.125"
+      transform="rotate(225)" />
+    <ellipse cx="0" cy="3.5" rx="3" ry="4.5"
+      fill="url(#innerPetal-32)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.125"
+      transform="rotate(-72)" />
+    <ellipse cx="0" cy="3.5" rx="3" ry="4.5"
+      fill="url(#innerPetal-32)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.125"
+      transform="rotate(0)" />
+    <ellipse cx="0" cy="3.5" rx="3" ry="4.5"
+      fill="url(#innerPetal-32)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.125"
+      transform="rotate(72)" />
+    <ellipse cx="0" cy="3.5" rx="3" ry="4.5"
+      fill="url(#innerPetal-32)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.125"
+      transform="rotate(144)" />
+    <ellipse cx="0" cy="3.5" rx="3" ry="4.5"
+      fill="url(#innerPetal-32)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.125"
+      transform="rotate(216)" />
+    <circle cx="0" cy="0" r="2" fill="url(#centerGradient-32)" />
+
+    <!-- Center highlight -->
+    <circle cx="-0.5" cy="-0.5" r="0.75" fill="rgba(255,255,255,0.6)" />
+  </g>
+</svg>

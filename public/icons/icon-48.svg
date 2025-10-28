@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient-48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Outer petal gradient -->
+    <linearGradient id="outerPetal-48" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="70%" style="stop-color:#ffffff;stop-opacity:0.85" />
+      <stop offset="100%" style="stop-color:#e0f2fe;stop-opacity:0.7" />
+    </linearGradient>
+
+    <!-- Inner petal gradient -->
+    <linearGradient id="innerPetal-48" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="60%" style="stop-color:#ffffff;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#f0f9ff;stop-opacity:0.8" />
+    </linearGradient>
+
+    <!-- Center gradient -->
+    <radialGradient id="centerGradient-48">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#fef9c3;stop-opacity:0.95" />
+      <stop offset="100%" style="stop-color:#fde047;stop-opacity:0.8" />
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="48" height="48" rx="9" fill="url(#bgGradient-48)" />
+
+  <!-- Lotus petals -->
+  <g transform="translate(24, 24)">
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(-90)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(-45)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(0)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(45)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(90)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(135)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(180)" />
+    <ellipse cx="0" cy="9.1875" rx="6.75" ry="10.5"
+      fill="url(#outerPetal-48)"
+      stroke="rgba(255,255,255,0.3)"
+      stroke-width="0.1875"
+      transform="rotate(225)" />
+    <ellipse cx="0" cy="5.25" rx="4.5" ry="6.75"
+      fill="url(#innerPetal-48)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.1875"
+      transform="rotate(-72)" />
+    <ellipse cx="0" cy="5.25" rx="4.5" ry="6.75"
+      fill="url(#innerPetal-48)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.1875"
+      transform="rotate(0)" />
+    <ellipse cx="0" cy="5.25" rx="4.5" ry="6.75"
+      fill="url(#innerPetal-48)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.1875"
+      transform="rotate(72)" />
+    <ellipse cx="0" cy="5.25" rx="4.5" ry="6.75"
+      fill="url(#innerPetal-48)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.1875"
+      transform="rotate(144)" />
+    <ellipse cx="0" cy="5.25" rx="4.5" ry="6.75"
+      fill="url(#innerPetal-48)"
+      stroke="rgba(255,255,255,0.4)"
+      stroke-width="0.1875"
+      transform="rotate(216)" />
+    <circle cx="0" cy="0" r="3" fill="url(#centerGradient-48)" />
+
+    <!-- Center highlight -->
+    <circle cx="-0.75" cy="-0.75" r="1.125" fill="rgba(255,255,255,0.6)" />
+  </g>
+</svg>
