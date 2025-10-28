@@ -905,7 +905,7 @@ Clean up resources when AudioManager is no longer needed.
 import { AudioManager } from './utils/audioManager';
 
 const settings: Settings = {
-  dwellThreshold: 60,
+  dwellThreshold: 1,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,

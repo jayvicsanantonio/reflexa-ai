@@ -566,3 +566,24 @@ chrome.runtime.onStartup.addListener(async () => {
 
   console.log('Gemini Nano available:', available);
 });
+
+/**
+ * Suppress benign Chrome extension errors
+ * These errors are common and don't affect functionality
+ */
+self.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason as Error | undefined;
+  const message = reason?.message ?? '';
+
+  // Suppress FrameDoesNotExistError - happens when iframes are destroyed
+  if (message.includes('Frame') && message.includes('does not exist')) {
+    event.preventDefault();
+    return;
+  }
+
+  // Suppress "Could not establish connection" errors
+  if (message.includes('Could not establish connection')) {
+    event.preventDefault();
+    return;
+  }
+});

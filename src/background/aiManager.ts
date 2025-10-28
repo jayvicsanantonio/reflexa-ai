@@ -8,24 +8,35 @@ import { estimateTokens, truncateToTokens } from '../utils';
 
 /**
  * Type definitions for Chrome's Prompt API (Gemini Nano)
- * These are experimental APIs that may not be in standard TypeScript definitions
+ * Based on: https://developer.chrome.com/docs/ai/prompt-api
  */
 interface AILanguageModel {
   prompt(input: string, options?: { signal?: AbortSignal }): Promise<string>;
   promptStreaming(input: string): ReadableStream;
   destroy(): void;
+  clone(options?: { signal?: AbortSignal }): Promise<AILanguageModel>;
 }
 
 interface AILanguageModelFactory {
   create(options?: {
-    systemPrompt?: string;
-    initialPrompts?: { role: string; content: string }[];
+    temperature?: number;
+    topK?: number;
+    initialPrompts?: {
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }[];
     signal?: AbortSignal;
     monitor?: (monitor: AIDownloadProgressMonitor) => void;
   }): Promise<AILanguageModel>;
   availability(): Promise<
     'available' | 'downloadable' | 'downloading' | 'unavailable'
   >;
+  params(): Promise<{
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+    maxTemperature: number;
+  }>;
 }
 
 interface AIDownloadProgressMonitor {
@@ -35,13 +46,13 @@ interface AIDownloadProgressMonitor {
   ): void;
 }
 
-// Extend the global Window interface to include the AI API
+// Extend the global interface to include the Prompt API
 declare global {
   interface Window {
-    ai?: {
-      languageModel?: AILanguageModelFactory;
-    };
+    LanguageModel?: AILanguageModelFactory;
   }
+  // For service worker context
+  var LanguageModel: AILanguageModelFactory | undefined;
 }
 
 /**
@@ -59,19 +70,38 @@ export class AIManager {
    */
   async checkAvailability(): Promise<boolean> {
     try {
-      // Check if the AI API exists
-      if (!window.ai?.languageModel) {
-        console.warn('Chrome AI API not available');
+      // Access the Prompt API (works in both service worker and window contexts)
+      if (typeof LanguageModel === 'undefined') {
+        console.warn(
+          'Chrome Prompt API not available. To enable:\n' +
+            '1. Use Chrome 127+ (Canary/Dev recommended)\n' +
+            '2. Enable chrome://flags/#prompt-api-for-gemini-nano\n' +
+            '3. Enable chrome://flags/#optimization-guide-on-device-model\n' +
+            '4. Restart Chrome completely\n' +
+            '5. Verify in console: LanguageModel should be defined\n' +
+            '6. Run: await LanguageModel.create() to download model'
+        );
         this.isAvailable = false;
         return false;
       }
 
-      const availability = await window.ai.languageModel.availability();
+      const availability = await LanguageModel.availability();
       console.log('AI availability status:', availability);
 
-      // Consider 'available' and 'downloadable' as usable states
-      this.isAvailable =
-        availability === 'available' || availability === 'downloadable';
+      if (availability === 'unavailable') {
+        console.warn(
+          'Gemini Nano not available on this device. Check system requirements.'
+        );
+      } else if (availability === 'downloadable') {
+        console.log(
+          'Gemini Nano needs to be downloaded. Will download on first create() call.'
+        );
+      } else if (availability === 'downloading') {
+        console.log('Gemini Nano is currently downloading...');
+      }
+
+      // All states except 'unavailable' can be used (create() will trigger download if needed)
+      this.isAvailable = availability !== 'unavailable';
       return this.isAvailable;
     } catch (error) {
       console.error('Error checking AI availability:', error);
@@ -87,15 +117,24 @@ export class AIManager {
    */
   private async initializeModel(systemPrompt?: string): Promise<boolean> {
     try {
-      if (!window.ai?.languageModel) {
+      // Access the Prompt API
+      if (typeof LanguageModel === 'undefined') {
         return false;
       }
 
-      // Create a new session with optional system prompt
-      const options: Parameters<AILanguageModelFactory['create']>[0] = {};
+      // Get model parameters for defaults
+      const params = await LanguageModel.params();
+      console.log('AI model parameters:', params);
 
+      // Create a new session with optional system prompt
+      const options: Parameters<AILanguageModelFactory['create']>[0] = {
+        temperature: params.defaultTemperature,
+        topK: params.defaultTopK,
+      };
+
+      // Add system prompt via initialPrompts if provided
       if (systemPrompt) {
-        options.systemPrompt = systemPrompt;
+        options.initialPrompts = [{ role: 'system', content: systemPrompt }];
       }
 
       // Add download progress monitoring
@@ -107,7 +146,7 @@ export class AIManager {
         });
       };
 
-      this.model = await window.ai.languageModel.create(options);
+      this.model = await LanguageModel.create(options);
       this.modelCreatedAt = Date.now();
       return true;
     } catch (error) {

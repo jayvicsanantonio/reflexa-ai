@@ -190,8 +190,14 @@ const initiateReflectionFlow = async () => {
       if (aiCheckResponse.success) {
         aiAvailable = aiCheckResponse.data;
         console.log('AI availability:', aiAvailable);
+        if (!aiAvailable) {
+          console.log(
+            '💡 To enable AI: Check background service worker logs for instructions'
+          );
+        }
       } else {
         aiAvailable = false;
+        console.error('AI check failed:', aiCheckResponse.error);
       }
     }
 
@@ -399,8 +405,14 @@ const showReflectModeOverlay = async () => {
   // We need to link the stylesheet since shadow DOM requires explicit style injection
   const linkElement = document.createElement('link');
   linkElement.rel = 'stylesheet';
-  linkElement.href = chrome.runtime.getURL('src/content/styles.css');
-  shadowRoot.appendChild(linkElement);
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  // Validate URL before setting href
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  } else {
+    console.warn('Invalid CSS URL, skipping stylesheet injection');
+  }
 
   // Create root element for React
   const rootElement = document.createElement('div');
@@ -440,7 +452,7 @@ const showReflectModeOverlay = async () => {
  * @returns Default Settings object
  */
 const getDefaultSettings = (): Settings => ({
-  dwellThreshold: 60,
+  dwellThreshold: 1,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,
@@ -682,7 +694,7 @@ const getSettings = async (): Promise<Settings> => {
     console.error('Failed to load settings:', response.error);
     // Return default settings as fallback
     return {
-      dwellThreshold: 60,
+      dwellThreshold: 1,
       enableSound: true,
       reduceMotion: false,
       proofreadEnabled: false,
@@ -901,8 +913,14 @@ const showErrorModal = (
   // Inject styles into shadow DOM
   const linkElement = document.createElement('link');
   linkElement.rel = 'stylesheet';
-  linkElement.href = chrome.runtime.getURL('src/content/styles.css');
-  shadowRoot.appendChild(linkElement);
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  // Validate URL before setting href
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  } else {
+    console.warn('Invalid CSS URL, skipping stylesheet injection');
+  }
 
   // Create root element for React
   const rootElement = document.createElement('div');
@@ -981,8 +999,14 @@ const showNotification = (
   // Inject styles into shadow DOM
   const linkElement = document.createElement('link');
   linkElement.rel = 'stylesheet';
-  linkElement.href = chrome.runtime.getURL('src/content/styles.css');
-  shadowRoot.appendChild(linkElement);
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  // Validate URL before setting href
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  } else {
+    console.warn('Invalid CSS URL, skipping stylesheet injection');
+  }
 
   // Create root element for React
   const rootElement = document.createElement('div');

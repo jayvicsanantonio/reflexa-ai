@@ -536,7 +536,7 @@ Reflexa AI uses `chrome.storage.local` by default, with optional `chrome.storage
 
   // Settings object
   "reflexa_settings": {
-    dwellThreshold: 60,
+    dwellThreshold: 1,
     enableSound: true,
     reduceMotion: false,
     proofreadEnabled: false,

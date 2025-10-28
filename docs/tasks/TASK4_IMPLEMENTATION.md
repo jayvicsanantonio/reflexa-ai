@@ -582,7 +582,7 @@ export interface Settings {
 ```typescript
 // TypeScript ensures all fields are present
 const settings: Settings = {
-  dwellThreshold: 60,
+  dwellThreshold: 1,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,
@@ -645,7 +645,7 @@ const settings = await manager.getSettings();
 
 // Should return DEFAULT_SETTINGS
 expect(settings).toEqual({
-  dwellThreshold: 60,
+  dwellThreshold: 1,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,

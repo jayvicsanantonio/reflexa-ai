@@ -45,16 +45,35 @@ export class AudioManager {
     if (this.isLoaded) return;
 
     try {
+      // Verify chrome.runtime is available
+      if (!chrome?.runtime?.getURL) {
+        console.warn('Chrome runtime not available, skipping audio load');
+        return;
+      }
+
       // Create audio elements
-      this.entryChime = new Audio(
-        chrome.runtime.getURL(AUDIO_FILES.ENTRY_CHIME)
+      const entryChimeUrl = chrome.runtime.getURL(AUDIO_FILES.ENTRY_CHIME);
+      const ambientLoopUrl = chrome.runtime.getURL(AUDIO_FILES.AMBIENT_LOOP);
+      const completionBellUrl = chrome.runtime.getURL(
+        AUDIO_FILES.COMPLETION_BELL
       );
-      this.ambientLoop = new Audio(
-        chrome.runtime.getURL(AUDIO_FILES.AMBIENT_LOOP)
-      );
-      this.completionBell = new Audio(
-        chrome.runtime.getURL(AUDIO_FILES.COMPLETION_BELL)
-      );
+
+      // Validate URLs before creating Audio elements
+      if (
+        !entryChimeUrl ||
+        entryChimeUrl.includes('invalid') ||
+        !ambientLoopUrl ||
+        ambientLoopUrl.includes('invalid') ||
+        !completionBellUrl ||
+        completionBellUrl.includes('invalid')
+      ) {
+        console.warn('Invalid audio URLs, skipping audio load');
+        return;
+      }
+
+      this.entryChime = new Audio(entryChimeUrl);
+      this.ambientLoop = new Audio(ambientLoopUrl);
+      this.completionBell = new Audio(completionBellUrl);
 
       // Set volume to 30% for all audio elements
       this.entryChime.volume = AUDIO.VOLUME;

@@ -12,7 +12,7 @@ import type { Settings } from '../types';
 function initializeAudioInContentScript() {
   // Get settings from background worker or storage
   const settings: Settings = {
-    dwellThreshold: 60,
+    dwellThreshold: 1,
     enableSound: true,
     reduceMotion: false,
     proofreadEnabled: false,

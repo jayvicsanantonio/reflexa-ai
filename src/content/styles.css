@@ -1,11 +1,184 @@
-@import 'tailwindcss';
-@import '../styles/theme.css';
-@import '../styles/accessibility.css';
+/**
+ * REFLEXA AI DESIGN SYSTEM - Inlined for Content Script
+ * Theme and accessibility styles are inlined to avoid @import issues in shadow DOM
+ * Tailwind CSS is processed by Vite plugin at build time
+ */
+
+/* ===== THEME VARIABLES ===== */
+@theme {
+  /* Colors */
+  --color-zen-50: oklch(0.985 0.008 232.5);
+  --color-zen-100: oklch(0.96 0.02 232.5);
+  --color-zen-200: oklch(0.92 0.04 232.5);
+  --color-zen-300: oklch(0.85 0.08 232.5);
+  --color-zen-400: oklch(0.75 0.14 232.5);
+  --color-zen-500: oklch(0.65 0.19 232.5);
+  --color-zen-600: oklch(0.55 0.18 232.5);
+  --color-zen-700: oklch(0.45 0.15 232.5);
+  --color-zen-800: oklch(0.35 0.12 232.5);
+  --color-zen-900: oklch(0.28 0.09 232.5);
+
+  --color-calm-50: oklch(0.99 0.002 264);
+  --color-calm-100: oklch(0.97 0.004 264);
+  --color-calm-200: oklch(0.93 0.008 264);
+  --color-calm-300: oklch(0.87 0.012 264);
+  --color-calm-400: oklch(0.71 0.022 264);
+  --color-calm-500: oklch(0.55 0.027 264);
+  --color-calm-600: oklch(0.45 0.03 264);
+  --color-calm-700: oklch(0.37 0.034 264);
+  --color-calm-800: oklch(0.28 0.033 264);
+  --color-calm-900: oklch(0.21 0.034 264);
+
+  --color-lotus-50: oklch(0.985 0.02 320);
+  --color-lotus-100: oklch(0.96 0.04 320);
+  --color-lotus-200: oklch(0.92 0.08 320);
+  --color-lotus-300: oklch(0.85 0.14 320);
+  --color-lotus-400: oklch(0.75 0.2 320);
+  --color-lotus-500: oklch(0.65 0.25 320);
+  --color-lotus-600: oklch(0.55 0.24 320);
+  --color-lotus-700: oklch(0.45 0.2 320);
+  --color-lotus-800: oklch(0.38 0.17 320);
+  --color-lotus-900: oklch(0.32 0.14 320);
+
+  --color-bg-primary: var(--color-calm-50);
+  --color-bg-secondary: var(--color-zen-100);
+  --color-accent: oklch(0.8 0.1 232.5);
+  --color-accent-deep: oklch(0.7 0.15 232.5);
+  --color-text-primary: var(--color-calm-800);
+  --color-text-secondary: var(--color-calm-600);
+  --color-success: oklch(0.85 0.12 145);
+  --color-warning: oklch(0.9 0.12 85);
+  --color-error: oklch(0.75 0.15 25);
+  --color-overlay: oklch(0.99 0.002 264 / 0.85);
+  --color-gradient-start: var(--color-zen-100);
+  --color-gradient-end: oklch(0.92 0.06 280);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Noto Sans Display', 'Inter', system-ui, sans-serif;
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-mono:
+    'JetBrains Mono', 'Courier New', Consolas, 'Liberation Mono', monospace;
+
+  /* Spacing */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-soft: 0 2px 6px 0 rgb(0 0 0 / 0.05);
+  --shadow-medium: 0 4px 12px 0 rgb(0 0 0 / 0.08);
+  --shadow-large: 0 8px 24px 0 rgb(0 0 0 / 0.12);
+  --shadow-inner: inset 0 2px 4px 0 rgb(255 255 255 / 0.2);
+
+  /* Animations */
+  --animate-breathing: breathing 7s ease-in-out infinite;
+  --animate-fade-in: fadeIn 1s ease-in-out;
+  --animate-fade-out: fadeOut 1s ease-in-out;
+  --animate-pulse-gentle: pulseGentle 2s ease-in-out infinite;
+  --animate-gradient-drift: gradientDrift 8s linear infinite;
+}
+
+/* ===== KEYFRAMES ===== */
+@keyframes breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulseGentle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes gradientDrift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== ACCESSIBILITY STYLES ===== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+*:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /**
  * CONTENT SCRIPT STYLES
  * Component-specific styles for content script UI elements
- * Theme tokens are imported from ../styles/theme.css
  */
 
 /* Lotus Nudge Component */

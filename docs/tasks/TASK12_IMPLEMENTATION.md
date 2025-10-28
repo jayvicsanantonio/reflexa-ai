@@ -84,7 +84,7 @@ import { ReflectModeOverlay } from './ReflectModeOverlay';
     console.log('User cancelled reflection');
   }}
   settings={{
-    dwellThreshold: 60,
+    dwellThreshold: 1,
     enableSound: true,
     reduceMotion: false,
     proofreadEnabled: true,

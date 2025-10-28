@@ -34,7 +34,7 @@
   "options_page": "src/options/index.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "audio/*"],
+      "resources": ["icons/*", "audio/*", "src/content/styles.css"],
       "matches": ["<all_urls>"]
     }
   ],
