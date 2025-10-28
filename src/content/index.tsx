@@ -350,6 +350,7 @@ const sendMessageToBackground = <T,>(
         resolve({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
+          duration: 0,
         });
       });
   });
@@ -461,6 +462,12 @@ const getDefaultSettings = (): Settings => ({
   useNativeProofreader: false,
   translationEnabled: false,
   targetLanguage: 'en',
+  defaultSummaryFormat: 'bullets',
+  enableProofreading: false,
+  enableTranslation: false,
+  preferredTranslationLanguage: 'en',
+  experimentalMode: false,
+  autoDetectLanguage: true,
 });
 
 /**
@@ -707,6 +714,12 @@ const getSettings = async (): Promise<Settings> => {
       useNativeProofreader: false,
       translationEnabled: false,
       targetLanguage: 'en',
+      defaultSummaryFormat: 'bullets',
+      enableProofreading: false,
+      enableTranslation: false,
+      preferredTranslationLanguage: 'en',
+      experimentalMode: false,
+      autoDetectLanguage: true,
     };
   }
 };

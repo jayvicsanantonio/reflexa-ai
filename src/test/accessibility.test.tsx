@@ -396,6 +396,12 @@ describe('Accessibility Tests', () => {
         useNativeProofreader: false,
         translationEnabled: false,
         targetLanguage: 'en',
+        defaultSummaryFormat: 'bullets',
+        enableProofreading: false,
+        enableTranslation: false,
+        preferredTranslationLanguage: 'en',
+        experimentalMode: false,
+        autoDetectLanguage: true,
       };
 
       const defaultProps = {

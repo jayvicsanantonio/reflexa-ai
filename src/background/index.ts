@@ -13,6 +13,7 @@ import type {
   Reflection,
   Settings,
 } from '../types';
+import { createSuccessResponse, createErrorResponse } from '../types';
 import { ERROR_MESSAGES } from '../constants';
 
 console.log('Reflexa AI background service worker initialized');
@@ -68,10 +69,12 @@ chrome.runtime.onMessage.addListener(
     if (!isValidMessage(message)) {
       const duration = Date.now() - startTime;
       console.warn(`Invalid message rejected after ${duration}ms:`, message);
-      sendResponse({
-        success: false,
-        error: 'Invalid message format or type',
-      } as AIResponse);
+      sendResponse(
+        createErrorResponse(
+          'Invalid message format or type',
+          duration
+        ) as AIResponse
+      );
       return true;
     }
 
@@ -91,13 +94,14 @@ chrome.runtime.onMessage.addListener(
           `Message '${message.type}' failed after ${duration}ms:`,
           error
         );
-        sendResponse({
-          success: false,
-          error:
+        sendResponse(
+          createErrorResponse(
             error instanceof Error
               ? error.message
               : ERROR_MESSAGES.GENERIC_ERROR,
-        } as AIResponse);
+            duration
+          ) as AIResponse
+        );
       });
 
     // Return true to indicate async response
@@ -140,10 +144,10 @@ async function handleMessage(message: Message): Promise<AIResponse> {
       return handleResetSettings();
 
     default:
-      return {
-        success: false,
-        error: `Unknown message type: ${String(message.type)}`,
-      };
+      return createErrorResponse(
+        `Unknown message type: ${String(message.type)}`,
+        0
+      );
   }
 }
 
@@ -152,21 +156,19 @@ async function handleMessage(message: Message): Promise<AIResponse> {
  * @returns Response with availability status
  */
 async function handleCheckAI(): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
   try {
     const available = await promptManager.checkAvailability();
     aiAvailable = available;
 
-    return {
-      success: true,
-      data: available,
-    };
+    return createSuccessResponse(available, 'prompt', Date.now() - startTime);
   } catch (error) {
     console.error('Error checking AI availability:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'prompt'
+    );
   }
 }
 
@@ -184,10 +186,11 @@ async function handleSummarize(
     // Validate payload
     if (typeof payload !== 'string' || !payload.trim()) {
       console.error('[Summarize] Invalid payload:', typeof payload);
-      return {
-        success: false,
-        error: 'Invalid content for summarization',
-      };
+      return createErrorResponse(
+        'Invalid content for summarization',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
     // Check AI availability
@@ -198,10 +201,11 @@ async function handleSummarize(
 
       if (!available) {
         console.error('[Summarize] AI unavailable');
-        return {
-          success: false,
-          error: ERROR_MESSAGES.AI_UNAVAILABLE,
-        };
+        return createErrorResponse(
+          ERROR_MESSAGES.AI_UNAVAILABLE,
+          Date.now() - startTime,
+          'prompt'
+        );
       }
     }
 
@@ -213,25 +217,19 @@ async function handleSummarize(
     // Check if summarization failed
     if (!summary || summary.length === 0) {
       console.error(`[Summarize] Failed after ${duration}ms - empty result`);
-      return {
-        success: false,
-        error: ERROR_MESSAGES.AI_TIMEOUT,
-      };
+      return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, 'prompt');
     }
 
     console.log(`[Summarize] Success in ${duration}ms`);
-    return {
-      success: true,
-      data: summary,
-    };
+    return createSuccessResponse(summary, 'prompt', duration);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Summarize] Error after ${duration}ms:`, error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      duration,
+      'prompt'
+    );
   }
 }
 
@@ -247,10 +245,11 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
     // Validate payload
     if (!Array.isArray(payload) || payload.length === 0) {
       console.error('[Reflect] Invalid payload:', payload);
-      return {
-        success: false,
-        error: 'Invalid summary for reflection prompts',
-      };
+      return createErrorResponse(
+        'Invalid summary for reflection prompts',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
     // Check AI availability
@@ -261,10 +260,11 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
 
       if (!available) {
         console.error('[Reflect] AI unavailable');
-        return {
-          success: false,
-          error: ERROR_MESSAGES.AI_UNAVAILABLE,
-        };
+        return createErrorResponse(
+          ERROR_MESSAGES.AI_UNAVAILABLE,
+          Date.now() - startTime,
+          'prompt'
+        );
       }
     }
 
@@ -278,25 +278,19 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
     // Check if generation failed
     if (!prompts || prompts.length === 0) {
       console.error(`[Reflect] Failed after ${duration}ms - empty result`);
-      return {
-        success: false,
-        error: ERROR_MESSAGES.AI_TIMEOUT,
-      };
+      return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, 'prompt');
     }
 
     console.log(`[Reflect] Success in ${duration}ms`);
-    return {
-      success: true,
-      data: prompts,
-    };
+    return createSuccessResponse(prompts, 'prompt', duration);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Reflect] Error after ${duration}ms:`, error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      duration,
+      'prompt'
+    );
   }
 }
 
@@ -306,22 +300,25 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
  * @returns Response with proofread text or error
  */
 async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
+  const startTime = Date.now();
   try {
     // Validate payload
     if (typeof payload !== 'string' || !payload.trim()) {
-      return {
-        success: false,
-        error: 'Invalid text for proofreading',
-      };
+      return createErrorResponse(
+        'Invalid text for proofreading',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
     // Check if proofreading is enabled in settings
     const settings = await settingsManager.getSettings();
     if (!settings.proofreadEnabled) {
-      return {
-        success: false,
-        error: 'Proofreading is disabled in settings',
-      };
+      return createErrorResponse(
+        'Proofreading is disabled in settings',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
     // Check AI availability
@@ -330,27 +327,29 @@ async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
       aiAvailable = available;
 
       if (!available) {
-        return {
-          success: false,
-          error: ERROR_MESSAGES.AI_UNAVAILABLE,
-        };
+        return createErrorResponse(
+          ERROR_MESSAGES.AI_UNAVAILABLE,
+          Date.now() - startTime,
+          'prompt'
+        );
       }
     }
 
     // Call Prompt manager to proofread
     const proofreadText = await promptManager.proofread(payload);
 
-    return {
-      success: true,
-      data: proofreadText,
-    };
+    return createSuccessResponse(
+      proofreadText,
+      'prompt',
+      Date.now() - startTime
+    );
   } catch (error) {
     console.error('Error in handleProofread:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'prompt'
+    );
   }
 }
 
@@ -366,10 +365,11 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
     // Validate payload
     if (!payload || typeof payload !== 'object') {
       console.error('[Save] Invalid payload:', typeof payload);
-      return {
-        success: false,
-        error: 'Invalid reflection data',
-      };
+      return createErrorResponse(
+        'Invalid reflection data',
+        Date.now() - startTime,
+        'storage'
+      );
     }
 
     const reflection = payload as Reflection;
@@ -377,10 +377,11 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
     // Validate required fields
     if (!reflection.url || !reflection.title || !reflection.createdAt) {
       console.error('[Save] Missing required fields:', reflection);
-      return {
-        success: false,
-        error: 'Missing required reflection fields',
-      };
+      return createErrorResponse(
+        'Missing required reflection fields',
+        Date.now() - startTime,
+        'storage'
+      );
     }
 
     // Check storage quota before saving
@@ -395,10 +396,7 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
     const duration = Date.now() - startTime;
 
     console.log(`[Save] Success in ${duration}ms`);
-    return {
-      success: true,
-      data: undefined,
-    };
+    return createSuccessResponse(undefined as void, 'storage', duration);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Save] Error after ${duration}ms:`, error);
@@ -411,17 +409,18 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
         error.name === 'StorageFullError')
     ) {
       console.error('[Save] Storage quota exceeded');
-      return {
-        success: false,
-        error: ERROR_MESSAGES.STORAGE_FULL,
-      };
+      return createErrorResponse(
+        ERROR_MESSAGES.STORAGE_FULL,
+        duration,
+        'storage'
+      );
     }
 
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      duration,
+      'storage'
+    );
   }
 }
 
@@ -431,6 +430,7 @@ async function handleSave(payload: unknown): Promise<AIResponse<void>> {
  * @returns Response with reflections array or error
  */
 async function handleLoad(payload: unknown): Promise<AIResponse<Reflection[]>> {
+  const startTime = Date.now();
   try {
     // Parse limit if provided
     const limit =
@@ -439,17 +439,18 @@ async function handleLoad(payload: unknown): Promise<AIResponse<Reflection[]>> {
     // Load reflections using storage manager
     const reflections = await storageManager.getReflections(limit);
 
-    return {
-      success: true,
-      data: reflections,
-    };
+    return createSuccessResponse(
+      reflections,
+      'storage',
+      Date.now() - startTime
+    );
   } catch (error) {
     console.error('Error in handleLoad:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
   }
 }
 
@@ -458,20 +459,18 @@ async function handleLoad(payload: unknown): Promise<AIResponse<Reflection[]>> {
  * @returns Response with settings object or error
  */
 async function handleGetSettings(): Promise<AIResponse<Settings>> {
+  const startTime = Date.now();
   try {
     const settings = await settingsManager.getSettings();
 
-    return {
-      success: true,
-      data: settings,
-    };
+    return createSuccessResponse(settings, 'storage', Date.now() - startTime);
   } catch (error) {
     console.error('Error in handleGetSettings:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
   }
 }
 
@@ -483,13 +482,15 @@ async function handleGetSettings(): Promise<AIResponse<Settings>> {
 async function handleUpdateSettings(
   payload: unknown
 ): Promise<AIResponse<Settings>> {
+  const startTime = Date.now();
   try {
     // Validate payload
     if (!payload || typeof payload !== 'object') {
-      return {
-        success: false,
-        error: 'Invalid settings data',
-      };
+      return createErrorResponse(
+        'Invalid settings data',
+        Date.now() - startTime,
+        'storage'
+      );
     }
 
     // Update settings using settings manager
@@ -497,17 +498,18 @@ async function handleUpdateSettings(
       payload as Partial<Settings>
     );
 
-    return {
-      success: true,
-      data: updatedSettings,
-    };
+    return createSuccessResponse(
+      updatedSettings,
+      'storage',
+      Date.now() - startTime
+    );
   } catch (error) {
     console.error('Error in handleUpdateSettings:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
   }
 }
 
@@ -516,21 +518,23 @@ async function handleUpdateSettings(
  * @returns Response with default settings or error
  */
 async function handleResetSettings(): Promise<AIResponse<Settings>> {
+  const startTime = Date.now();
   try {
     // Reset settings to defaults using settings manager
     const defaultSettings = await settingsManager.resetToDefaults();
 
-    return {
-      success: true,
-      data: defaultSettings,
-    };
+    return createSuccessResponse(
+      defaultSettings,
+      'storage',
+      Date.now() - startTime
+    );
   } catch (error) {
     console.error('Error in handleResetSettings:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
   }
 }
 

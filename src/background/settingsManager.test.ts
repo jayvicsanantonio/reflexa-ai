@@ -50,6 +50,12 @@ describe('SettingsManager', () => {
         useNativeProofreader: true,
         translationEnabled: true,
         targetLanguage: 'es',
+        defaultSummaryFormat: 'bullets',
+        enableProofreading: true,
+        enableTranslation: true,
+        preferredTranslationLanguage: 'es',
+        experimentalMode: false,
+        autoDetectLanguage: true,
       };
 
       mockStorage.set('settings', customSettings);

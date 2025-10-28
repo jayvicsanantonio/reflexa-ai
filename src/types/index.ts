@@ -18,6 +18,14 @@ export interface Reflection {
   proofreadVersion?: string; // Optional proofread text
   tags?: string[]; // Optional user tags
   embedding?: number[]; // Optional 128-d vector
+  // Chrome AI APIs integration fields
+  summaryFormat?: SummaryFormat;
+  detectedLanguage?: string;
+  originalLanguage?: string;
+  translatedTo?: string;
+  toneUsed?: TonePreset;
+  proofreadChanges?: TextChange[];
+  aiMetadata?: AIMetadata;
 }
 
 /**
@@ -34,6 +42,13 @@ export interface Settings {
   useNativeProofreader: boolean; // Use Proofreader API instead of Prompt API
   translationEnabled: boolean; // Enable translation feature
   targetLanguage: string; // Target language code (e.g., 'en', 'es')
+  // Chrome AI APIs integration settings
+  defaultSummaryFormat: SummaryFormat;
+  enableProofreading: boolean;
+  enableTranslation: boolean;
+  preferredTranslationLanguage: string;
+  experimentalMode: boolean;
+  autoDetectLanguage: boolean;
 }
 
 /**
@@ -106,5 +121,142 @@ export interface Message {
  * Success response includes data, failure response includes error
  */
 export type AIResponse<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  | { success: true; data: T; apiUsed: string; duration: number }
+  | { success: false; error: string; apiUsed?: string; duration: number };
+
+/**
+ * Chrome AI APIs Integration Types
+ */
+
+/**
+ * Summary format options for Summarizer API
+ */
+export type SummaryFormat = 'bullets' | 'paragraph' | 'headline-bullets';
+
+/**
+ * Tone preset options for text rewriting
+ */
+export type TonePreset = 'calm' | 'concise' | 'empathetic' | 'academic';
+
+/**
+ * AI capabilities detection for Chrome Built-in AI APIs
+ */
+export interface AICapabilities {
+  summarizer: boolean;
+  writer: boolean;
+  rewriter: boolean;
+  proofreader: boolean;
+  languageDetector: boolean;
+  translator: boolean;
+  prompt: boolean;
+  experimental: boolean;
+}
+
+/**
+ * Options for summarization operations
+ */
+export interface SummarizeOptions {
+  format: SummaryFormat;
+  maxLength?: number;
+}
+
+/**
+ * Options for Writer API draft generation
+ */
+export interface WriterOptions {
+  tone: 'calm' | 'professional' | 'casual';
+  length: 'short' | 'medium' | 'long';
+}
+
+/**
+ * Result from proofreading operation
+ */
+export interface ProofreadResult {
+  correctedText: string;
+  changes: TextChange[];
+}
+
+/**
+ * Individual text change from proofreading
+ */
+export interface TextChange {
+  original: string;
+  corrected: string;
+  type: 'grammar' | 'clarity' | 'spelling';
+  position: { start: number; end: number };
+}
+
+/**
+ * Language detection result
+ */
+export interface LanguageDetection {
+  detectedLanguage: string; // ISO 639-1 code
+  confidence: number; // 0-1
+  languageName: string; // Human-readable name
+}
+
+/**
+ * Options for translation operations
+ */
+export interface TranslateOptions {
+  sourceLanguage?: string; // Auto-detect if not provided
+  targetLanguage: string;
+}
+
+/**
+ * AI metadata stored with reflections
+ */
+export interface AIMetadata {
+  summarizerUsed: boolean;
+  writerUsed: boolean;
+  rewriterUsed: boolean;
+  proofreaderUsed: boolean;
+  translatorUsed: boolean;
+  promptFallback: boolean;
+  processingTime: number;
+}
+
+/**
+ * Capability cache for storing API availability checks
+ */
+export interface CapabilityCache {
+  capabilities: AICapabilities;
+  lastChecked: number;
+  ttl: number; // Time to live in milliseconds
+}
+
+/**
+ * Helper functions for creating AIResponse objects
+ */
+
+/**
+ * Create a successful AIResponse
+ */
+export function createSuccessResponse<T>(
+  data: T,
+  apiUsed: string,
+  duration: number
+): AIResponse<T> {
+  return {
+    success: true,
+    data,
+    apiUsed,
+    duration,
+  };
+}
+
+/**
+ * Create a failed AIResponse
+ */
+export function createErrorResponse<T = never>(
+  error: string,
+  duration: number,
+  apiUsed?: string
+): AIResponse<T> {
+  return {
+    success: false,
+    error,
+    apiUsed,
+    duration,
+  };
+}

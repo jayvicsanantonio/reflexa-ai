@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Create core type definitions for Chrome AI APIs integration
+- [x] 1. Create core type definitions for Chrome AI APIs integration
   - Define TypeScript interfaces for AICapabilities, AIResponse, SummarizeOptions, WriterOptions, TonePreset, ProofreadResult, and TextChange
   - Create types for LanguageDetection, TranslateOptions, and extended Reflection model with AI metadata
   - Add extended Settings type with new AI-related configuration options

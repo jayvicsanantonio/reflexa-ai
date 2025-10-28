@@ -18,6 +18,13 @@ export const DEFAULT_SETTINGS: Settings = {
   useNativeProofreader: false, // Use Proofreader API instead of Prompt API
   translationEnabled: false,
   targetLanguage: 'en',
+  // Chrome AI APIs integration settings
+  defaultSummaryFormat: 'bullets',
+  enableProofreading: false,
+  enableTranslation: false,
+  preferredTranslationLanguage: 'en',
+  experimentalMode: false,
+  autoDetectLanguage: true,
 };
 
 /**
