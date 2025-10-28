@@ -258,7 +258,7 @@
   - Reference in manifest.json
   - _Requirements: 1.1, 1.2_
 
-- [ ] 26. Write unit tests for core logic
+- [x] 26. Write unit tests for core logic
 
   - Test dwell time calculation and reset logic
   - Test content extraction heuristics with sample HTML
