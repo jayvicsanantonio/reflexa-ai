@@ -102,31 +102,38 @@ for await (const chunk of unifiedAI.summarizer.summarizeStreaming(content, {
 
 ### 4. Translator API (New)
 
-Translate content between languages.
+Translate content between languages using the global `Translator` object.
+
+**Important**: The Translator API is accessed via a global `Translator` object, NOT through `ai.translator`.
 
 ```typescript
-// Check availability for language pair
-const available = await unifiedAI.translator.checkAvailability('en', 'es');
+// Check if Translator API is available
+if (typeof Translator !== 'undefined') {
+  // Check availability for specific language pair
+  const status = await Translator.availability({
+    sourceLanguage: 'en',
+    targetLanguage: 'es',
+  });
+  // Returns: 'available' | 'downloadable' | 'downloading' | 'unavailable'
 
-// Get supported languages
-const languages = await unifiedAI.translator.getSupportedLanguages();
-// Returns: ['en', 'es', 'fr', 'de', ...]
+  // Create translator for language pair
+  const translator = await Translator.create({
+    sourceLanguage: 'en',
+    targetLanguage: 'es',
+  });
 
-// Translate text
-const translated = await unifiedAI.translator.translate(
-  'Hello, how are you?',
-  'en', // source language
-  'es' // target language
-);
-// Returns: "Hola, ¿cómo estás?"
+  // Translate text
+  const result = await translator.translate('Hello, how are you?');
+  // Returns: "Hola, ¿cómo estás?"
 
-// Streaming translation
-for await (const chunk of unifiedAI.translator.translateStreaming(
-  longText,
-  'en',
-  'fr'
-)) {
-  console.log(chunk); // Display partial translation
+  // Streaming translation for long texts
+  const stream = translator.translateStreaming(longText);
+  for await (const chunk of stream) {
+    console.log(chunk); // Display partial translation
+  }
+
+  // Clean up when done
+  translator.destroy();
 }
 ```
 
@@ -136,6 +143,19 @@ for await (const chunk of unifiedAI.translator.translateStreaming(
 - Multilingual reflection support
 - Translate reflection questions
 - Support non-English content
+
+**Supported Languages** (BCP 47 codes):
+
+- `'en'` - English
+- `'es'` - Spanish
+- `'fr'` - French
+- `'de'` - German
+- `'it'` - Italian
+- `'pt'` - Portuguese
+- `'zh'` - Chinese
+- `'ja'` - Japanese
+- `'ko'` - Korean
+- `'ar'` - Arabic
 
 ### 5. Writer API (New)
 

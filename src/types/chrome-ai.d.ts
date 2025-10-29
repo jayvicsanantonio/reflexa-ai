@@ -162,22 +162,26 @@ export interface AILanguageDetectorFactory {
  */
 export interface AITranslator {
   translate(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  translateStreaming(input: string): ReadableStream<string>;
   destroy(): void;
 }
 
 export interface AITranslatorFactory {
-  create(
-    sourceLanguage: string,
-    targetLanguage: string,
-    options?: { signal?: AbortSignal }
-  ): Promise<AITranslator>;
-  canTranslate(
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<'available' | 'downloadable' | 'downloading' | 'unavailable'>;
-  availability(): Promise<
-    'available' | 'downloadable' | 'downloading' | 'unavailable'
-  >;
+  create(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
+    signal?: AbortSignal;
+  }): Promise<AITranslator>;
+  availability(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }): Promise<'available' | 'downloadable' | 'downloading' | 'unavailable'>;
 }
 
 /**
@@ -226,13 +230,12 @@ export interface AILanguageModelFactory {
 
 /**
  * Chrome AI namespace containing some built-in AI APIs
- * Note: Writer, Rewriter, Proofreader, and LanguageModel are NOT in the ai namespace
+ * Note: Writer, Rewriter, Proofreader, LanguageModel, and Translator are NOT in the ai namespace
  * They are available as global objects
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
   languageDetector?: AILanguageDetectorFactory;
-  translator?: AITranslatorFactory;
 }
 
 /**
@@ -246,6 +249,7 @@ declare global {
     Rewriter?: AIRewriterFactory;
     Proofreader?: AIProofreaderFactory;
     LanguageModel?: AILanguageModelFactory;
+    Translator?: AITranslatorFactory;
   }
 
   // For service workers and global scope
@@ -254,6 +258,7 @@ declare global {
   var Rewriter: AIRewriterFactory | undefined;
   var Proofreader: AIProofreaderFactory | undefined;
   var LanguageModel: AILanguageModelFactory | undefined;
+  var Translator: AITranslatorFactory | undefined;
 }
 
 export {};

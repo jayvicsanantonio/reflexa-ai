@@ -38,7 +38,7 @@ export class CapabilityDetector {
         return false;
       }
 
-      // Note: Writer, Rewriter, Proofreader, and LanguageModel APIs are accessed as globals,
+      // Note: Writer, Rewriter, Proofreader, LanguageModel, and Translator APIs are accessed as globals,
       // not through the ai object
       if (
         apiName === 'writer' ||
@@ -56,7 +56,12 @@ export class CapabilityDetector {
         return 'LanguageModel' in globalThis;
       }
 
-      // For other APIs (summarizer, translator, languageDetector), check through ai object
+      // Translator is also a global
+      if (apiName === 'translator') {
+        return 'Translator' in globalThis;
+      }
+
+      // For other APIs (summarizer, languageDetector), check through ai object
       const ai = (
         globalThis as typeof globalThis & { ai?: Record<string, unknown> }
       ).ai;

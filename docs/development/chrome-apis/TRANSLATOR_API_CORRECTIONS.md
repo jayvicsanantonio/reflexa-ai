@@ -1,44 +1,125 @@
+# Translator API Integration Corrections
+
+## Date: January 27, 2025
+
+## Critical Issues Found
+
+### ❌ Issue 1: Incorrect API Access Pattern
+
+**Current Implementation (WRONG):**
+
+```typescript
+// ❌ Using ai.translator - This doesn't exist!
+if (typeof ai === 'undefined' || !ai?.translator) {
+  console.warn('Translator API not available');
+  return null;
+}
+return ai.translator;
+```
+
+**Correct Implementation:**
+
+```typescript
+// ✅ Global Translator object (capital T)
+if (typeof Translator === 'undefined') {
+  console.warn('Translator API not available');
+  return null;
+}
+```
+
+**Source:** https://developer.chrome.com/docs/ai/translator-api
+
+The Translator API is accessed via a **global `Translator` object**, NOT through `ai.translator`.
+
+---
+
+### ❌ Issue 2: Incorrect `create()` Method Signature
+
+**Current Implementation (WRONG):**
+
+```typescript
+// ❌ Two separate parameters
+const session = await factory.create(sourceLanguage, targetLanguage);
+```
+
+**Correct Implementation:**
+
+```typescript
+// ✅ Options object with sourceLanguage and targetLanguage
+const translator = await Translator.create({
+  sourceLanguage: 'en',
+  targetLanguage: 'fr',
+  monitor(m) {
+    m.addEventListener('downloadprogress', (e) => {
+      console.log(`Downloaded ${e.loaded * 100}%`);
+    });
+  },
+});
+```
+
+---
+
+### ❌ Issue 3: Incorrect Availability Check
+
+**Current Implementation (WRONG):**
+
+```typescript
+// ❌ Using canTranslate() method
+const availability = await factory.canTranslate(sourceLanguage, targetLanguage);
+return availability === 'available';
+```
+
+**Correct Implementation:**
+
+```typescript
+// ✅ Using availability() with options
+const status = await Translator.availability({
+  sourceLanguage: 'es',
+  targetLanguage: 'fr',
+});
+// Returns: 'available' | 'downloadable' | 'downloading' | 'unavailable'
+```
+
+---
+
+### ✅ What's Correct
+
+1. **Streaming implementation** - `translateStreaming()` usage is correct
+2. **Session caching** - Good practice for performance
+3. **Timeout and retry logic** - Well implemented
+4. **Markdown preservation** - Nice feature addition
+
+---
+
+## Corrected Implementation
+
+```typescript
 /**
  * Translator Manager for Chrome Built-in Translator API
  * Handles text translation between languages with session management
- * Implements formatting preservation and language pair validation
  */
 
 import type { AITranslator } from '../types/chrome-ai';
 import { capabilityDetector } from './capabilityDetector';
 
-/**
- * Timeout duration for translation operations (5 seconds)
- */
 const TRANSLATE_TIMEOUT = 5000;
-
-/**
- * Extended timeout for retry attempts (8 seconds)
- */
 const RETRY_TIMEOUT = 8000;
 
-/**
- * Supported languages for translation
- * ISO 639-1 language codes
- */
 export const SUPPORTED_LANGUAGES = [
-  'en', // English
-  'es', // Spanish
-  'fr', // French
-  'de', // German
-  'it', // Italian
-  'pt', // Portuguese
-  'zh', // Chinese
-  'ja', // Japanese
-  'ko', // Korean
-  'ar', // Arabic
+  'en',
+  'es',
+  'fr',
+  'de',
+  'it',
+  'pt',
+  'zh',
+  'ja',
+  'ko',
+  'ar',
 ] as const;
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
-/**
- * Translation session cache entry
- */
 interface TranslationSession {
   session: AITranslator;
   sourceLanguage: string;
@@ -46,10 +127,6 @@ interface TranslationSession {
   lastUsed: number;
 }
 
-/**
- * TranslatorManager class
- * Manages Chrome Translator API sessions with language pair validation
- */
 export class TranslatorManager {
   private sessions = new Map<string, TranslationSession>();
   private available = false;
@@ -57,8 +134,6 @@ export class TranslatorManager {
 
   /**
    * Check if Translator API is available
-   * Uses capability detector for consistent availability checking
-   * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
     try {
@@ -76,24 +151,9 @@ export class TranslatorManager {
 
   /**
    * Check if Translator API is available (synchronous)
-   * @returns True if Translator API is available
    */
   isAvailable(): boolean {
     return this.available;
-  }
-
-  /**
-   * Check if global Translator API is available
-   * @returns True if Translator API is available
-   */
-  private isTranslatorAvailable(): boolean {
-    try {
-      // Access global Translator object (service worker context)
-      return typeof Translator !== 'undefined';
-    } catch (error) {
-      console.error('Error accessing Translator API:', error);
-      return false;
-    }
   }
 
   /**
@@ -106,12 +166,8 @@ export class TranslatorManager {
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<boolean> {
-    if (!this.isTranslatorAvailable()) {
-      return false;
-    }
-
     try {
-      // Type guard: we've already checked Translator exists
+      // ✅ CORRECT - Use global Translator object
       if (typeof Translator === 'undefined') {
         return false;
       }
@@ -120,6 +176,7 @@ export class TranslatorManager {
         sourceLanguage,
         targetLanguage,
       });
+
       return status === 'available' || status === 'downloadable';
     } catch (error) {
       console.error(
@@ -132,10 +189,6 @@ export class TranslatorManager {
 
   /**
    * Create or retrieve a translation session for a language pair
-   * Sessions are cached for better performance
-   * @param sourceLanguage - Source language ISO 639-1 code
-   * @param targetLanguage - Target language ISO 639-1 code
-   * @returns AITranslator session or null if unavailable
    */
   private async createSession(
     sourceLanguage: string,
@@ -146,7 +199,6 @@ export class TranslatorManager {
     // Check for existing session
     const existing = this.sessions.get(sessionKey);
     if (existing) {
-      // Check if session is still valid (not expired)
       const now = Date.now();
       if (now - existing.lastUsed < this.SESSION_TTL) {
         existing.lastUsed = now;
@@ -162,17 +214,13 @@ export class TranslatorManager {
       }
     }
 
-    if (!this.isTranslatorAvailable()) {
-      return null;
-    }
-
     try {
-      // Type guard: we've already checked Translator exists
+      // ✅ CORRECT - Use global Translator object
       if (typeof Translator === 'undefined') {
         return null;
       }
 
-      // Create new session with options object
+      // ✅ CORRECT - Use options object
       const session = await Translator.create({
         sourceLanguage,
         targetLanguage,
@@ -200,12 +248,6 @@ export class TranslatorManager {
 
   /**
    * Translate text from source language to target language
-   * Implements timeout logic, retry mechanism, and formatting preservation
-   * @param text - Text to translate
-   * @param sourceLanguage - Source language ISO 639-1 code (auto-detect if not provided)
-   * @param targetLanguage - Target language ISO 639-1 code
-   * @returns Translated text
-   * @throws Error if translation fails after retry
    */
   async translate(
     text: string,
@@ -220,9 +262,6 @@ export class TranslatorManager {
       }
     }
 
-    // If source language not provided, we need to detect it first
-    // For now, we'll require source language to be provided
-    // In a full implementation, this would integrate with LanguageDetectorManager
     if (!sourceLanguage) {
       throw new Error(
         'Source language must be provided. Auto-detection requires Language Detector API integration.'
@@ -241,7 +280,6 @@ export class TranslatorManager {
     }
 
     try {
-      // First attempt with standard timeout
       return await this.translateWithTimeout(
         text,
         sourceLanguage,
@@ -252,7 +290,6 @@ export class TranslatorManager {
       console.warn('First translation attempt failed, retrying...', error);
 
       try {
-        // Retry with extended timeout
         return await this.translateWithTimeout(
           text,
           sourceLanguage,
@@ -268,14 +305,6 @@ export class TranslatorManager {
     }
   }
 
-  /**
-   * Translate with timeout wrapper
-   * @param text - Text to translate
-   * @param sourceLanguage - Source language code
-   * @param targetLanguage - Target language code
-   * @param timeout - Timeout in milliseconds
-   * @returns Translated text
-   */
   private async translateWithTimeout(
     text: string,
     sourceLanguage: string,
@@ -295,20 +324,11 @@ export class TranslatorManager {
     return Promise.race([translatePromise, timeoutPromise]);
   }
 
-  /**
-   * Execute translation with formatting preservation
-   * Preserves markdown formatting including bullet points and line breaks
-   * @param text - Text to translate
-   * @param sourceLanguage - Source language code
-   * @param targetLanguage - Target language code
-   * @returns Translated text
-   */
   private async executeTranslate(
     text: string,
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<string> {
-    // Get or create session for this language pair
     const session = await this.createSession(sourceLanguage, targetLanguage);
 
     if (!session) {
@@ -316,14 +336,11 @@ export class TranslatorManager {
     }
 
     try {
-      // Detect if text contains markdown formatting
       const hasMarkdown = this.detectMarkdown(text);
 
       if (hasMarkdown) {
-        // Preserve markdown formatting by translating segments
         return await this.translateWithMarkdown(session, text);
       } else {
-        // Simple translation for plain text
         const result = await session.translate(text);
         return result.trim();
       }
@@ -333,69 +350,49 @@ export class TranslatorManager {
     }
   }
 
-  /**
-   * Detect if text contains markdown formatting
-   * @param text - Text to check
-   * @returns True if markdown formatting detected
-   */
   private detectMarkdown(text: string): boolean {
-    // Check for common markdown patterns
     const markdownPatterns = [
-      /^[-*+]\s+/m, // Bullet points
-      /^\d+\.\s+/m, // Numbered lists
-      /^#{1,6}\s+/m, // Headers
-      /\*\*.*\*\*/m, // Bold
-      /\*.*\*/m, // Italic
-      /\[.*\]\(.*\)/m, // Links
+      /^[-*+]\s+/m,
+      /^\d+\.\s+/m,
+      /^#{1,6}\s+/m,
+      /\*\*.*\*\*/m,
+      /\*.*\*/m,
+      /\[.*\]\(.*\)/m,
     ];
 
     return markdownPatterns.some((pattern) => pattern.test(text));
   }
 
-  /**
-   * Translate text while preserving markdown formatting
-   * Splits text into segments and translates each segment
-   * @param session - Translator session
-   * @param text - Text with markdown formatting
-   * @returns Translated text with preserved formatting
-   */
   private async translateWithMarkdown(
     session: AITranslator,
     text: string
   ): Promise<string> {
-    // Split by line breaks to preserve structure
     const lines = text.split('\n');
     const translatedLines: string[] = [];
 
     for (const line of lines) {
       if (line.trim().length === 0) {
-        // Preserve empty lines
         translatedLines.push('');
         continue;
       }
 
-      // Check if line starts with markdown syntax
       const bulletMatch = /^([-*+]\s+)(.*)/.exec(line);
       const numberedMatch = /^(\d+\.\s+)(.*)/.exec(line);
       const headerMatch = /^(#{1,6}\s+)(.*)/.exec(line);
 
       if (bulletMatch) {
-        // Translate content after bullet marker
         const [, marker, content] = bulletMatch;
         const translatedContent = await session.translate(content);
         translatedLines.push(`${marker}${translatedContent.trim()}`);
       } else if (numberedMatch) {
-        // Translate content after number marker
         const [, marker, content] = numberedMatch;
         const translatedContent = await session.translate(content);
         translatedLines.push(`${marker}${translatedContent.trim()}`);
       } else if (headerMatch) {
-        // Translate content after header marker
         const [, marker, content] = headerMatch;
         const translatedContent = await session.translate(content);
         translatedLines.push(`${marker}${translatedContent.trim()}`);
       } else {
-        // Translate entire line
         const translatedLine = await session.translate(line);
         translatedLines.push(translatedLine.trim());
       }
@@ -404,9 +401,6 @@ export class TranslatorManager {
     return translatedLines.join('\n');
   }
 
-  /**
-   * Clean up expired sessions
-   */
   cleanupSessions(): void {
     const now = Date.now();
     const keysToDelete: string[] = [];
@@ -435,10 +429,6 @@ export class TranslatorManager {
     }
   }
 
-  /**
-   * Clean up all active sessions
-   * Should be called when the manager is no longer needed
-   */
   destroy(): void {
     for (const [key, session] of this.sessions.entries()) {
       try {
@@ -451,11 +441,6 @@ export class TranslatorManager {
     this.sessions.clear();
   }
 
-  /**
-   * Clean up a specific session for a language pair
-   * @param sourceLanguage - Source language code
-   * @param targetLanguage - Target language code
-   */
   destroySession(sourceLanguage: string, targetLanguage: string): void {
     const sessionKey = `${sourceLanguage}-${targetLanguage}`;
     const session = this.sessions.get(sessionKey);
@@ -472,5 +457,135 @@ export class TranslatorManager {
   }
 }
 
-// Export singleton instance
 export const translatorManager = new TranslatorManager();
+```
+
+---
+
+## Type Definitions Update
+
+```typescript
+// src/types/chrome-ai.d.ts
+
+export interface AITranslator {
+  translate(input: string, options?: { signal?: AbortSignal }): Promise<string>;
+  translateStreaming(input: string): ReadableStream<string>;
+  destroy(): void;
+}
+
+export interface AITranslatorFactory {
+  create(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
+    signal?: AbortSignal;
+  }): Promise<AITranslator>;
+
+  availability(options: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }): Promise<'available' | 'downloadable' | 'downloading' | 'unavailable'>;
+}
+
+declare global {
+  var Translator: AITranslatorFactory | undefined;
+}
+```
+
+---
+
+## Capability Detector Update
+
+```typescript
+// src/background/capabilityDetector.ts
+
+private checkAPIAvailability(apiName: string): boolean {
+  try {
+    if (typeof globalThis === 'undefined') {
+      return false;
+    }
+
+    // Global APIs (not in ai namespace)
+    if (
+      apiName === 'writer' ||
+      apiName === 'rewriter' ||
+      apiName === 'proofreader'
+    ) {
+      const capitalizedName =
+        apiName.charAt(0).toUpperCase() + apiName.slice(1);
+      return capitalizedName in globalThis;
+    }
+
+    if (apiName === 'languageModel') {
+      return 'LanguageModel' in globalThis;
+    }
+
+    // ✅ ADD THIS - Translator is also a global
+    if (apiName === 'translator') {
+      return 'Translator' in globalThis;
+    }
+
+    // For other APIs (summarizer, languageDetector), check through ai object
+    const ai = (
+      globalThis as typeof globalThis & { ai?: Record<string, unknown> }
+    ).ai;
+
+    if (!ai) {
+      return false;
+    }
+
+    return apiName in ai;
+  } catch (error) {
+    console.warn(`Error checking ${apiName} availability:`, error);
+    return false;
+  }
+}
+```
+
+---
+
+## Summary of Changes Required
+
+### Files to Update:
+
+1. ✅ `src/background/translatorManager.ts` - Fix API access and create() method
+2. ✅ `src/types/chrome-ai.d.ts` - Update type definitions
+3. ✅ `src/background/capabilityDetector.ts` - Check for global Translator
+
+### Key Corrections:
+
+1. Use global `Translator` object, not `ai.translator`
+2. Use `Translator.create({ sourceLanguage, targetLanguage })` with options object
+3. Use `Translator.availability({ sourceLanguage, targetLanguage })` for checking support
+4. Add `Translator` to global type declarations
+
+---
+
+## Testing Checklist
+
+- [ ] Verify `typeof Translator !== 'undefined'` in console
+- [ ] Test `Translator.availability({ sourceLanguage: 'en', targetLanguage: 'es' })`
+- [ ] Test `Translator.create({ sourceLanguage: 'en', targetLanguage: 'es' })`
+- [ ] Test translation: `translator.translate('Hello')`
+- [ ] Test streaming: `translator.translateStreaming(longText)`
+- [ ] Verify session caching works
+- [ ] Test markdown preservation feature
+
+---
+
+## References
+
+- [Official Translator API Documentation](https://developer.chrome.com/docs/ai/translator-api)
+- [Built-in AI APIs Overview](https://developer.chrome.com/docs/ai/built-in)
+- [Language Detector API](https://developer.chrome.com/docs/ai/language-detection)
+
+---
+
+**Status**: Ready for implementation
+**Priority**: High - Incorrect API usage will cause runtime errors
+**Impact**: Breaking change - requires code updates

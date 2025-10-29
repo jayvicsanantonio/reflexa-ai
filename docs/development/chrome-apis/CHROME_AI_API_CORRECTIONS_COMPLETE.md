@@ -117,13 +117,13 @@ Chrome Built-in AI APIs
 ├── Global Objects (NOT in ai namespace)
 │   ├── Writer ← Accessed directly
 │   ├── Rewriter ← Accessed directly
-│   └── Proofreader ← Accessed directly
+│   ├── Proofreader ← Accessed directly
+│   ├── LanguageModel ← Accessed directly (Prompt API)
+│   └── Translator ← Accessed directly
 │
 └── ai Object
     ├── summarizer ← Accessed via ai.summarizer
-    ├── translator ← Accessed via ai.translator
-    ├── languageDetector ← Accessed via ai.languageDetector
-    └── languageModel ← Accessed via ai.languageModel
+    └── languageDetector ← Accessed via ai.languageDetector
 ```
 
 ## Verification

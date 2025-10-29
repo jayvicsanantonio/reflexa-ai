@@ -65,8 +65,9 @@ const summary = await unifiedAI.summarizer.summarize(content, {
   length: 'medium',
 });
 
-// Translate text
-const translated = await unifiedAI.translator.translate('Hello', 'en', 'es');
+// Translate text (Note: Translator API uses global Translator object)
+// See translatorManager.ts for correct implementation
+const translated = await translatorManager.translate('Hello', 'es', 'en');
 
 // Generate content
 const written = await unifiedAI.writer.write('Write a motivational message', {
@@ -95,7 +96,8 @@ const availability = await checkAllAIAvailability();
 
 // Use the APIs
 const corrected = await proofread(userText);
-const translated = await translate(text, 'en', 'es');
+// Note: Translator API uses global Translator object - see translatorManager.ts
+const translated = await translate(text, 'es', 'en'); // (targetLang, sourceLang)
 const rewritten = await rewrite(text, { tone: 'more-formal' });
 ```
 
