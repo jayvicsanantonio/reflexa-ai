@@ -61,10 +61,7 @@ export const ProofreadDiffView: React.FC<ProofreadDiffViewProps> = ({
   /**
    * Split text into segments with highlights for corrections
    */
-  const getTextSegments = (
-    text: string,
-    isOriginal: boolean
-  ): TextSegment[] => {
+  const getTextSegments = (text: string): TextSegment[] => {
     if (corrections.length === 0) {
       return [{ text, isHighlight: false }];
     }
@@ -109,8 +106,8 @@ export const ProofreadDiffView: React.FC<ProofreadDiffViewProps> = ({
     return segments;
   };
 
-  const originalSegments = getTextSegments(original, true);
-  const correctedSegments = getTextSegments(correctedText, false);
+  const originalSegments = getTextSegments(original);
+  const correctedSegments = getTextSegments(correctedText);
 
   return (
     <div
