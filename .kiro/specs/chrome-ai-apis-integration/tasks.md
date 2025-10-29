@@ -158,8 +158,8 @@
 
 ## Phase 3: Service Integration (IN PROGRESS 🔄)
 
-- [ ] 10. Implement Unified AI Service orchestration layer
-  - [ ] 10.1 Create AIService class with initialization
+- [x] 10. Implement Unified AI Service orchestration layer
+  - [x] 10.1 Create AIService class with initialization
     - Implement initialize() method that runs capability detection
     - Instantiate all API manager modules (prompt, proofreader, summarizer, translator, writer, rewriter)
     - Expose getCapabilities() and refreshCapabilities() methods
@@ -169,28 +169,28 @@
     - _Implementation: `src/background/services/ai/aiService.ts`_
     - _Note: Individual managers handle their own operations; orchestration is lightweight_
 
-  - [ ] 10.2 Update background message handlers to use AI managers
+  - [x] 10.2 Update background message handlers to use AI managers
     - Add message handlers for summarize, write, rewrite, proofread, detectLanguage, translate operations
     - Integrate with existing message handling infrastructure
     - Return standardized response objects with success/error status
     - Track performance metrics (duration, API used)
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 8.1, 9.3, 9.5_
 
-  - [ ] 10.3 Implement fallback logic in message handlers
+  - [x] 10.3 Implement fallback logic in message handlers
     - Check API availability before calling specialized managers
     - Fall back to Prompt API for summarize, write, and rewrite operations when specialized APIs unavailable
     - Return appropriate errors for operations without fallbacks (proofread, translate, detectLanguage)
     - Log which API was used for each operation
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 9.3_
 
-  - [ ] 10.4 Add rate limiting and quota handling
+  - [x] 10.4 Add rate limiting and quota handling
     - Implement exponential backoff for rate limit errors (2s, 4s, 8s)
     - Track API usage counts per session
     - Display warning when approaching quotas
     - Queue requests for retry after rate limit period
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 11. Update background service worker message handlers
+- [x] 11. Update background service worker message handlers
   - Add message handlers for new AI operations (write, rewrite, proofread, detectLanguage, translate)
   - Update existing summarize handler to support format options (bullets, paragraph, headline-bullets)
   - Add handler for capability queries (getCapabilities, checkAllAvailability)

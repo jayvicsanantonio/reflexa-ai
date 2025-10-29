@@ -3,7 +3,8 @@
  * Orchestrates AI operations, manages data persistence, and coordinates between components
  */
 
-import { PromptManager } from './services/ai';
+import { aiService } from './services/ai/aiService';
+import { rateLimiter } from './services/ai/rateLimiter';
 import { StorageManager, SettingsManager } from './services/storage';
 import type {
   Message,
@@ -11,6 +12,13 @@ import type {
   AIResponse,
   Reflection,
   Settings,
+  SummaryFormat,
+  TonePreset,
+  ProofreadResult,
+  LanguageDetection,
+  WriterOptions,
+  UsageStats,
+  AICapabilities,
 } from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
 import { ERROR_MESSAGES } from '../constants';
@@ -18,9 +26,11 @@ import { ERROR_MESSAGES } from '../constants';
 console.log('Reflexa AI background service worker initialized');
 
 // Initialize managers
-const promptManager = new PromptManager();
 const storageManager = new StorageManager();
 const settingsManager = new SettingsManager();
+
+// Initialize AI Service
+aiService.initialize();
 
 // Track AI availability status
 let aiAvailable = false;
@@ -42,14 +52,21 @@ function isValidMessage(message: unknown): message is Message {
   // Validate message type is one of the allowed types
   const validTypes: MessageType[] = [
     'checkAI',
+    'checkAllAI',
+    'getCapabilities',
     'summarize',
     'reflect',
     'proofread',
+    'write',
+    'rewrite',
+    'translate',
+    'detectLanguage',
     'save',
     'load',
     'getSettings',
     'updateSettings',
     'resetSettings',
+    'getUsageStats',
   ];
 
   return validTypes.includes(message.type as MessageType);
@@ -118,6 +135,12 @@ async function handleMessage(message: Message): Promise<AIResponse> {
     case 'checkAI':
       return handleCheckAI();
 
+    case 'checkAllAI':
+      return handleCheckAllAI();
+
+    case 'getCapabilities':
+      return handleGetCapabilities();
+
     case 'summarize':
       return handleSummarize(message.payload);
 
@@ -126,6 +149,21 @@ async function handleMessage(message: Message): Promise<AIResponse> {
 
     case 'proofread':
       return handleProofread(message.payload);
+
+    case 'write':
+      return handleWrite(message.payload);
+
+    case 'rewrite':
+      return handleRewrite(message.payload);
+
+    case 'translate':
+      return handleTranslate(message.payload);
+
+    case 'detectLanguage':
+      return handleDetectLanguage(message.payload);
+
+    case 'getUsageStats':
+      return handleGetUsageStats();
 
     case 'save':
       return handleSave(message.payload);
@@ -151,13 +189,13 @@ async function handleMessage(message: Message): Promise<AIResponse> {
 }
 
 /**
- * Handle AI availability check
+ * Handle AI availability check (Prompt API only)
  * @returns Response with availability status
  */
 async function handleCheckAI(): Promise<AIResponse<boolean>> {
   const startTime = Date.now();
   try {
-    const available = await promptManager.checkAvailability();
+    const available = await aiService.prompt.checkAvailability();
     aiAvailable = available;
 
     return createSuccessResponse(available, 'prompt', Date.now() - startTime);
@@ -172,8 +210,64 @@ async function handleCheckAI(): Promise<AIResponse<boolean>> {
 }
 
 /**
+ * Handle all AI APIs availability check
+ * @returns Response with availability status for all APIs
+ */
+async function handleCheckAllAI(): Promise<
+  AIResponse<{
+    prompt: boolean;
+    proofreader: boolean;
+    summarizer: boolean;
+    translator: boolean;
+    writer: boolean;
+    rewriter: boolean;
+    languageDetector: boolean;
+  }>
+> {
+  const startTime = Date.now();
+  try {
+    const availability = await aiService.checkAllAvailability();
+    return createSuccessResponse(
+      availability,
+      'unified',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    console.error('Error checking all AI availability:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'unified'
+    );
+  }
+}
+
+/**
+ * Handle get capabilities request (returns cached capabilities)
+ * @returns Response with cached capabilities object
+ */
+function handleGetCapabilities(): AIResponse<AICapabilities> {
+  const startTime = Date.now();
+  try {
+    const capabilities = aiService.getCapabilities();
+    return createSuccessResponse(
+      capabilities,
+      'unified',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    console.error('Error getting capabilities:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'unified'
+    );
+  }
+}
+
+/**
  * Handle summarization request
- * @param payload Content to summarize
+ * @param payload Content to summarize with optional format
  * @returns Response with summary bullets or error
  */
 async function handleSummarize(
@@ -182,52 +276,94 @@ async function handleSummarize(
   const startTime = Date.now();
 
   try {
-    // Validate payload
-    if (typeof payload !== 'string' || !payload.trim()) {
+    // Validate payload - support both string and object formats
+    let content: string;
+    let format: SummaryFormat = 'bullets'; // default format
+
+    if (typeof payload === 'string') {
+      content = payload;
+    } else if (payload && typeof payload === 'object' && 'content' in payload) {
+      const payloadObj = payload as { content: string; format?: SummaryFormat };
+      content = payloadObj.content;
+      if (payloadObj.format) {
+        format = payloadObj.format;
+      }
+    } else {
       console.error('[Summarize] Invalid payload:', typeof payload);
       return createErrorResponse(
         'Invalid content for summarization',
         Date.now() - startTime,
-        'prompt'
+        'summarizer'
       );
     }
 
-    // Check AI availability
-    if (!aiAvailable) {
-      console.log('[Summarize] Checking AI availability...');
-      const available = await promptManager.checkAvailability();
-      aiAvailable = available;
-
-      if (!available) {
-        console.error('[Summarize] AI unavailable');
-        return createErrorResponse(
-          ERROR_MESSAGES.AI_UNAVAILABLE,
-          Date.now() - startTime,
-          'prompt'
-        );
-      }
+    if (!content?.trim()) {
+      return createErrorResponse(
+        'Empty content for summarization',
+        Date.now() - startTime,
+        'summarizer'
+      );
     }
 
-    // Call Prompt manager to summarize
-    console.log('[Summarize] Calling Prompt manager...');
-    const summary = await promptManager.summarize(payload);
+    // Check if Summarizer API is available
+    const summarizerAvailable = await aiService.summarizer.checkAvailability();
+    let summary: string[];
+    let apiUsed: string;
+
+    if (summarizerAvailable) {
+      console.log(`[Summarize] Using Summarizer API with format: ${format}`);
+
+      // Use specialized Summarizer API with format parameter and rate limiting
+      summary = await rateLimiter.executeWithRetry(
+        () => aiService.summarizer.summarize(content, format),
+        'summarizations'
+      );
+      apiUsed = 'summarizer';
+    } else {
+      // Fallback to Prompt API
+      console.log(
+        `[Summarize] Falling back to Prompt API with format: ${format}`
+      );
+
+      // Check Prompt API availability
+      if (!aiAvailable) {
+        const available = await aiService.prompt.checkAvailability();
+        aiAvailable = available;
+
+        if (!available) {
+          console.error('[Summarize] AI unavailable');
+          return createErrorResponse(
+            ERROR_MESSAGES.AI_UNAVAILABLE,
+            Date.now() - startTime,
+            'prompt'
+          );
+        }
+      }
+
+      summary = await rateLimiter.executeWithRetry(
+        () => aiService.prompt.summarize(content, format),
+        'summarizations'
+      );
+      apiUsed = 'prompt';
+    }
+
     const duration = Date.now() - startTime;
 
     // Check if summarization failed
     if (!summary || summary.length === 0) {
       console.error(`[Summarize] Failed after ${duration}ms - empty result`);
-      return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, 'prompt');
+      return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, apiUsed);
     }
 
-    console.log(`[Summarize] Success in ${duration}ms`);
-    return createSuccessResponse(summary, 'prompt', duration);
+    console.log(`[Summarize] Success in ${duration}ms using ${apiUsed}`);
+    return createSuccessResponse(summary, apiUsed, duration);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Summarize] Error after ${duration}ms:`, error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       duration,
-      'prompt'
+      'summarizer'
     );
   }
 }
@@ -241,8 +377,15 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
   const startTime = Date.now();
 
   try {
-    // Validate payload
-    if (!Array.isArray(payload) || payload.length === 0) {
+    // Validate payload - support both array and object formats
+    let summary: string[];
+
+    if (Array.isArray(payload)) {
+      summary = payload as string[];
+    } else if (payload && typeof payload === 'object' && 'summary' in payload) {
+      const payloadObj = payload as { summary: string[] };
+      summary = payloadObj.summary;
+    } else {
       console.error('[Reflect] Invalid payload:', payload);
       return createErrorResponse(
         'Invalid summary for reflection prompts',
@@ -251,10 +394,18 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
       );
     }
 
+    if (!summary || summary.length === 0) {
+      return createErrorResponse(
+        'Empty summary for reflection prompts',
+        Date.now() - startTime,
+        'prompt'
+      );
+    }
+
     // Check AI availability
     if (!aiAvailable) {
       console.log('[Reflect] Checking AI availability...');
-      const available = await promptManager.checkAvailability();
+      const available = await aiService.prompt.checkAvailability();
       aiAvailable = available;
 
       if (!available) {
@@ -269,9 +420,7 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
 
     // Call Prompt manager to generate reflection prompts
     console.log('[Reflect] Calling Prompt manager...');
-    const prompts = await promptManager.generateReflectionPrompts(
-      payload as string[]
-    );
+    const prompts = await aiService.prompt.generateReflectionPrompts(summary);
     const duration = Date.now() - startTime;
 
     // Check if generation failed
@@ -296,58 +445,456 @@ async function handleReflect(payload: unknown): Promise<AIResponse<string[]>> {
 /**
  * Handle proofreading request
  * @param payload Text to proofread
- * @returns Response with proofread text or error
+ * @returns Response with proofread result or error
  */
-async function handleProofread(payload: unknown): Promise<AIResponse<string>> {
+async function handleProofread(
+  payload: unknown
+): Promise<AIResponse<ProofreadResult>> {
   const startTime = Date.now();
   try {
-    // Validate payload
-    if (typeof payload !== 'string' || !payload.trim()) {
+    // Validate payload - support both string and object formats
+    let text: string;
+
+    if (typeof payload === 'string') {
+      text = payload;
+    } else if (payload && typeof payload === 'object' && 'text' in payload) {
+      const payloadObj = payload as { text: string };
+      text = payloadObj.text;
+    } else {
       return createErrorResponse(
         'Invalid text for proofreading',
         Date.now() - startTime,
-        'prompt'
+        'proofreader'
+      );
+    }
+
+    if (!text?.trim()) {
+      return createErrorResponse(
+        'Empty text for proofreading',
+        Date.now() - startTime,
+        'proofreader'
       );
     }
 
     // Check if proofreading is enabled in settings
     const settings = await settingsManager.getSettings();
-    if (!settings.proofreadEnabled) {
+    if (!settings.proofreadEnabled && !settings.enableProofreading) {
       return createErrorResponse(
         'Proofreading is disabled in settings',
         Date.now() - startTime,
-        'prompt'
+        'proofreader'
       );
     }
 
-    // Check AI availability
-    if (!aiAvailable) {
-      const available = await promptManager.checkAvailability();
-      aiAvailable = available;
+    // Check if Proofreader API is available
+    const proofreaderAvailable =
+      await aiService.proofreader.checkAvailability();
+    let result: ProofreadResult;
+    let apiUsed: string;
 
-      if (!available) {
-        return createErrorResponse(
-          ERROR_MESSAGES.AI_UNAVAILABLE,
-          Date.now() - startTime,
-          'prompt'
-        );
+    if (proofreaderAvailable) {
+      console.log('[Proofread] Using Proofreader API');
+      result = await aiService.proofreader.proofread(text);
+      apiUsed = 'proofreader';
+    } else {
+      // Fallback to Prompt API
+      console.log('[Proofread] Falling back to Prompt API');
+
+      // Check Prompt API availability
+      if (!aiAvailable) {
+        const available = await aiService.prompt.checkAvailability();
+        aiAvailable = available;
+
+        if (!available) {
+          return createErrorResponse(
+            ERROR_MESSAGES.AI_UNAVAILABLE,
+            Date.now() - startTime,
+            'prompt'
+          );
+        }
       }
+
+      const correctedText = await aiService.prompt.proofread(text);
+      result = {
+        correctedText,
+        corrections: [], // Prompt API doesn't provide detailed corrections
+      };
+      apiUsed = 'prompt';
     }
 
-    // Call Prompt manager to proofread
-    const proofreadText = await promptManager.proofread(payload);
-
-    return createSuccessResponse(
-      proofreadText,
-      'prompt',
-      Date.now() - startTime
-    );
+    console.log(`[Proofread] Success using ${apiUsed}`);
+    return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
     console.error('Error in handleProofread:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
-      'prompt'
+      'proofreader'
+    );
+  }
+}
+
+/**
+ * Handle write/draft generation request
+ * @param payload Prompt and options for draft generation
+ * @returns Response with generated text or error
+ */
+async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
+  const startTime = Date.now();
+  try {
+    // Validate payload
+    if (!payload || typeof payload !== 'object' || !('prompt' in payload)) {
+      return createErrorResponse(
+        'Invalid payload for write operation',
+        Date.now() - startTime,
+        'writer'
+      );
+    }
+
+    const payloadObj = payload as {
+      prompt: string;
+      options?: {
+        tone?: 'formal' | 'neutral' | 'casual';
+        format?: 'plain-text' | 'markdown';
+        length?: 'short' | 'medium' | 'long';
+      };
+    };
+
+    if (!payloadObj.prompt?.trim()) {
+      return createErrorResponse(
+        'Empty prompt for write operation',
+        Date.now() - startTime,
+        'writer'
+      );
+    }
+
+    // Check if Writer API is available
+    const writerAvailable = await aiService.writer.checkAvailability();
+    let result: string;
+    let apiUsed: string;
+
+    if (writerAvailable) {
+      console.log('[Write] Using Writer API');
+      result = await aiService.writer.write(
+        payloadObj.prompt,
+        payloadObj.options
+      );
+      apiUsed = 'writer';
+    } else {
+      // Fallback to Prompt API
+      console.log('[Write] Falling back to Prompt API');
+
+      // Check Prompt API availability
+      if (!aiAvailable) {
+        const available = await aiService.prompt.checkAvailability();
+        aiAvailable = available;
+
+        if (!available) {
+          return createErrorResponse(
+            ERROR_MESSAGES.AI_UNAVAILABLE,
+            Date.now() - startTime,
+            'prompt'
+          );
+        }
+      }
+
+      // Use Prompt API's generateDraft method
+      const writerOptions: WriterOptions = {
+        tone:
+          payloadObj.options?.tone === 'formal'
+            ? 'professional'
+            : payloadObj.options?.tone === 'casual'
+              ? 'casual'
+              : 'calm',
+        length: payloadObj.options?.length ?? 'medium',
+      };
+      result = await aiService.prompt.generateDraft(
+        payloadObj.prompt,
+        writerOptions
+      );
+      apiUsed = 'prompt';
+    }
+
+    console.log(`[Write] Success using ${apiUsed}`);
+    return createSuccessResponse(result, apiUsed, Date.now() - startTime);
+  } catch (error) {
+    console.error('Error in handleWrite:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'writer'
+    );
+  }
+}
+
+/**
+ * Handle rewrite request
+ * @param payload Text and tone preset for rewriting
+ * @returns Response with rewritten text or error
+ */
+async function handleRewrite(
+  payload: unknown
+): Promise<AIResponse<{ original: string; rewritten: string }>> {
+  const startTime = Date.now();
+  try {
+    // Validate payload
+    if (!payload || typeof payload !== 'object' || !('text' in payload)) {
+      return createErrorResponse(
+        'Invalid payload for rewrite operation',
+        Date.now() - startTime,
+        'rewriter'
+      );
+    }
+
+    const payloadObj = payload as {
+      text: string;
+      preset?: TonePreset;
+      context?: string;
+    };
+
+    if (!payloadObj.text?.trim()) {
+      return createErrorResponse(
+        'Empty text for rewrite operation',
+        Date.now() - startTime,
+        'rewriter'
+      );
+    }
+
+    const preset = payloadObj.preset ?? 'calm';
+
+    // Check if Rewriter API is available
+    const rewriterAvailable = await aiService.rewriter.checkAvailability();
+    let result: { original: string; rewritten: string };
+    let apiUsed: string;
+
+    if (rewriterAvailable) {
+      console.log(`[Rewrite] Using Rewriter API with preset: ${preset}`);
+      result = await aiService.rewriter.rewrite(
+        payloadObj.text,
+        preset,
+        payloadObj.context
+      );
+      apiUsed = 'rewriter';
+    } else {
+      // Fallback to Prompt API
+      console.log(
+        `[Rewrite] Falling back to Prompt API with preset: ${preset}`
+      );
+
+      // Check Prompt API availability
+      if (!aiAvailable) {
+        const available = await aiService.prompt.checkAvailability();
+        aiAvailable = available;
+
+        if (!available) {
+          return createErrorResponse(
+            ERROR_MESSAGES.AI_UNAVAILABLE,
+            Date.now() - startTime,
+            'prompt'
+          );
+        }
+      }
+
+      const rewritten = await aiService.prompt.rewrite(payloadObj.text, preset);
+      result = {
+        original: payloadObj.text,
+        rewritten,
+      };
+      apiUsed = 'prompt';
+    }
+
+    console.log(`[Rewrite] Success using ${apiUsed}`);
+    return createSuccessResponse(result, apiUsed, Date.now() - startTime);
+  } catch (error) {
+    console.error('Error in handleRewrite:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'rewriter'
+    );
+  }
+}
+
+/**
+ * Handle translation request
+ * @param payload Text and language options for translation
+ * @returns Response with translated text or error
+ */
+async function handleTranslate(payload: unknown): Promise<AIResponse<string>> {
+  const startTime = Date.now();
+  try {
+    // Validate payload
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('text' in payload) ||
+      !('target' in payload)
+    ) {
+      return createErrorResponse(
+        'Invalid payload for translate operation',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+
+    const payloadObj = payload as {
+      text: string;
+      source: string;
+      target: string;
+    };
+
+    if (!payloadObj.text?.trim()) {
+      return createErrorResponse(
+        'Empty text for translation',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+
+    if (!payloadObj.target) {
+      return createErrorResponse(
+        'Missing target language for translation',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+
+    // Check if translation is enabled in settings
+    const settings = await settingsManager.getSettings();
+    if (!settings.translationEnabled && !settings.enableTranslation) {
+      return createErrorResponse(
+        'Translation is disabled in settings',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+
+    // Check if Translator API is available for this language pair
+    const canTranslate = await aiService.translator.canTranslate(
+      payloadObj.source,
+      payloadObj.target
+    );
+
+    if (!canTranslate) {
+      return createErrorResponse(
+        `Translation not available for ${payloadObj.source} -> ${payloadObj.target}`,
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+
+    console.log(
+      `[Translate] Translating from ${payloadObj.source} to ${payloadObj.target}`
+    );
+    const result = await aiService.translator.translate(
+      payloadObj.text,
+      payloadObj.target,
+      payloadObj.source
+    );
+
+    console.log('[Translate] Success');
+    return createSuccessResponse(result, 'translator', Date.now() - startTime);
+  } catch (error) {
+    console.error('Error in handleTranslate:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'translator'
+    );
+  }
+}
+
+/**
+ * Handle language detection request
+ * @param payload Text to detect language from
+ * @returns Response with language detection result or error
+ */
+async function handleDetectLanguage(
+  payload: unknown
+): Promise<AIResponse<LanguageDetection>> {
+  const startTime = Date.now();
+  try {
+    // Validate payload
+    if (!payload || typeof payload !== 'object' || !('text' in payload)) {
+      return createErrorResponse(
+        'Invalid payload for language detection',
+        Date.now() - startTime,
+        'languageDetector'
+      );
+    }
+
+    const payloadObj = payload as {
+      text: string;
+      pageUrl?: string;
+    };
+
+    if (!payloadObj.text?.trim()) {
+      return createErrorResponse(
+        'Empty text for language detection',
+        Date.now() - startTime,
+        'languageDetector'
+      );
+    }
+
+    // Check if Language Detector API is available
+    const available = await aiService.languageDetector.checkAvailability();
+
+    if (!available) {
+      return createErrorResponse(
+        'Language Detector API is not available',
+        Date.now() - startTime,
+        'languageDetector'
+      );
+    }
+
+    console.log('[DetectLanguage] Detecting language...');
+    const result = await aiService.languageDetector.detect(
+      payloadObj.text,
+      payloadObj.pageUrl
+    );
+
+    console.log(`[DetectLanguage] Detected: ${result.languageName}`);
+    return createSuccessResponse(
+      result,
+      'languageDetector',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    console.error('Error in handleDetectLanguage:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'languageDetector'
+    );
+  }
+}
+
+/**
+ * Handle get usage statistics request
+ * @returns Response with usage statistics
+ */
+function handleGetUsageStats(): AIResponse<{
+  stats: UsageStats;
+  total: number;
+  approachingQuota: boolean;
+}> {
+  const startTime = Date.now();
+  try {
+    const stats = rateLimiter.getUsageStats();
+    const total = rateLimiter.getTotalOperations();
+    const approachingQuota = rateLimiter.isApproachingQuota();
+
+    return createSuccessResponse(
+      { stats, total, approachingQuota },
+      'unified',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    console.error('Error in handleGetUsageStats:', error);
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'unified'
     );
   }
 }
@@ -543,11 +1090,18 @@ async function handleResetSettings(): Promise<AIResponse<Settings>> {
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('Reflexa AI extension installed');
 
+  // Initialize AI Service
+  aiService.initialize();
+
   // Check if Gemini Nano is available
-  const available = await promptManager.checkAvailability();
+  const available = await aiService.prompt.checkAvailability();
   aiAvailable = available;
 
   console.log('Gemini Nano available:', available);
+
+  // Log all API capabilities
+  const capabilities = aiService.getCapabilities();
+  console.log('AI Capabilities:', capabilities);
 
   // Set first launch flag if not already set
   const result = await chrome.storage.local.get('firstLaunch');
@@ -563,11 +1117,18 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   console.log('Reflexa AI service worker started');
 
+  // Initialize AI Service
+  aiService.initialize();
+
   // Check if Gemini Nano is available
-  const available = await promptManager.checkAvailability();
+  const available = await aiService.prompt.checkAvailability();
   aiAvailable = available;
 
   console.log('Gemini Nano available:', available);
+
+  // Log all API capabilities
+  const capabilities = aiService.getCapabilities();
+  console.log('AI Capabilities:', capabilities);
 });
 
 /**

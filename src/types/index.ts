@@ -103,10 +103,13 @@ export type MessageType =
   | 'updateSettings'
   | 'resetSettings'
   | 'checkAI'
+  | 'checkAllAI'
+  | 'getCapabilities'
   | 'translate'
   | 'rewrite'
   | 'write'
-  | 'checkAllAI';
+  | 'detectLanguage'
+  | 'getUsageStats';
 
 /**
  * Message structure for background worker communication
@@ -221,6 +224,19 @@ export interface AIMetadata {
   translatorUsed: boolean;
   promptFallback: boolean;
   processingTime: number;
+}
+
+/**
+ * Usage statistics for AI operations
+ */
+export interface UsageStats {
+  summarizations: number;
+  drafts: number;
+  rewrites: number;
+  proofreads: number;
+  translations: number;
+  languageDetections: number;
+  sessionStart: number;
 }
 
 /**

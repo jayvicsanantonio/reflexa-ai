@@ -9,6 +9,7 @@ import { SummarizerManager } from './summarizerManager';
 import { TranslatorManager } from './translatorManager';
 import { WriterManager } from './writerManager';
 import { RewriterManager } from './rewriterManager';
+import { languageDetectorManager } from './languageDetectorManager';
 import type { AICapabilities } from '../../../types';
 import { capabilityDetector } from '../capabilities/capabilityDetector';
 
@@ -19,6 +20,7 @@ export class AIService {
   public readonly translator: TranslatorManager;
   public readonly writer: WriterManager;
   public readonly rewriter: RewriterManager;
+  public readonly languageDetector = languageDetectorManager;
 
   private capabilities: AICapabilities | null = null;
   private initialized = false;
@@ -73,15 +75,23 @@ export class AIService {
     translator: boolean;
     writer: boolean;
     rewriter: boolean;
+    languageDetector: boolean;
   }> {
-    const [prompt, proofreader, summarizer, writer, rewriter] =
-      await Promise.all([
-        this.prompt.checkAvailability(),
-        this.proofreader.checkAvailability(),
-        this.summarizer.checkAvailability(),
-        this.writer.checkAvailability(),
-        this.rewriter.checkAvailability(),
-      ]);
+    const [
+      prompt,
+      proofreader,
+      summarizer,
+      writer,
+      rewriter,
+      languageDetector,
+    ] = await Promise.all([
+      this.prompt.checkAvailability(),
+      this.proofreader.checkAvailability(),
+      this.summarizer.checkAvailability(),
+      this.writer.checkAvailability(),
+      this.rewriter.checkAvailability(),
+      this.languageDetector.checkAvailability(),
+    ]);
 
     return {
       prompt,
@@ -90,6 +100,7 @@ export class AIService {
       translator: false, // Requires language pair
       writer,
       rewriter,
+      languageDetector,
     };
   }
 
@@ -100,6 +111,7 @@ export class AIService {
     this.translator.destroy();
     this.writer.destroy();
     this.rewriter.destroy();
+    this.languageDetector.destroy();
   }
 }
 
