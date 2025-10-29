@@ -7,3 +7,4 @@ export { ReflectModeOverlay } from './ReflectModeOverlay';
 export { LotusNudge } from './LotusNudge';
 export { ErrorModal } from './ErrorModal';
 export { Notification } from './Notification';
+export { SummaryFormatDropdown } from './SummaryFormatDropdown';

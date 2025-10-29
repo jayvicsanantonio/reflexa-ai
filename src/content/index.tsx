@@ -16,6 +16,7 @@ import type {
   AIResponse,
   Reflection,
   ExtractedContent,
+  SummaryFormat,
 } from '../types';
 import { generateUUID } from '../utils';
 import { ERROR_MESSAGES } from '../constants';
@@ -53,6 +54,8 @@ let isNotificationVisible = false;
 let currentExtractedContent: ExtractedContent | null = null;
 let currentSummary: string[] = [];
 let currentPrompts: string[] = [];
+let currentSummaryFormat: SummaryFormat = 'bullets';
+let isLoadingSummary = false;
 
 // AI availability status
 let aiAvailable: boolean | null = null;
@@ -255,9 +258,17 @@ const initiateReflectionFlow = async () => {
 
     // Request AI summarization with retry logic
     console.log('Requesting AI summarization...');
+
+    // Use default format from settings or fallback to bullets
+    const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
+    currentSummaryFormat = defaultFormat;
+
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
-      payload: currentExtractedContent.text,
+      payload: {
+        text: currentExtractedContent.text,
+        format: defaultFormat,
+      },
     });
 
     if (!summaryResponse.success) {
@@ -431,6 +442,9 @@ const showReflectModeOverlay = async () => {
       onCancel={handleCancelReflection}
       settings={currentSettings ?? getDefaultSettings()}
       onProofread={handleProofread}
+      onFormatChange={handleFormatChange}
+      currentFormat={currentSummaryFormat}
+      isLoadingSummary={isLoadingSummary}
     />
   );
 
@@ -602,6 +616,87 @@ const handleProofread = async (text: string, index: number) => {
 };
 
 /**
+ * Handle summary format change
+ * Re-requests summary with new format from background worker
+ */
+const handleFormatChange = async (format: SummaryFormat) => {
+  if (!currentExtractedContent || isLoadingSummary) {
+    return;
+  }
+
+  console.log(`Changing summary format to: ${format}`);
+  currentSummaryFormat = format;
+  isLoadingSummary = true;
+
+  // Re-render overlay with loading state
+  if (overlayRoot && overlayContainer) {
+    overlayRoot.render(
+      <ReflectModeOverlay
+        summary={currentSummary}
+        prompts={currentPrompts}
+        onSave={handleSaveReflection}
+        onCancel={handleCancelReflection}
+        settings={currentSettings ?? getDefaultSettings()}
+        onProofread={handleProofread}
+        onFormatChange={handleFormatChange}
+        currentFormat={currentSummaryFormat}
+        isLoadingSummary={true}
+      />
+    );
+  }
+
+  try {
+    // Request new summary with selected format
+    const summaryResponse = await sendMessageToBackground<string[]>({
+      type: 'summarize',
+      payload: {
+        text: currentExtractedContent.text,
+        format: format,
+      },
+    });
+
+    if (summaryResponse.success) {
+      currentSummary = summaryResponse.data;
+      console.log('Summary updated with new format:', currentSummary);
+    } else {
+      console.error('Failed to update summary format:', summaryResponse.error);
+      // Keep existing summary on error
+      showNotification(
+        'Format Change Failed',
+        'Could not update summary format. Using previous format.',
+        'error'
+      );
+    }
+  } catch (error) {
+    console.error('Error changing format:', error);
+    showNotification(
+      'Format Change Failed',
+      'An error occurred while changing format.',
+      'error'
+    );
+  } finally {
+    isLoadingSummary = false;
+
+    // Re-render overlay with updated summary
+    if (overlayRoot && overlayContainer) {
+      overlayRoot.render(
+        <ReflectModeOverlay
+          summary={currentSummary}
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onProofread={handleProofread}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+        />
+      );
+    }
+  }
+};
+
+/**
  * Hide the Reflect Mode overlay
  * Removes the component and cleans up the DOM
  */
@@ -637,6 +732,8 @@ const resetReflectionState = () => {
   currentExtractedContent = null;
   currentSummary = [];
   currentPrompts = [];
+  currentSummaryFormat = 'bullets';
+  isLoadingSummary = false;
 
   // Reset dwell tracker to start tracking again
   if (dwellTracker) {

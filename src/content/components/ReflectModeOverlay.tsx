@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BreathingOrb } from './BreathingOrb';
-import type { Settings } from '../../types';
+import { SummaryFormatDropdown } from './SummaryFormatDropdown';
+import type { Settings, SummaryFormat } from '../../types';
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
 import '../styles.css';
 
@@ -11,6 +12,9 @@ interface ReflectModeOverlayProps {
   onCancel: () => void;
   settings: Settings;
   onProofread?: (text: string, index: number) => Promise<void>;
+  onFormatChange?: (format: SummaryFormat) => Promise<void>;
+  currentFormat?: SummaryFormat;
+  isLoadingSummary?: boolean;
 }
 
 /**
@@ -54,6 +58,9 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   onCancel,
   settings,
   onProofread,
+  onFormatChange,
+  currentFormat = 'bullets',
+  isLoadingSummary = false,
 }) => {
   const [reflections, setReflections] = useState<string[]>(['', '']);
   const [isProofreading, setIsProofreading] = useState<boolean[]>([
@@ -62,6 +69,12 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   ]);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const handleFormatChange = async (format: SummaryFormat) => {
+    if (onFormatChange) {
+      await onFormatChange(format);
+    }
+  };
 
   // Auto-focus first input on mount and announce to screen readers
   useEffect(() => {
@@ -179,6 +192,17 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
         <h1 id="reflexa-overlay-title" className="reflexa-overlay__title">
           Reflect & Absorb
         </h1>
+
+        {/* Summary Format Dropdown */}
+        {onFormatChange && (
+          <div className="reflexa-overlay__format-selector">
+            <SummaryFormatDropdown
+              selectedFormat={currentFormat}
+              onFormatChange={handleFormatChange}
+              disabled={isLoadingSummary}
+            />
+          </div>
+        )}
 
         {/* Three-Bullet Summary */}
         <section

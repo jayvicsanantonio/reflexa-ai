@@ -198,7 +198,7 @@
   - Wire up handlers in `src/background/index.ts`
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 12. Create Summary Format Dropdown component
+- [x] 12. Create Summary Format Dropdown component
   - Build React component with three format options (Bullets, Paragraph, Headline + Bullets)
   - Add icons for each format type
   - Implement smooth transition animation when format changes
