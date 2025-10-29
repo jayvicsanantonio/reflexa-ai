@@ -234,7 +234,7 @@
     - Store both versions in reflection metadata
     - _Requirements: 5.4, 5.5_
 
-- [ ] 15. Create Language Pill component
+- [x] 15. Create Language Pill component
   - Build small pill component for header display
   - Add globe icon with detected language name
   - Implement fade-in animation on language detection

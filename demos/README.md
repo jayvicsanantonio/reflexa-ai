@@ -9,6 +9,10 @@ This directory contains standalone HTML demos for testing and showcasing individ
 - **CalmStats.html** - Statistics display component
 - **StreakCounter.html** - Streak visualization component
 - **ExportModal.html** - Export functionality modal
+- **SummaryFormatDropdown.html** - Summary format selector dropdown
+- **TonePresetChips.html** - Tone preset selection chips
+- **ProofreadDiffView.html** - Side-by-side proofreading diff view
+- **LanguagePill.html** - Language detection pill with confidence score
 
 ## How to Run
 

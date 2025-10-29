@@ -1524,3 +1524,103 @@
     justify-content: center;
   }
 }
+
+/* ===== LANGUAGE PILL COMPONENT ===== */
+
+.reflexa-language-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-calm-100);
+  cursor: help;
+  user-select: none;
+  white-space: nowrap;
+  animation: languagePillFadeIn 0.5s ease-in-out;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+@keyframes languagePillFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reflexa-language-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateY(-1px);
+}
+
+.reflexa-language-pill__icon {
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: grayscale(0.2);
+}
+
+.reflexa-language-pill__text {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-zen-100);
+}
+
+.reflexa-language-pill__confidence {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-calm-400);
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .reflexa-language-pill {
+    animation: fadeIn 0.15s ease-in-out;
+  }
+
+  .reflexa-language-pill:hover {
+    transform: none;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reflexa-language-pill {
+    padding: 5px 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .reflexa-language-pill__icon {
+    font-size: 14px;
+  }
+
+  .reflexa-language-pill__text {
+    font-size: 12px;
+  }
+
+  .reflexa-language-pill__confidence {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+}
