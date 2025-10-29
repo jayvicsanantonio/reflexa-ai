@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proofread Diff View Component Demo - Reflexa AI</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 1) 0%,
+          rgba(30, 41, 59, 1) 50%,
+          rgba(51, 65, 85, 1) 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        color: #f1f5f9;
+      }
+
+      .demo-container {
+        max-width: 1000px;
+        width: 100%;
+      }
+
+      .demo-header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .demo-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .demo-header p {
+        font-size: 16px;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
+
+      .demo-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+      }
+
+      .demo-section h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #e2e8f0;
+      }
+
+      .demo-controls {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+
+      .demo-button {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .demo-button:hover {
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+      }
+
+      .demo-button:active {
+        transform: translateY(0);
+      }
+
+      .demo-button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .demo-button.secondary:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .demo-output {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        color: #94a3b8;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .demo-output pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      #component-root {
+        margin-top: 24px;
+      }
+
+      .info-box {
+        background: rgba(14, 165, 233, 0.1);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+
+      .info-box h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #38bdf8;
+        margin-bottom: 8px;
+      }
+
+      .info-box ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .info-box li {
+        font-size: 13px;
+        color: #cbd5e1;
+        margin-bottom: 6px;
+        padding-left: 20px;
+        position: relative;
+      }
+
+      .info-box li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #38bdf8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <div class="demo-header">
+        <h1>🔍 Proofread Diff View Component</h1>
+        <p>
+          Side-by-side comparison of original and corrected text with inline
+          change highlighting
+        </p>
+      </div>
+
+      <div class="demo-section">
+        <h2>Interactive Demo</h2>
+        <div class="demo-controls">
+          <button class="demo-button" onclick="showExample1()">
+            Example 1: Grammar Corrections
+          </button>
+          <button class="demo-button" onclick="showExample2()">
+            Example 2: Clarity Improvements
+          </button>
+          <button class="demo-button" onclick="showExample3()">
+            Example 3: Spelling Fixes
+          </button>
+          <button class="demo-button secondary" onclick="showNoCorrections()">
+            No Corrections Needed
+          </button>
+        </div>
+
+        <div id="component-root"></div>
+
+        <div class="demo-output" id="output">
+          <pre>Click a button above to see the component in action...</pre>
+        </div>
+
+        <div class="info-box">
+          <h3>Features</h3>
+          <ul>
+            <li>Side-by-side comparison layout with responsive design</li>
+            <li>
+              Color-coded highlights: Grammar (red), Clarity (blue), Spelling
+              (orange)
+            </li>
+            <li>Hover tooltips showing change type and explanation</li>
+            <li>Smooth animations for highlights and tooltips</li>
+            <li>Accept/Discard action buttons with visual feedback</li>
+            <li>Full accessibility support with ARIA labels</li>
+            <li>Respects prefers-reduced-motion preference</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import React from 'https://esm.sh/react@18.3.1';
+      import ReactDOM from 'https://esm.sh/react-dom@18.3.1';
+
+      // Mock ProofreadDiffView component (simplified for demo)
+      const ProofreadDiffView = ({ original, result, onAccept, onDiscard }) => {
+        const [hoveredIndex, setHoveredIndex] = React.useState(null);
+
+        const categorizeChange = (original, corrected) => {
+          const originalLower = original.toLowerCase();
+          const correctedLower = corrected.toLowerCase();
+
+          if (
+            Math.abs(original.length - corrected.length) <= 2 &&
+            originalLower !== correctedLower
+          ) {
+            return 'spelling';
+          }
+
+          const grammarPatterns =
+            /\b(a|an|the|is|are|was|were|has|have|had)\b/i;
+          if (
+            grammarPatterns.test(original) ||
+            grammarPatterns.test(corrected)
+          ) {
+            return 'grammar';
+          }
+
+          return 'clarity';
+        };
+
+        const getTextSegments = (text, isOriginal) => {
+          if (result.corrections.length === 0) {
+            return [{ text, isHighlight: false }];
+          }
+
+          const segments = [];
+          let lastIndex = 0;
+
+          const sortedCorrections = [...result.corrections].sort(
+            (a, b) => a.startIndex - b.startIndex
+          );
+
+          sortedCorrections.forEach((correction, idx) => {
+            const { startIndex, endIndex } = correction;
+
+            if (startIndex > lastIndex) {
+              segments.push({
+                text: text.substring(lastIndex, startIndex),
+                isHighlight: false,
+              });
+            }
+
+            segments.push({
+              text: text.substring(startIndex, endIndex),
+              isHighlight: true,
+              correctionIndex: idx,
+            });
+
+            lastIndex = endIndex;
+          });
+
+          if (lastIndex < text.length) {
+            segments.push({
+              text: text.substring(lastIndex),
+              isHighlight: false,
+            });
+          }
+
+          return segments;
+        };
+
+        const originalSegments = getTextSegments(original, true);
+        const correctedSegments = getTextSegments(result.correctedText, false);
+
+        return React.createElement(
+          'div',
+          {
+            className: 'reflexa-proofread-diff-view',
+            style: {
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '24px',
+              animation: 'fadeIn 0.3s ease-in-out',
+            },
+          },
+          React.createElement(
+            'div',
+            { style: { textAlign: 'center' } },
+            React.createElement(
+              'h3',
+              {
+                style: {
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  color: '#e2e8f0',
+                  margin: 0,
+                },
+              },
+              'Proofreading Results'
+            ),
+            React.createElement(
+              'p',
+              {
+                style: {
+                  fontSize: '13px',
+                  color: '#94a3b8',
+                  margin: '4px 0 0',
+                },
+              },
+              result.corrections.length === 0
+                ? 'No corrections needed'
+                : `${result.corrections.length} ${result.corrections.length === 1 ? 'correction' : 'corrections'} suggested`
+            )
+          ),
+          React.createElement(
+            'div',
+            {
+              style: {
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+              },
+            },
+            // Original column
+            React.createElement(
+              'div',
+              {
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                },
+              },
+              React.createElement(
+                'div',
+                {
+                  style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  },
+                },
+                React.createElement(
+                  'span',
+                  { style: { fontSize: '16px' } },
+                  '📝'
+                ),
+                React.createElement(
+                  'span',
+                  {
+                    style: {
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#94a3b8',
+                    },
+                  },
+                  'Original'
+                )
+              ),
+              React.createElement(
+                'div',
+                {
+                  style: {
+                    fontFamily: 'Georgia, serif',
+                    fontSize: '15px',
+                    lineHeight: 1.7,
+                    color: '#e2e8f0',
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    minHeight: '120px',
+                    whiteSpace: 'pre-wrap',
+                  },
+                },
+                originalSegments.map((segment, idx) => {
+                  if (!segment.isHighlight) {
+                    return React.createElement(
+                      'span',
+                      { key: idx },
+                      segment.text
+                    );
+                  }
+
+                  const correction =
+                    result.corrections[segment.correctionIndex];
+                  const changeType = categorizeChange(
+                    correction.original,
+                    result.correctedText.substring(
+                      correction.startIndex,
+                      correction.endIndex
+                    )
+                  );
+
+                  const colors = {
+                    grammar: 'rgba(239, 68, 68, 0.15)',
+                    clarity: 'rgba(59, 130, 246, 0.15)',
+                    spelling: 'rgba(249, 115, 22, 0.15)',
+                  };
+
+                  const borderColors = {
+                    grammar: 'rgba(239, 68, 68, 0.5)',
+                    clarity: 'rgba(59, 130, 246, 0.5)',
+                    spelling: 'rgba(249, 115, 22, 0.5)',
+                  };
+
+                  return React.createElement(
+                    'span',
+                    {
+                      key: idx,
+                      style: {
+                        position: 'relative',
+                        padding: '2px 4px',
+                        borderRadius: '3px',
+                        background: colors[changeType],
+                        borderBottom: `2px solid ${borderColors[changeType]}`,
+                        cursor: 'help',
+                      },
+                      onMouseEnter: () =>
+                        setHoveredIndex(segment.correctionIndex),
+                      onMouseLeave: () => setHoveredIndex(null),
+                    },
+                    segment.text,
+                    hoveredIndex === segment.correctionIndex &&
+                      React.createElement(
+                        'span',
+                        {
+                          style: {
+                            position: 'absolute',
+                            bottom: 'calc(100% + 8px)',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            padding: '8px 12px',
+                            background: 'rgba(15, 23, 42, 0.98)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                            whiteSpace: 'nowrap',
+                            zIndex: 1000,
+                            pointerEvents: 'none',
+                          },
+                        },
+                        React.createElement(
+                          'span',
+                          {
+                            style: {
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: '#94a3b8',
+                            },
+                          },
+                          changeType.charAt(0).toUpperCase() +
+                            changeType.slice(1)
+                        ),
+                        React.createElement(
+                          'span',
+                          { style: { fontSize: '12px', color: '#e2e8f0' } },
+                          'Original text'
+                        )
+                      )
+                  );
+                })
+              )
+            ),
+            // Corrected column
+            React.createElement(
+              'div',
+              {
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                },
+              },
+              React.createElement(
+                'div',
+                {
+                  style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  },
+                },
+                React.createElement(
+                  'span',
+                  { style: { fontSize: '16px' } },
+                  '✨'
+                ),
+                React.createElement(
+                  'span',
+                  {
+                    style: {
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#94a3b8',
+                    },
+                  },
+                  'Corrected'
+                )
+              ),
+              React.createElement(
+                'div',
+                {
+                  style: {
+                    fontFamily: 'Georgia, serif',
+                    fontSize: '15px',
+                    lineHeight: 1.7,
+                    color: '#e2e8f0',
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    minHeight: '120px',
+                    whiteSpace: 'pre-wrap',
+                  },
+                },
+                correctedSegments.map((segment, idx) => {
+                  if (!segment.isHighlight) {
+                    return React.createElement(
+                      'span',
+                      { key: idx },
+                      segment.text
+                    );
+                  }
+
+                  const correction =
+                    result.corrections[segment.correctionIndex];
+                  const changeType = categorizeChange(
+                    correction.original,
+                    result.correctedText.substring(
+                      correction.startIndex,
+                      correction.endIndex
+                    )
+                  );
+
+                  return React.createElement(
+                    'span',
+                    {
+                      key: idx,
+                      style: {
+                        position: 'relative',
+                        padding: '2px 4px',
+                        borderRadius: '3px',
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        borderBottom: '2px solid rgba(34, 197, 94, 0.5)',
+                        cursor: 'help',
+                      },
+                      onMouseEnter: () =>
+                        setHoveredIndex(segment.correctionIndex),
+                      onMouseLeave: () => setHoveredIndex(null),
+                    },
+                    segment.text,
+                    hoveredIndex === segment.correctionIndex &&
+                      React.createElement(
+                        'span',
+                        {
+                          style: {
+                            position: 'absolute',
+                            bottom: 'calc(100% + 8px)',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            padding: '8px 12px',
+                            background: 'rgba(15, 23, 42, 0.98)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                            whiteSpace: 'nowrap',
+                            zIndex: 1000,
+                            pointerEvents: 'none',
+                          },
+                        },
+                        React.createElement(
+                          'span',
+                          {
+                            style: {
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: '#94a3b8',
+                            },
+                          },
+                          changeType.charAt(0).toUpperCase() +
+                            changeType.slice(1)
+                        ),
+                        React.createElement(
+                          'span',
+                          { style: { fontSize: '12px', color: '#e2e8f0' } },
+                          'Suggested correction'
+                        )
+                      )
+                  );
+                })
+              )
+            )
+          ),
+          React.createElement(
+            'div',
+            {
+              style: {
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center',
+                paddingTop: '8px',
+              },
+            },
+            React.createElement(
+              'button',
+              {
+                onClick: onDiscard,
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#cbd5e1',
+                },
+              },
+              React.createElement('span', { style: { fontSize: '16px' } }, '✕'),
+              'Keep Original'
+            ),
+            React.createElement(
+              'button',
+              {
+                onClick: onAccept,
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background:
+                    'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                  color: 'white',
+                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                },
+              },
+              React.createElement('span', { style: { fontSize: '16px' } }, '✓'),
+              'Apply Corrections'
+            )
+          )
+        );
+      };
+
+      // Example data
+      const examples = {
+        grammar: {
+          original:
+            'This is a original sentence that have some grammar mistakes in it.',
+          result: {
+            correctedText:
+              'This is an original sentence that has some grammar mistakes in it.',
+            corrections: [
+              { startIndex: 10, endIndex: 11, original: 'a' },
+              { startIndex: 37, endIndex: 41, original: 'have' },
+            ],
+          },
+        },
+        clarity: {
+          original:
+            'The thing that we need to do is to make sure that the implementation is done correctly.',
+          result: {
+            correctedText:
+              'We must ensure the implementation is done correctly.',
+            corrections: [
+              {
+                startIndex: 0,
+                endIndex: 6,
+                original:
+                  'The thing that we need to do is to make sure that the',
+              },
+            ],
+          },
+        },
+        spelling: {
+          original: 'I recieved your mesage and will respond tommorrow.',
+          result: {
+            correctedText: 'I received your message and will respond tomorrow.',
+            corrections: [
+              { startIndex: 2, endIndex: 10, original: 'recieved' },
+              { startIndex: 16, endIndex: 23, original: 'mesage' },
+              { startIndex: 41, endIndex: 50, original: 'tommorrow' },
+            ],
+          },
+        },
+        none: {
+          original: 'This sentence is perfectly correct.',
+          result: {
+            correctedText: 'This sentence is perfectly correct.',
+            corrections: [],
+          },
+        },
+      };
+
+      function showExample(type) {
+        const example = examples[type];
+        const root = document.getElementById('component-root');
+        const output = document.getElementById('output');
+
+        ReactDOM.render(
+          React.createElement(ProofreadDiffView, {
+            original: example.original,
+            result: example.result,
+            onAccept: () => {
+              output.innerHTML = `<pre>✓ Corrections accepted!\n\nOriginal: ${example.original}\n\nCorrected: ${example.result.correctedText}</pre>`;
+            },
+            onDiscard: () => {
+              output.innerHTML = `<pre>✕ Corrections discarded. Keeping original text:\n\n${example.original}</pre>`;
+            },
+          }),
+          root
+        );
+
+        output.innerHTML = `<pre>Showing ${type} example...\n\nHover over highlighted text to see tooltips!</pre>`;
+      }
+
+      window.showExample1 = () => showExample('grammar');
+      window.showExample2 = () => showExample('clarity');
+      window.showExample3 = () => showExample('spelling');
+      window.showNoCorrections = () => showExample('none');
+
+      // Show first example on load
+      showExample('grammar');
+    </script>
+  </body>
+</html>

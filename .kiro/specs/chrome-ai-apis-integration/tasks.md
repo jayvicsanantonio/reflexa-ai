@@ -214,20 +214,20 @@
   - Wire up click handlers to trigger rewrite operation
   - _Requirements: 4.1, 4.2_
 
-- [ ] 14. Create Proofread Diff View component
-  - [ ] 14.1 Build side-by-side comparison layout
+- [x] 14. Create Proofread Diff View component
+  - [x] 14.1 Build side-by-side comparison layout
     - Create two-column layout for original and corrected text
     - Implement responsive design for smaller screens
     - Add smooth transition animations
     - _Requirements: 5.4_
 
-  - [ ] 14.2 Implement inline change highlighting
+  - [x] 14.2 Implement inline change highlighting
     - Highlight changed text with color coding (grammar=red, clarity=blue, spelling=orange)
     - Add tooltip on hover showing change type and explanation
     - Implement smooth highlighting animations
     - _Requirements: 5.3, 5.4_
 
-  - [ ] 14.3 Add Accept/Discard action buttons
+  - [x] 14.3 Add Accept/Discard action buttons
     - Create Accept button that applies corrected text
     - Create Discard button that keeps original text
     - Implement smooth transition when accepting changes

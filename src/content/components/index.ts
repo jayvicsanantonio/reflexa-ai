@@ -9,3 +9,4 @@ export { ErrorModal } from './ErrorModal';
 export { Notification } from './Notification';
 export { SummaryFormatDropdown } from './SummaryFormatDropdown';
 export { TonePresetChips } from './TonePresetChips';
+export { ProofreadDiffView } from './ProofreadDiffView';
