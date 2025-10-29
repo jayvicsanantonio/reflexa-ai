@@ -206,7 +206,7 @@
   - Wire up to send format selection to background worker
   - _Requirements: 2.1, 2.2_
 
-- [ ] 13. Create Tone Preset Chips component
+- [x] 13. Create Tone Preset Chips component
   - Build React component with four tone chips (Calm, Concise, Empathetic, Academic)
   - Implement active state highlighting with accent color
   - Add hover effect with subtle scale animation

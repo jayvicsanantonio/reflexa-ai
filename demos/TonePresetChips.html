@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TonePresetChips Component Demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 40px;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        min-height: 100vh;
+        color: white;
+      }
+
+      .demo-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .demo-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-bottom: 16px;
+        text-align: center;
+      }
+
+      .demo-subtitle {
+        font-size: 16px;
+        color: #94a3b8;
+        margin-bottom: 48px;
+        text-align: center;
+      }
+
+      .demo-section {
+        margin-bottom: 48px;
+      }
+
+      .demo-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #cbd5e1;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Tone Preset Chips Styles */
+      .reflexa-tone-preset-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 8px 0;
+      }
+
+      .reflexa-tone-preset-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        color: #f1f5f9;
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      .reflexa-tone-preset-chip:hover:not(.reflexa-tone-preset-chip--disabled) {
+        transform: scale(1.05);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(56, 189, 248, 0.3);
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+      }
+
+      .reflexa-tone-preset-chip:active:not(
+          .reflexa-tone-preset-chip--disabled
+        ) {
+        transform: scale(0.98);
+      }
+
+      .reflexa-tone-preset-chip--selected {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        border-color: #0ea5e9;
+        color: white;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+      }
+
+      .reflexa-tone-preset-chip--selected:hover:not(
+          .reflexa-tone-preset-chip--disabled
+        ) {
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+      }
+
+      .reflexa-tone-preset-chip--disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .reflexa-tone-preset-chip__icon {
+        font-size: 18px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .reflexa-tone-preset-chip__label {
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1;
+      }
+
+      .reflexa-tone-preset-chip__spinner {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+      }
+
+      .reflexa-tone-preset-chip__spinner-svg {
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+      }
+
+      .reflexa-tone-preset-chip__spinner-circle {
+        stroke-dasharray: 50;
+        stroke-dashoffset: 25;
+        transform-origin: center;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Demo Controls */
+      .demo-controls {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 32px;
+      }
+
+      .demo-button {
+        width: 100%;
+        padding: 12px 20px;
+        background: #0ea5e9;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 8px;
+      }
+
+      .demo-button:hover {
+        background: #0284c7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+      }
+
+      .demo-button:active {
+        transform: translateY(0);
+      }
+
+      .demo-button.secondary {
+        background: #64748b;
+      }
+
+      .demo-button.secondary:hover {
+        background: #475569;
+      }
+
+      /* Text Preview */
+      .text-preview {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 24px;
+      }
+
+      .text-preview__label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 12px;
+      }
+
+      .text-preview__content {
+        font-size: 16px;
+        line-height: 1.6;
+        color: #f1f5f9;
+      }
+
+      .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(14, 165, 233, 0.1);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+        border-radius: 8px;
+        font-size: 14px;
+        color: #38bdf8;
+        margin-top: 16px;
+      }
+
+      .status-indicator__dot {
+        width: 8px;
+        height: 8px;
+        background: #38bdf8;
+        border-radius: 50%;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <h1 class="demo-title">TonePresetChips Component Demo</h1>
+      <p class="demo-subtitle">Select a tone to rewrite your reflection text</p>
+
+      <div class="demo-section">
+        <div class="demo-label">Tone Selection</div>
+        <div class="reflexa-tone-preset-chips" id="toneChips">
+          <button
+            class="reflexa-tone-preset-chip"
+            data-tone="calm"
+            onclick="selectTone('calm')"
+          >
+            <span class="reflexa-tone-preset-chip__icon">🧘</span>
+            <span class="reflexa-tone-preset-chip__label">Calm</span>
+          </button>
+          <button
+            class="reflexa-tone-preset-chip"
+            data-tone="concise"
+            onclick="selectTone('concise')"
+          >
+            <span class="reflexa-tone-preset-chip__icon">✂️</span>
+            <span class="reflexa-tone-preset-chip__label">Concise</span>
+          </button>
+          <button
+            class="reflexa-tone-preset-chip"
+            data-tone="empathetic"
+            onclick="selectTone('empathetic')"
+          >
+            <span class="reflexa-tone-preset-chip__icon">💙</span>
+            <span class="reflexa-tone-preset-chip__label">Empathetic</span>
+          </button>
+          <button
+            class="reflexa-tone-preset-chip"
+            data-tone="academic"
+            onclick="selectTone('academic')"
+          >
+            <span class="reflexa-tone-preset-chip__icon">🎓</span>
+            <span class="reflexa-tone-preset-chip__label">Academic</span>
+          </button>
+        </div>
+
+        <div class="text-preview">
+          <div class="text-preview__label">Preview Text</div>
+          <div class="text-preview__content" id="previewText">
+            This article helped me understand the importance of mindfulness in
+            daily life. I learned that taking small breaks can significantly
+            improve focus and reduce stress.
+          </div>
+        </div>
+
+        <div
+          class="status-indicator"
+          id="statusIndicator"
+          style="display: none"
+        >
+          <span class="status-indicator__dot"></span>
+          <span id="statusText">Rewriting...</span>
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <div class="demo-label">Demo Controls</div>
+        <button class="demo-button" onclick="toggleLoading()">
+          Toggle Loading State
+        </button>
+        <button class="demo-button secondary" onclick="toggleDisabled()">
+          Toggle Disabled State
+        </button>
+        <button class="demo-button secondary" onclick="clearSelection()">
+          Clear Selection
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let selectedTone = null;
+      let isLoading = false;
+      let isDisabled = false;
+
+      const toneTexts = {
+        calm: 'This article gently guided me toward understanding the value of mindfulness in everyday moments. I discovered that pausing for small breaks can bring a sense of peace and clarity to my day.',
+        concise:
+          'Key takeaway: mindfulness matters. Small breaks boost focus and cut stress.',
+        empathetic:
+          'Reading this article really resonated with me. It made me realize how much we all need those little moments of pause in our busy lives. Taking breaks isn't just nice—it's essential for our wellbeing.',
+        academic:
+          'This scholarly article elucidates the significance of mindfulness practices in contemporary daily routines. The research demonstrates that implementing brief intermissions can substantially enhance cognitive performance and mitigate psychological stress.',
+      };
+
+      function selectTone(tone) {
+        if (isDisabled || isLoading) return;
+
+        selectedTone = tone;
+        updateChips();
+
+        // Simulate rewriting with loading state
+        showLoading();
+        setTimeout(() => {
+          document.getElementById('previewText').textContent = toneTexts[tone];
+          hideLoading();
+        }, 1500);
+      }
+
+      function updateChips() {
+        const chips = document.querySelectorAll('.reflexa-tone-preset-chip');
+        chips.forEach((chip) => {
+          const tone = chip.getAttribute('data-tone');
+          chip.classList.remove('reflexa-tone-preset-chip--selected');
+
+          if (tone === selectedTone) {
+            chip.classList.add('reflexa-tone-preset-chip--selected');
+
+            // Add spinner if loading
+            if (isLoading) {
+              const existingSpinner = chip.querySelector(
+                '.reflexa-tone-preset-chip__spinner'
+              );
+              if (!existingSpinner) {
+                const spinner = document.createElement('span');
+                spinner.className = 'reflexa-tone-preset-chip__spinner';
+                spinner.innerHTML = `
+                  <svg class="reflexa-tone-preset-chip__spinner-svg" viewBox="0 0 24 24" fill="none">
+                    <circle class="reflexa-tone-preset-chip__spinner-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                  </svg>
+                `;
+                chip.appendChild(spinner);
+              }
+            } else {
+              const spinner = chip.querySelector(
+                '.reflexa-tone-preset-chip__spinner'
+              );
+              if (spinner) {
+                spinner.remove();
+              }
+            }
+          }
+
+          if (isDisabled) {
+            chip.classList.add('reflexa-tone-preset-chip--disabled');
+          } else {
+            chip.classList.remove('reflexa-tone-preset-chip--disabled');
+          }
+        });
+      }
+
+      function showLoading() {
+        isLoading = true;
+        document.getElementById('statusIndicator').style.display =
+          'inline-flex';
+        document.getElementById('statusText').textContent = 'Rewriting...';
+        updateChips();
+      }
+
+      function hideLoading() {
+        isLoading = false;
+        document.getElementById('statusIndicator').style.display = 'none';
+        updateChips();
+      }
+
+      function toggleLoading() {
+        if (isLoading) {
+          hideLoading();
+        } else {
+          if (selectedTone) {
+            showLoading();
+            setTimeout(hideLoading, 2000);
+          } else {
+            alert('Please select a tone first');
+          }
+        }
+      }
+
+      function toggleDisabled() {
+        isDisabled = !isDisabled;
+        updateChips();
+      }
+
+      function clearSelection() {
+        selectedTone = null;
+        document.getElementById('previewText').textContent =
+          'This article helped me understand the importance of mindfulness in daily life. I learned that taking small breaks can significantly improve focus and reduce stress.';
+        updateChips();
+      }
+    </script>
+  </body>
+</html>
