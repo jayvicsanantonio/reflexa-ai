@@ -10,13 +10,14 @@ This document provides the definitive reference for accessing all Chrome Built-i
 
 These APIs are accessed via global objects with capital letters:
 
-| API                 | Global Object   | Access Pattern           | Documentation                                  |
-| ------------------- | --------------- | ------------------------ | ---------------------------------------------- |
-| **Writer API**      | `Writer`        | `Writer.create()`        | [Quick Ref](WRITER_API_QUICK_REFERENCE.md)     |
-| **Rewriter API**    | `Rewriter`      | `Rewriter.create()`      | [Quick Ref](REWRITER_API_QUICK_REFERENCE.md)   |
-| **Proofreader API** | `Proofreader`   | `Proofreader.create()`   | [Corrections](PROOFREADER_API_CORRECTIONS.md)  |
-| **Prompt API**      | `LanguageModel` | `LanguageModel.create()` | [Quick Ref](PROMPT_API_QUICK_REFERENCE.md)     |
-| **Translator API**  | `Translator`    | `Translator.create()`    | [Quick Ref](TRANSLATOR_API_QUICK_REFERENCE.md) |
+| API                       | Global Object      | Access Pattern              | Documentation                                       |
+| ------------------------- | ------------------ | --------------------------- | --------------------------------------------------- |
+| **Writer API**            | `Writer`           | `Writer.create()`           | [Quick Ref](WRITER_API_QUICK_REFERENCE.md)          |
+| **Rewriter API**          | `Rewriter`         | `Rewriter.create()`         | [Quick Ref](REWRITER_API_QUICK_REFERENCE.md)        |
+| **Proofreader API**       | `Proofreader`      | `Proofreader.create()`      | [Corrections](PROOFREADER_API_CORRECTIONS.md)       |
+| **Prompt API**            | `LanguageModel`    | `LanguageModel.create()`    | [Quick Ref](PROMPT_API_QUICK_REFERENCE.md)          |
+| **Translator API**        | `Translator`       | `Translator.create()`       | [Quick Ref](TRANSLATOR_API_QUICK_REFERENCE.md)      |
+| **Language Detector API** | `LanguageDetector` | `LanguageDetector.create()` | [Corrections](LANGUAGE_DETECTOR_API_CORRECTIONS.md) |
 
 ### Example Usage
 
@@ -54,16 +55,23 @@ if (typeof Translator !== 'undefined') {
   const result = await translator.translate('Hello');
   translator.destroy();
 }
+
+if (typeof LanguageDetector !== 'undefined') {
+  const detector = await LanguageDetector.create();
+  const results = await detector.detect('Hello, world!');
+  // results is an array of {detectedLanguage, confidence}
+  console.log(results[0].detectedLanguage, results[0].confidence);
+  detector.destroy();
+}
 ```
 
 ## AI Namespace APIs (lowercase, in ai namespace)
 
 These APIs are accessed through the `ai` object:
 
-| API                       | Access Pattern                 | Documentation                                                          |
-| ------------------------- | ------------------------------ | ---------------------------------------------------------------------- |
-| **Summarizer API**        | `ai.summarizer.create()`       | [Chrome Docs](https://developer.chrome.com/docs/ai/summarizer-api)     |
-| **Language Detector API** | `ai.languageDetector.create()` | [Chrome Docs](https://developer.chrome.com/docs/ai/language-detection) |
+| API                | Access Pattern           | Documentation                                                      |
+| ------------------ | ------------------------ | ------------------------------------------------------------------ |
+| **Summarizer API** | `ai.summarizer.create()` | [Chrome Docs](https://developer.chrome.com/docs/ai/summarizer-api) |
 
 ### Example Usage
 
@@ -77,10 +85,22 @@ if (typeof ai !== 'undefined' && ai?.summarizer) {
   const result = await summarizer.summarize('Summarize this text');
   summarizer.destroy();
 }
+```
 
-if (typeof ai !== 'undefined' && ai?.languageDetector) {
-  const detector = await ai.languageDetector.create();
+## Additional Global APIs
+
+| API                       | Global Object      | Access Pattern              | Documentation                                                          |
+| ------------------------- | ------------------ | --------------------------- | ---------------------------------------------------------------------- |
+| **Language Detector API** | `LanguageDetector` | `LanguageDetector.create()` | [Chrome Docs](https://developer.chrome.com/docs/ai/language-detection) |
+
+### Example Usage
+
+```typescript
+// ✅ CORRECT - Global object (NOT in ai namespace)
+if (typeof LanguageDetector !== 'undefined') {
+  const detector = await LanguageDetector.create();
   const results = await detector.detect('Detect this language');
+  // results is an array of {detectedLanguage, confidence}
   detector.destroy();
 }
 ```
@@ -96,6 +116,7 @@ await ai.rewriter.create();
 await ai.proofreader.create();
 await ai.languageModel.create();
 await ai.translator.create();
+await ai.languageDetector.create(); // LanguageDetector is also global!
 
 // ❌ WRONG - Lowercase global objects
 await writer.create();
@@ -103,6 +124,7 @@ await rewriter.create();
 await proofreader.create();
 await languageModel.create();
 await translator.create();
+await languageDetector.create();
 
 // ❌ WRONG - Window prefix
 await window.Writer.create();
@@ -120,6 +142,7 @@ const hasRewriter = 'Rewriter' in self;
 const hasProofreader = 'Proofreader' in self;
 const hasLanguageModel = 'LanguageModel' in self;
 const hasTranslator = 'Translator' in self;
+const hasLanguageDetector = 'LanguageDetector' in self;
 
 // Check availability
 if (typeof Writer !== 'undefined') {
@@ -133,8 +156,6 @@ if (typeof Writer !== 'undefined') {
 ```typescript
 // Check if API exists
 const hasSummarizer = typeof ai !== 'undefined' && 'summarizer' in ai;
-const hasLanguageDetector =
-  typeof ai !== 'undefined' && 'languageDetector' in ai;
 
 // Check availability
 if (typeof ai !== 'undefined' && ai?.summarizer) {
@@ -153,11 +174,11 @@ declare global {
   var Proofreader: AIProofreaderFactory | undefined;
   var LanguageModel: AILanguageModelFactory | undefined;
   var Translator: AITranslatorFactory | undefined;
+  var LanguageDetector: AILanguageDetectorFactory | undefined;
 
   var ai:
     | {
         summarizer?: AISummarizerFactory;
-        languageDetector?: AILanguageDetectorFactory;
       }
     | undefined;
 }
@@ -179,6 +200,7 @@ private checkAPIAvailability(apiName: string): boolean {
   if (apiName === 'proofreader') return 'Proofreader' in globalThis;
   if (apiName === 'languageModel') return 'LanguageModel' in globalThis;
   if (apiName === 'translator') return 'Translator' in globalThis;
+  if (apiName === 'languageDetector') return 'LanguageDetector' in globalThis;
 
   // AI namespace APIs (lowercase)
   const ai = globalThis.ai;
@@ -210,15 +232,15 @@ Then restart Chrome completely.
 
 ## Quick Reference Table
 
-| API               | Namespace | Object Name           | Create Pattern                                          |
-| ----------------- | --------- | --------------------- | ------------------------------------------------------- |
-| Writer            | Global    | `Writer`              | `Writer.create({ tone, length })`                       |
-| Rewriter          | Global    | `Rewriter`            | `Rewriter.create({ tone, length })`                     |
-| Proofreader       | Global    | `Proofreader`         | `Proofreader.create()`                                  |
-| Prompt            | Global    | `LanguageModel`       | `LanguageModel.create({ temperature, topK })`           |
-| Translator        | Global    | `Translator`          | `Translator.create({ sourceLanguage, targetLanguage })` |
-| Summarizer        | ai        | `ai.summarizer`       | `ai.summarizer.create({ type, length })`                |
-| Language Detector | ai        | `ai.languageDetector` | `ai.languageDetector.create()`                          |
+| API               | Namespace | Object Name        | Create Pattern                                          |
+| ----------------- | --------- | ------------------ | ------------------------------------------------------- |
+| Writer            | Global    | `Writer`           | `Writer.create({ tone, length })`                       |
+| Rewriter          | Global    | `Rewriter`         | `Rewriter.create({ tone, length })`                     |
+| Proofreader       | Global    | `Proofreader`      | `Proofreader.create()`                                  |
+| Prompt            | Global    | `LanguageModel`    | `LanguageModel.create({ temperature, topK })`           |
+| Translator        | Global    | `Translator`       | `Translator.create({ sourceLanguage, targetLanguage })` |
+| Language Detector | Global    | `LanguageDetector` | `LanguageDetector.create()`                             |
+| Summarizer        | ai        | `ai.summarizer`    | `ai.summarizer.create({ type, length })`                |
 
 ## Testing in Console
 
@@ -229,11 +251,11 @@ console.log('Rewriter:', typeof Rewriter);
 console.log('Proofreader:', typeof Proofreader);
 console.log('LanguageModel:', typeof LanguageModel);
 console.log('Translator:', typeof Translator);
+console.log('LanguageDetector:', typeof LanguageDetector);
 
 // Test ai namespace APIs
 console.log('ai:', typeof ai);
 console.log('ai.summarizer:', ai?.summarizer);
-console.log('ai.languageDetector:', ai?.languageDetector);
 ```
 
 ## References

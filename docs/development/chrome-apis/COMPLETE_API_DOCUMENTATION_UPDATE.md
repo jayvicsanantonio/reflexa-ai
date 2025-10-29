@@ -157,10 +157,12 @@ Chrome Built-in AI APIs
 │       └── Returns: ProofreadResult { correction, corrections[] }
 │
 └── ai Object (accessed via ai.*)
-    ├── summarizer ← Accessed via ai.summarizer
-    ├── translator ← Accessed via ai.translator
-    ├── languageDetector ← Accessed via ai.languageDetector
-    └── languageModel ← Accessed via ai.languageModel (Prompt API)
+    └── summarizer ← Accessed via ai.summarizer
+
+Note: Translator, LanguageDetector, and LanguageModel are also global objects:
+├── Translator ← Accessed directly as Translator.create()
+├── LanguageDetector ← Accessed directly as LanguageDetector.create()
+└── LanguageModel ← Accessed directly as LanguageModel.create() (Prompt API)
 ```
 
 ## Verification Results

@@ -79,7 +79,8 @@ if (typeof Translator !== 'undefined') {
 ### In ai Namespace
 
 - `ai.summarizer` - Summarizer API
-- `ai.languageDetector` - Language Detector API
+
+**Note**: Language Detector API is accessed as a global `LanguageDetector` object, not through the `ai` namespace.
 
 ## Type Definitions
 

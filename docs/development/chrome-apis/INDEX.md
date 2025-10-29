@@ -29,6 +29,23 @@
 
 - [Corrections Summary](./PROOFREADER_API_CORRECTIONS.md) - What was fixed and why
 
+#### Translator API
+
+- [Quick Reference](./TRANSLATOR_API_QUICK_REFERENCE.md) - One-page cheat sheet
+- [Corrections Summary](./TRANSLATOR_API_CORRECTIONS.md) - What was fixed and why
+- [Integration Complete](./TRANSLATOR_API_INTEGRATION_COMPLETE.md) - Complete integration guide
+
+#### Language Detector API
+
+- [Quick Reference](./LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md) - One-page cheat sheet
+- [Corrections Summary](./LANGUAGE_DETECTOR_API_CORRECTIONS.md) - What was fixed and why
+
+#### Prompt API
+
+- [Quick Reference](./PROMPT_API_QUICK_REFERENCE.md) - One-page cheat sheet
+- [Corrections Complete](./PROMPT_API_CORRECTIONS_COMPLETE.md) - What was fixed and why
+- [Integration Review](./PROMPT_API_INTEGRATION_REVIEW.md) - Detailed review
+
 ### 🔄 Combined Documentation
 
 - [Writing Assistance APIs Complete](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs
@@ -46,6 +63,9 @@
 - **Writer API**: Start with [Writer Quick Reference](./WRITER_API_QUICK_REFERENCE.md), then [Complete Guide](./WRITER_API_GUIDE.md)
 - **Rewriter API**: Start with [Rewriter Quick Reference](./REWRITER_API_QUICK_REFERENCE.md), then [Complete Guide](./REWRITER_API_GUIDE.md)
 - **Proofreader API**: Read [Proofreader Corrections](./PROOFREADER_API_CORRECTIONS.md)
+- **Translator API**: Read [Translator Quick Reference](./TRANSLATOR_API_QUICK_REFERENCE.md)
+- **Language Detector API**: Read [Language Detector Quick Reference](./LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md)
+- **Prompt API**: Read [Prompt Quick Reference](./PROMPT_API_QUICK_REFERENCE.md)
 
 #### Compare all three APIs
 
@@ -91,19 +111,29 @@ docs/development/chrome-apis/
 │
 ├── ⚡ Quick References
 │   ├── WRITER_API_QUICK_REFERENCE.md
-│   └── REWRITER_API_QUICK_REFERENCE.md
+│   ├── REWRITER_API_QUICK_REFERENCE.md
+│   ├── TRANSLATOR_API_QUICK_REFERENCE.md
+│   ├── LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md
+│   └── PROMPT_API_QUICK_REFERENCE.md
 │
 ├── 📝 Updates & Corrections
 │   ├── PROOFREADER_API_CORRECTIONS.md
 │   ├── WRITER_API_UPDATE_SUMMARY.md
 │   ├── REWRITER_API_UPDATE_SUMMARY.md
+│   ├── TRANSLATOR_API_CORRECTIONS.md
+│   ├── TRANSLATOR_API_INTEGRATION_COMPLETE.md
+│   ├── LANGUAGE_DETECTOR_API_CORRECTIONS.md
+│   ├── PROMPT_API_CORRECTIONS_COMPLETE.md
 │   ├── WRITER_REWRITER_API_CORRECTIONS.md
 │   ├── COMPLETE_API_DOCUMENTATION_UPDATE.md
 │   ├── CHROME_AI_API_CORRECTIONS_COMPLETE.md
+│   ├── API_ACCESS_PATTERNS_SUMMARY.md
+│   ├── ALL_APIS_INTEGRATION_STATUS.md
 │   └── DOCUMENTATION_UPDATE_SUMMARY.md
 │
 └── 🔍 Detailed Reviews
-    └── REWRITER_API_INTEGRATION_REVIEW.md
+    ├── REWRITER_API_INTEGRATION_REVIEW.md
+    └── PROMPT_API_INTEGRATION_REVIEW.md
 ```
 
 ## Document Descriptions
@@ -252,6 +282,10 @@ Main entry point with overview, quick start examples, and navigation to all othe
 - [Writer API](https://developer.chrome.com/docs/ai/writer-api)
 - [Rewriter API](https://developer.chrome.com/docs/ai/rewriter-api)
 - [Proofreader API](https://developer.chrome.com/docs/ai/proofreader-api)
+- [Translator API](https://developer.chrome.com/docs/ai/translator-api)
+- [Language Detector API](https://developer.chrome.com/docs/ai/language-detection)
+- [Prompt API](https://developer.chrome.com/docs/ai/prompt-api)
+- [Summarizer API](https://developer.chrome.com/docs/ai/summarizer-api)
 - [Built-in AI APIs Overview](https://developer.chrome.com/docs/ai/built-in-apis)
 
 ### Explainers
@@ -271,6 +305,9 @@ Main entry point with overview, quick start examples, and navigation to all othe
 - [WriterManager](../../../src/background/writerManager.ts)
 - [RewriterManager](../../../src/background/rewriterManager.ts)
 - [ProofreaderManager](../../../src/background/proofreaderManager.ts)
+- [TranslatorManager](../../../src/background/translatorManager.ts)
+- [LanguageDetectorManager](../../../src/background/languageDetectorManager.ts)
+- [PromptManager](../../../src/background/promptManager.ts)
 
 ### Utilities
 
@@ -286,10 +323,19 @@ Main entry point with overview, quick start examples, and navigation to all othe
 ### API Access Pattern
 
 ```typescript
-// ✅ CORRECT - All three are global objects
+// ✅ CORRECT - Global objects (NOT in ai namespace)
 const writer = await Writer.create();
 const rewriter = await Rewriter.create();
 const proofreader = await Proofreader.create();
+const translator = await Translator.create({
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+});
+const detector = await LanguageDetector.create();
+const session = await LanguageModel.create();
+
+// ✅ CORRECT - Through ai namespace
+const summarizer = await ai.summarizer.create();
 ```
 
 ### Return Types
@@ -303,6 +349,7 @@ const result: ProofreadResult = await proofreader.proofread('text');
 ### Feature Detection
 
 ```typescript
+// Global APIs
 if ('Writer' in self) {
   /* ... */
 }
@@ -310,6 +357,20 @@ if ('Rewriter' in self) {
   /* ... */
 }
 if ('Proofreader' in self) {
+  /* ... */
+}
+if ('Translator' in self) {
+  /* ... */
+}
+if ('LanguageDetector' in self) {
+  /* ... */
+}
+if ('LanguageModel' in self) {
+  /* ... */
+}
+
+// AI namespace APIs
+if (typeof ai !== 'undefined' && ai?.summarizer) {
   /* ... */
 }
 ```
@@ -343,7 +404,7 @@ for await (const chunk of stream) {
 | CHROME_AI_API_CORRECTIONS_COMPLETE.md | ✅ Complete | Oct 28, 2025 | ~400  |
 | DOCUMENTATION_UPDATE_SUMMARY.md       | ✅ Complete | Oct 28, 2025 | ~300  |
 
-**Total**: 15 documents, ~5,200 lines of documentation
+**Total**: 22+ documents, ~8,000+ lines of documentation
 
 ## Contributing
 
@@ -368,7 +429,7 @@ When updating these APIs:
 ---
 
 **Documentation Status**: ✅ Complete
-**APIs Covered**: Writer, Rewriter, Proofreader
-**Total Documents**: 15 files
-**Total Lines**: ~5,200 lines
+**APIs Covered**: Writer, Rewriter, Proofreader, Translator, Language Detector, Prompt, Summarizer
+**Total Documents**: 22+ files
+**Total Lines**: ~8,000+ lines
 **Last Updated**: October 28, 2025

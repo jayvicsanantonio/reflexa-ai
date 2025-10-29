@@ -20,14 +20,19 @@ These APIs are accessed via global objects, NOT through the `ai` namespace:
 | **Prompt API**      | `LanguageModel` | ✅ Corrected | [Quick Ref](PROMPT_API_QUICK_REFERENCE.md)     |
 | **Translator API**  | `Translator`    | ✅ Corrected | [Quick Ref](TRANSLATOR_API_QUICK_REFERENCE.md) |
 
-### ✅ AI Namespace APIs (To Be Verified)
+### ✅ Additional Global APIs
+
+| API                       | Global Object      | Status       | Documentation                                       |
+| ------------------------- | ------------------ | ------------ | --------------------------------------------------- |
+| **Language Detector API** | `LanguageDetector` | ✅ Corrected | [Corrections](LANGUAGE_DETECTOR_API_CORRECTIONS.md) |
+
+### ⚠️ AI Namespace APIs (To Be Verified)
 
 These APIs are accessed through the `ai` namespace:
 
-| API                       | Access Pattern        | Status                | Notes                      |
-| ------------------------- | --------------------- | --------------------- | -------------------------- |
-| **Summarizer API**        | `ai.summarizer`       | ⚠️ Needs Verification | Should verify against docs |
-| **Language Detector API** | `ai.languageDetector` | ⚠️ Needs Verification | Should verify against docs |
+| API                | Access Pattern  | Status                | Notes                      |
+| ------------------ | --------------- | --------------------- | -------------------------- |
+| **Summarizer API** | `ai.summarizer` | ⚠️ Needs Verification | Should verify against docs |
 
 ## Correct API Access Patterns
 
@@ -57,6 +62,10 @@ if (typeof Translator !== 'undefined') {
     targetLanguage: 'es',
   });
 }
+
+if (typeof LanguageDetector !== 'undefined') {
+  const detector = await LanguageDetector.create();
+}
 ```
 
 ### AI Namespace APIs
@@ -65,10 +74,6 @@ if (typeof Translator !== 'undefined') {
 // ✅ CORRECT
 if (typeof ai !== 'undefined' && ai?.summarizer) {
   const summarizer = await ai.summarizer.create();
-}
-
-if (typeof ai !== 'undefined' && ai?.languageDetector) {
-  const detector = await ai.languageDetector.create();
 }
 ```
 
@@ -84,12 +89,12 @@ declare global {
   var Proofreader: AIProofreaderFactory | undefined;
   var LanguageModel: AILanguageModelFactory | undefined;
   var Translator: AITranslatorFactory | undefined;
+  var LanguageDetector: AILanguageDetectorFactory | undefined;
 
   // AI namespace
   var ai:
     | {
         summarizer?: AISummarizerFactory;
-        languageDetector?: AILanguageDetectorFactory;
       }
     | undefined;
 }
@@ -107,6 +112,7 @@ private checkAPIAvailability(apiName: string): boolean {
   if (apiName === 'proofreader') return 'Proofreader' in globalThis;
   if (apiName === 'languageModel') return 'LanguageModel' in globalThis;
   if (apiName === 'translator') return 'Translator' in globalThis;
+  if (apiName === 'languageDetector') return 'LanguageDetector' in globalThis;
 
   // AI namespace APIs
   const ai = globalThis.ai;
@@ -134,8 +140,9 @@ private checkAPIAvailability(apiName: string): boolean {
 3. ✅ `src/background/proofreaderManager.ts`
 4. ✅ `src/background/promptManager.ts`
 5. ✅ `src/background/translatorManager.ts`
-6. ✅ `src/types/chrome-ai.d.ts`
-7. ✅ `src/background/capabilityDetector.ts`
+6. ✅ `src/background/languageDetectorManager.ts`
+7. ✅ `src/types/chrome-ai.d.ts`
+8. ✅ `src/background/capabilityDetector.ts`
 
 ### Documentation Files
 
@@ -147,6 +154,7 @@ private checkAPIAvailability(apiName: string): boolean {
 6. ✅ `TRANSLATOR_API_QUICK_REFERENCE.md`
 7. ✅ `TRANSLATOR_API_CORRECTIONS.md`
 8. ✅ `TRANSLATOR_API_INTEGRATION_COMPLETE.md`
+9. ✅ `LANGUAGE_DETECTOR_API_CORRECTIONS.md`
 
 ## Chrome Flags Required
 
@@ -180,11 +188,11 @@ Then restart Chrome completely.
 - [ ] Test Proofreader API in console: `typeof Proofreader`
 - [ ] Test LanguageModel API in console: `typeof LanguageModel`
 - [ ] Test Translator API in console: `typeof Translator`
+- [ ] Test LanguageDetector API in console: `typeof LanguageDetector`
 
 ### AI Namespace APIs
 
 - [ ] Test Summarizer API in console: `ai?.summarizer`
-- [ ] Test Language Detector API in console: `ai?.languageDetector`
 
 ### Functionality Tests
 
@@ -193,8 +201,8 @@ Then restart Chrome completely.
 - [ ] Test Proofreader.create() and proofread()
 - [ ] Test LanguageModel.create() and prompt()
 - [ ] Test Translator.create() and translate()
+- [ ] Test LanguageDetector.create() and detect()
 - [ ] Test ai.summarizer.create() and summarize()
-- [ ] Test ai.languageDetector.create() and detect()
 
 ## Known Issues
 
@@ -212,11 +220,11 @@ These warnings occur because the global objects are only available at runtime in
 
 ## Next Steps
 
-1. ✅ Verify Summarizer API integration
-2. ✅ Verify Language Detector API integration
-3. ✅ Test all APIs with Chrome flags enabled
-4. ✅ Update user-facing documentation
-5. ✅ Create setup guide for users
+1. ⏳ Verify Summarizer API integration
+2. ✅ Verify Language Detector API integration (Corrected)
+3. ⏳ Test all APIs with Chrome flags enabled
+4. ⏳ Update user-facing documentation
+5. ⏳ Create setup guide for users
 
 ## References
 

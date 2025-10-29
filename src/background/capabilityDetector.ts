@@ -61,7 +61,12 @@ export class CapabilityDetector {
         return 'Translator' in globalThis;
       }
 
-      // For other APIs (summarizer, languageDetector), check through ai object
+      // LanguageDetector is also a global (not under ai namespace)
+      if (apiName === 'languageDetector') {
+        return 'LanguageDetector' in globalThis;
+      }
+
+      // For other APIs (summarizer), check through ai object
       const ai = (
         globalThis as typeof globalThis & { ai?: Record<string, unknown> }
       ).ai;

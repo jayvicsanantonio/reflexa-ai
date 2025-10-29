@@ -43,10 +43,7 @@ Chrome Built-in AI APIs
 │   └── Proofreader ← Grammar and spelling
 │
 └── ai Object
-    ├── summarizer ← Summarize content
-    ├── translator ← Translate text
-    ├── languageDetector ← Detect languages
-    └── languageModel ← General AI (Prompt API)
+    └── summarizer ← Summarize content
 ```
 
 ## Quick Start

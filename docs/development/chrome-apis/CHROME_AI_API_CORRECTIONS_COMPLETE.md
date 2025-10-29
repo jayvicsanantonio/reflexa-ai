@@ -119,11 +119,11 @@ Chrome Built-in AI APIs
 │   ├── Rewriter ← Accessed directly
 │   ├── Proofreader ← Accessed directly
 │   ├── LanguageModel ← Accessed directly (Prompt API)
-│   └── Translator ← Accessed directly
+│   ├── Translator ← Accessed directly
+│   └── LanguageDetector ← Accessed directly
 │
 └── ai Object
-    ├── summarizer ← Accessed via ai.summarizer
-    └── languageDetector ← Accessed via ai.languageDetector
+    └── summarizer ← Accessed via ai.summarizer
 ```
 
 ## Verification

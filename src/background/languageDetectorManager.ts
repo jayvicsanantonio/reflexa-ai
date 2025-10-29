@@ -7,9 +7,9 @@
 import type { LanguageDetection } from '../types';
 import type {
   AILanguageDetector,
+  AILanguageDetectorFactory,
   LanguageDetectionResult,
 } from '../types/chrome-ai';
-import { capabilityDetector } from './capabilityDetector';
 
 /**
  * Maximum characters to use for language detection (for speed)
@@ -153,10 +153,21 @@ export class LanguageDetectorManager {
    */
   async checkAvailability(): Promise<boolean> {
     try {
-      const capabilities = await Promise.resolve(
-        capabilityDetector.getCapabilities()
-      );
-      this.available = Boolean(capabilities.languageDetector);
+      // Check if LanguageDetector exists in globalThis (not under ai namespace)
+      const LanguageDetector = (
+        globalThis as typeof globalThis & {
+          LanguageDetector?: AILanguageDetectorFactory;
+        }
+      ).LanguageDetector;
+
+      if (!LanguageDetector) {
+        this.available = false;
+        return false;
+      }
+
+      // Check actual availability status
+      const status = await LanguageDetector.availability();
+      this.available = status === 'available' || status === 'downloadable';
       return this.available;
     } catch (error) {
       console.error('Error checking Language Detector availability:', error);
@@ -183,14 +194,20 @@ export class LanguageDetectorManager {
     }
 
     try {
-      // Access ai.languageDetector from globalThis (service worker context)
-      if (typeof ai === 'undefined' || !ai?.languageDetector) {
+      // Access LanguageDetector from globalThis (not under ai namespace)
+      const LanguageDetector = (
+        globalThis as typeof globalThis & {
+          LanguageDetector?: AILanguageDetectorFactory;
+        }
+      ).LanguageDetector;
+
+      if (!LanguageDetector) {
         console.warn('Language Detector API not available');
         return null;
       }
 
       // Create detector instance
-      this.detector = await ai.languageDetector.create();
+      this.detector = await LanguageDetector.create();
       console.log('Created language detector instance');
 
       return this.detector;

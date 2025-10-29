@@ -118,8 +118,8 @@ According to official documentation:
 ### In ai Namespace
 
 - `ai.summarizer` - Summarizer API
-- `ai.translator` - Translator API
-- `ai.languageDetector` - Language Detector API
+
+**Note**: Translator and Language Detector APIs are accessed as global objects (`Translator` and `LanguageDetector`), not through the `ai` namespace.
 
 ## Type Definitions Updated
 

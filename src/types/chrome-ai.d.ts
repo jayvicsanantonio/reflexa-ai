@@ -151,7 +151,15 @@ export interface AILanguageDetector {
 }
 
 export interface AILanguageDetectorFactory {
-  create(options?: { signal?: AbortSignal }): Promise<AILanguageDetector>;
+  create(options?: {
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
+    signal?: AbortSignal;
+  }): Promise<AILanguageDetector>;
   availability(): Promise<
     'available' | 'downloadable' | 'downloading' | 'unavailable'
   >;
@@ -230,12 +238,11 @@ export interface AILanguageModelFactory {
 
 /**
  * Chrome AI namespace containing some built-in AI APIs
- * Note: Writer, Rewriter, Proofreader, LanguageModel, and Translator are NOT in the ai namespace
+ * Note: Writer, Rewriter, Proofreader, LanguageModel, Translator, and LanguageDetector are NOT in the ai namespace
  * They are available as global objects
  */
 interface ChromeAI {
   summarizer?: AISummarizerFactory;
-  languageDetector?: AILanguageDetectorFactory;
 }
 
 /**
@@ -250,6 +257,7 @@ declare global {
     Proofreader?: AIProofreaderFactory;
     LanguageModel?: AILanguageModelFactory;
     Translator?: AITranslatorFactory;
+    LanguageDetector?: AILanguageDetectorFactory;
   }
 
   // For service workers and global scope
@@ -259,6 +267,7 @@ declare global {
   var Proofreader: AIProofreaderFactory | undefined;
   var LanguageModel: AILanguageModelFactory | undefined;
   var Translator: AITranslatorFactory | undefined;
+  var LanguageDetector: AILanguageDetectorFactory | undefined;
 }
 
 export {};

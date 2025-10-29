@@ -133,10 +133,7 @@ Chrome Built-in AI APIs
 │   └── Proofreader (future)
 │
 └── ai Object
-    ├── summarizer
-    ├── translator
-    ├── languageDetector
-    └── languageModel (Prompt API)
+    └── summarizer
 ```
 
 ## Correct Usage Patterns

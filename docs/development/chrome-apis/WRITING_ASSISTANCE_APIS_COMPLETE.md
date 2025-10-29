@@ -24,10 +24,7 @@ Chrome Built-in AI APIs
 │       └── Returns: ProofreadResult { correction, corrections[] }
 │
 └── ai Object (Other AI APIs)
-    ├── summarizer
-    ├── translator
-    ├── languageDetector
-    └── languageModel
+    └── summarizer
 ```
 
 ## Critical Corrections Made
