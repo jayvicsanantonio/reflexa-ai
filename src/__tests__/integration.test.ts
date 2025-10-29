@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DwellTracker } from '../content/dwellTracker';
-import { ContentExtractor } from '../content/contentExtractor';
+import { DwellTracker } from '../content/features/dwellTracking';
+import { ContentExtractor } from '../content/features/contentExtraction/contentExtractor';
 import { StorageManager } from '../background/storageManager';
 import { SettingsManager } from '../background/settingsManager';
 import { PromptManager } from '../background/promptManager';

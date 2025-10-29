@@ -3,9 +3,8 @@
  * Orchestrates AI operations, manages data persistence, and coordinates between components
  */
 
-import { PromptManager } from './promptManager';
-import { StorageManager } from './storageManager';
-import { SettingsManager } from './settingsManager';
+import { PromptManager } from './services/ai';
+import { StorageManager, SettingsManager } from './services/storage';
 import type {
   Message,
   MessageType,

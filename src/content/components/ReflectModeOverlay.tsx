@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BreathingOrb } from './BreathingOrb';
-import type { Settings } from '../types';
-import { trapFocus, announceToScreenReader } from '../utils/accessibility';
-import './styles.css';
+import type { Settings } from '../../types';
+import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
+import '../styles.css';
 
 interface ReflectModeOverlayProps {
   summary: string[];

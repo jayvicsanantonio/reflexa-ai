@@ -1,5 +1,5 @@
 import React from 'react';
-import { createKeyboardHandler } from '../utils/accessibility';
+import { createKeyboardHandler } from '../../utils/accessibility';
 
 export type LotusNudgePosition =
   | 'bottom-right'

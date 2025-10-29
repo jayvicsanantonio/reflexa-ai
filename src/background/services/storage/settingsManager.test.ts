@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsManager } from './settingsManager';
-import { DEFAULT_SETTINGS } from '../constants';
-import type { Settings } from '../types';
+import { DEFAULT_SETTINGS } from '../../../constants';
+import type { Settings } from '../../../types';
 
 describe('SettingsManager', () => {
   let settingsManager: SettingsManager;

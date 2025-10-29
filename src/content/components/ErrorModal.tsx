@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { trapFocus, announceToScreenReader } from '../utils/accessibility';
-import './styles.css';
+import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
+import '../styles.css';
 
 export interface ErrorModalProps {
   title: string;

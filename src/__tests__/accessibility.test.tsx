@@ -20,9 +20,11 @@ import {
   getAccessibleDuration,
   cleanupAllAnnouncements,
 } from '../utils/accessibility';
-import { ReflectModeOverlay } from '../content/ReflectModeOverlay';
-import { LotusNudge } from '../content/LotusNudge';
-import { BreathingOrb } from '../content/BreathingOrb';
+import {
+  ReflectModeOverlay,
+  LotusNudge,
+  BreathingOrb,
+} from '../content/components';
 import type { Settings } from '../types';
 
 describe('Accessibility Tests', () => {

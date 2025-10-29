@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StorageManager } from './storageManager';
-import type { Reflection } from '../types';
+import type { Reflection } from '../../../types';
 
 describe('StorageManager', () => {
   let storageManager: StorageManager;

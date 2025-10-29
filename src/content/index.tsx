@@ -1,11 +1,13 @@
 import './styles.css';
 import { createRoot } from 'react-dom/client';
-import { DwellTracker } from './dwellTracker';
-import { ContentExtractor } from './contentExtractor';
-import { LotusNudge } from './LotusNudge';
-import { ReflectModeOverlay } from './ReflectModeOverlay';
-import { ErrorModal } from './ErrorModal';
-import { Notification } from './Notification';
+import { DwellTracker } from './features/dwellTracking';
+import { ContentExtractor } from './features/contentExtraction/contentExtractor';
+import {
+  LotusNudge,
+  ReflectModeOverlay,
+  ErrorModal,
+  Notification,
+} from './components';
 import { AudioManager } from '../utils/audioManager';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import type {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { announceToScreenReader } from '../utils/accessibility';
-import './styles.css';
+import { announceToScreenReader } from '../../utils/accessibility';
+import '../styles.css';
 
 export interface NotificationProps {
   title: string;

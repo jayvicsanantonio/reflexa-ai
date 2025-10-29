@@ -8,13 +8,13 @@ import { vi } from 'vitest';
 // Mock Chrome API
 const mockChromeStorage = {
   local: {
-    get: vi.fn((keys) => {
+    get: vi.fn((keys: string | string[] | Record<string, unknown>) => {
       if (typeof keys === 'string') {
         return Promise.resolve({ [keys]: undefined });
       }
       const result: Record<string, unknown> = {};
       if (Array.isArray(keys)) {
-        keys.forEach((key) => {
+        keys.forEach((key: string) => {
           result[key] = undefined;
         });
       }
@@ -43,15 +43,17 @@ const mockChromeRuntime = {
 };
 
 // Setup global chrome object
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 global.chrome = {
   storage: mockChromeStorage,
   runtime: mockChromeRuntime,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any;
 
 // Mock window.matchMedia for prefers-reduced-motion
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,

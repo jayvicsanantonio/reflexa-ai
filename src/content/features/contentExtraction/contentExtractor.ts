@@ -3,14 +3,14 @@
  * Implements heuristics to identify readable content and exclude navigation, ads, etc.
  */
 
-import type { ExtractedContent, PageMetadata } from '../types';
+import type { ExtractedContent, PageMetadata } from '../../../types';
 import {
-  countWords,
   estimateTokens,
-  sanitizeText,
+  countWords,
   extractDomain,
-} from '../utils';
-import { CONTENT_LIMITS } from '../constants';
+  sanitizeText,
+} from '../../../utils';
+import { CONTENT_LIMITS } from '../../../constants';
 
 /**
  * Selectors for elements to exclude from content extraction
