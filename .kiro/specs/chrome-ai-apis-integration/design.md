@@ -2,7 +2,9 @@
 
 ## Overview
 
-This design document outlines the architecture for integrating all seven Chrome Built-in AI APIs into Reflexa AI. The integration creates a Unified AI Service layer that orchestrates capability detection, API selection, fallback handling, and error management across all AI operations. The design maintains Reflexa's core principles of privacy-first operation, calm aesthetics, and seamless user experience while adding powerful new capabilities including multilingual support, tone adjustment, grammar polishing, and intelligent content generation. All AI processing remains on-device through Gemini Nano, ensuring zero data transmission to external servers.
+This design document outlines the architecture for integrating all seven Chrome Built-in AI APIs into Reflexa AI. The integration creates an AI Service layer that orchestrates capability detection, API selection, fallback handling, and error management across all AI operations. The design maintains Reflexa's core principles of privacy-first operation, calm aesthetics, and seamless user experience while adding powerful new capabilities including multilingual support, tone adjustment, grammar polishing, and intelligent content generation. All AI processing remains on-device through Gemini Nano, ensuring zero data transmission to external servers.
+
+**Implementation Update (January 2025)**: The core AI infrastructure has been fully implemented with all seven API managers operational. Each manager handles its own session lifecycle, timeout/retry logic, and error handling. The architecture uses a lightweight orchestration approach where individual managers are accessed directly rather than through a heavy abstraction layer.
 
 ## Architecture
 
@@ -86,26 +88,40 @@ User Action → Content Script → Background Worker → Unified AI Service
 
 ## Components and Interfaces
 
-### Unified AI Service (`src/background/unifiedAIService.ts`)
+### AI Service (`src/background/services/ai/aiService.ts`)
 
-**Purpose**: Central orchestration layer for all Chrome AI API interactions with capability detection, fallback logic, and error handling.
+**Purpose**: Lightweight orchestration layer that initializes and provides access to all Chrome AI API managers with capability detection.
 
-**Core Interface**:
+**Actual Implementation**:
 
 ```typescript
-interface UnifiedAIService {
-  // Initialization
-  initialize(): Promise<void>;
-  getCapabilities(): AICapabilities;
+export class AIService {
+  public readonly prompt: PromptManager;
+  public readonly proofreader: ProofreaderManager;
+  public readonly summarizer: SummarizerManager;
+  public readonly translator: TranslatorManager;
+  public readonly writer: WriterManager;
+  public readonly rewriter: RewriterManager;
 
-  // Core AI Operations
-  summarize(content: string, options: SummarizeOptions): Promise<AIResponse<string[]>>;
-  generateDraft(topic: string, options: WriterOptions): Promise<AIResponse<string>>;
-  rewrite(text: string, style: TonePreset): Promise<AIResponse<string>>;
-  proofread(text: string): Promise<AIResponse<ProofreadResult>>;
-  detectLanguage(text: string): Promise<AIResponse<string>>;
-  translate(text: string, targetLang: string): Promise<AIResponse<string>>;
-  generatePrompt(context: string, question: string): Promise<AIResponse<string>>;
+  private capabilities: AICapabilities | null = null;
+  private initialized = false;
+
+  constructor() {
+    // Instantiate all managers
+    this.prompt = new PromptManager();
+    this.proofreader = new ProofreaderManager();
+    this.summarizer = new SummarizerManager();
+    this.translator = new TranslatorManager();
+    this.writer = new WriterManager();
+    this.rewriter = new RewriterManager();
+  }
+
+  initialize(experimentalMode = false): void;
+  getCapabilities(): AICapabilities;
+  refreshCapabilities(experimentalMode = false): AICapabilities;
+  isInitialized(): boolean;
+  async checkAllAvailability(): Promise<{...}>;
+  destroyAll(): void;
 }
 
 interface AICapabilities {
@@ -117,14 +133,6 @@ interface AICapabilities {
   translator: boolean;
   prompt: boolean;
   experimental: boolean;
-}
-
-interface AIResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  apiUsed: string;
-  duration: number;
 }
 
 interface SummarizeOptions {
@@ -141,29 +149,36 @@ type TonePreset = 'calm' | 'concise' | 'empathetic' | 'academic';
 
 interface ProofreadResult {
   correctedText: string;
-  changes: TextChange[];
-}
-
-interface TextChange {
-  original: string;
-  corrected: string;
-  type: 'grammar' | 'clarity' | 'spelling';
-  position: { start: number; end: number };
+  corrections: {
+    startIndex: number;
+    endIndex: number;
+    original: string;
+  }[];
 }
 ```
 
 **Design Decisions**:
 
-- Single service class manages all AI operations for consistency
-- Capability detection runs once on initialization and caches results
-- All methods return standardized `AIResponse` objects for uniform error handling
-- Timeout and retry logic built into each method
-- Automatic fallback to Prompt API when specialized APIs unavailable
-- Performance metrics tracked for each operation
+- **Lightweight orchestration**: AIService provides access to managers rather than wrapping all operations
+- **Direct manager access**: Callers use `aiService.summarizer.summarize()` rather than `aiService.summarize()`
+- **Individual responsibility**: Each manager handles its own timeout/retry logic, error handling, and session management
+- **Capability detection**: Centralized in `capabilityDetector` service, cached and refreshable
+- **No AIResponse wrapper**: Managers return their native types; message handlers add response wrapping
+- **Singleton pattern**: Export `aiService` instance for global access
+- **Fallback logic**: Implemented in message handlers, not in AIService itself
 
 ### API Manager Modules
 
-Each Chrome AI API has a dedicated manager module that wraps the native API with error handling and formatting.
+Each Chrome AI API has a dedicated manager module that wraps the native API with error handling and formatting. All managers are located in `src/background/services/ai/` and follow consistent patterns for availability checking, session management, timeout handling, and error recovery.
+
+**Common Patterns Across All Managers**:
+- `checkAvailability()`: Async method that checks API availability using global object detection
+- `isAvailable()`: Synchronous getter for cached availability status
+- `createSession()`: Private method that creates and caches API sessions
+- Timeout logic: 5-second initial timeout, 8-second retry timeout
+- Session caching: Sessions cached by configuration key for reuse
+- `destroy()`: Cleanup method for session lifecycle management
+- Error handling: Try-catch with retry logic and descriptive error messages
 
 #### Summarizer Manager (`src/background/summarizerManager.ts`)
 
@@ -186,13 +201,16 @@ interface SummarizerSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/summarizerManager.ts`):
 
-- Check availability using `'summarizer' in self.ai`
-- Create session with appropriate options for each format type
-- Parse response into array format for bullets
-- Handle session cleanup to prevent memory leaks
-- Implement retry logic for transient failures
+- ✅ Check availability using `globalThis.Summarizer` (global object, not under `ai` namespace)
+- ✅ Create sessions with options: `type` (key-points, tl;dr, teaser, headline), `format` (plain-text, markdown), `length` (short, medium, long)
+- ✅ Session caching by configuration key: `${type}-${format}-${length}`
+- ✅ Parse markdown bullets into array format
+- ✅ Implement `summarizeBullets()`, `summarizeParagraph()`, `summarizeHeadlineBullets()` methods
+- ✅ Timeout logic: 5s initial, 8s retry with `Promise.race`
+- ✅ Session cleanup with `destroy()` and `destroySession(format)` methods
+- ✅ Handles parallel session creation for headline+bullets format
 
 #### Writer Manager (`src/background/writerManager.ts`)
 
@@ -222,12 +240,17 @@ interface WriterSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/writerManager.ts`):
 
-- Map Reflexa tone presets to Writer API tone values
-- Convert length parameters (short=50-100 words, medium=100-200, long=200-300)
-- Use summary as context for better draft generation
-- Stream responses if API supports it for better UX
+- ✅ Check availability using `globalThis.Writer` (global object)
+- ✅ Map tone presets: calm→neutral, professional→formal, casual→casual
+- ✅ Length ranges: short=50-100 words, medium=100-200, long=200-300
+- ✅ Session caching by `${tone}-${format}-${length}` key
+- ✅ `write()` method for message handlers, `generate()` for internal use
+- ✅ Context support via `sharedContext` and `context` parameters
+- ✅ Streaming support with `generateStreaming()` using `for await...of` iteration
+- ✅ Word count validation against target ranges
+- ✅ Timeout logic: 5s initial, 8s retry
 
 #### Rewriter Manager (`src/background/rewriterManager.ts`)
 
@@ -256,12 +279,16 @@ interface RewriterSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/rewriterManager.ts`):
 
-- Map tone presets: calm→neutral, concise→shorter, empathetic→more-casual, academic→more-formal
-- Preserve paragraph structure and formatting
-- Maintain original meaning while adjusting style
-- Provide side-by-side comparison in UI
+- ✅ Check availability using `globalThis.Rewriter` (global object)
+- ✅ Map tone presets: calm→as-is tone, concise→shorter length, empathetic→more-casual, academic→more-formal
+- ✅ Session caching by `${tone}-${format}-${length}` key
+- ✅ Returns object with `{ original, rewritten }` for comparison
+- ✅ Streaming support with `rewriteStreaming()` using `for await...of`
+- ✅ Context support via `sharedContext` parameter
+- ✅ Preserves paragraph structure and formatting
+- ✅ Timeout logic: 5s initial, 8s retry
 
 #### Proofreader Manager (`src/background/proofreaderManager.ts`)
 
@@ -278,12 +305,16 @@ interface ProofreaderSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/proofreaderManager.ts`):
 
-- Extract change information from API response
-- Calculate diff between original and corrected text
-- Categorize changes by type (grammar, spelling, clarity)
-- Generate inline diff view data for UI rendering
+- ✅ Check availability using `globalThis.Proofreader` (global object)
+- ✅ Single session maintained (no caching needed)
+- ✅ Configuration: `expectedInputLanguages` array (defaults to ['en'])
+- ✅ Returns `ProofreadResult` with `correctedText` and `corrections` array
+- ✅ Corrections include `startIndex`, `endIndex`, and `original` text
+- ✅ Transforms Chrome API result format to application format
+- ✅ Timeout logic: 5s initial, 8s retry
+- ✅ No fallback available (specialized API only)
 
 #### Language Detector Manager (`src/background/languageDetectorManager.ts`)
 
@@ -300,12 +331,17 @@ interface LanguageDetection {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/languageDetectorManager.ts`):
 
-- Use first 500 characters for detection to improve speed
-- Map ISO codes to human-readable language names
-- Cache detection results per page to avoid redundant calls
-- Handle mixed-language content by detecting primary language
+- ✅ Check availability using `globalThis.LanguageDetector` (global object)
+- ✅ Singleton pattern with exported `languageDetectorManager` instance
+- ✅ Uses first 500 characters for speed optimization
+- ✅ Comprehensive language mapping: 100+ languages supported
+- ✅ Per-page caching with 5-minute TTL
+- ✅ Cache methods: `clearCache()`, `clearCacheForPage()`, `cleanupCache()`
+- ✅ Returns `LanguageDetection` with `detectedLanguage`, `confidence`, `languageName`
+- ✅ Sorts results by confidence and returns top match
+- ✅ Cache key generation from page URL or text hash
 
 #### Translator Manager (`src/background/translatorManager.ts`)
 
@@ -328,12 +364,18 @@ interface TranslatorSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/translatorManager.ts`):
 
-- Support 10 common languages: en, es, fr, de, it, pt, zh, ja, ko, ar
-- Check translation availability before offering option
-- Preserve markdown formatting in translations
-- Handle bullet points and line breaks correctly
+- ✅ Check availability using `globalThis.Translator` (global object)
+- ✅ Singleton pattern with exported `translatorManager` instance
+- ✅ Supported languages: en, es, fr, de, it, pt, zh, ja, ko, ar
+- ✅ `canTranslate()` method checks language pair availability before translation
+- ✅ Session caching by `${sourceLanguage}-${targetLanguage}` with 5-minute TTL
+- ✅ Markdown detection and preservation: bullets, numbered lists, headers, bold, italic, links
+- ✅ `translateWithMarkdown()` method splits by lines and preserves formatting markers
+- ✅ Session cleanup: `cleanupSessions()`, `destroy()`, `destroySession()`
+- ✅ Timeout logic: 5s initial, 8s retry
+- ✅ Requires source language (no auto-detection yet - needs Language Detector integration)
 
 #### Prompt Manager (`src/background/promptManager.ts`)
 
@@ -361,12 +403,22 @@ interface PromptSession {
 }
 ```
 
-**Implementation Notes**:
+**Actual Implementation** (`src/background/services/ai/promptManager.ts`):
 
-- Use as fallback for all other APIs when unavailable
-- Craft specific prompts to mimic specialized API behavior
-- Maintain conversation context for multi-turn interactions
-- Implement temperature control for creative vs factual tasks
+- ✅ Check availability using `globalThis.LanguageModel` (global object)
+- ✅ Session caching by `${systemPrompt}-${temperature}` key
+- ✅ Temperature presets: factual=0.3, balanced=0.7, creative=0.9
+- ✅ General `prompt()` method with configurable system prompt, temperature, topK
+- ✅ Specialized fallback methods:
+  - `summarize()`: Mimics Summarizer API with format-specific prompts
+  - `generateDraft()`: Mimics Writer API with tone/length control
+  - `rewrite()`: Mimics Rewriter API with tone preset mapping
+  - `proofread()`: Basic grammar/clarity checking
+  - `generateReflectionPrompts()`: Backward compatibility method
+- ✅ Streaming support with `promptStreaming()` using ReadableStream
+- ✅ Advanced methods: `countTokens()`, `cloneSession()`, `getCapabilities()`
+- ✅ Response parsing for each format (bullets, paragraph, headline-bullets)
+- ✅ Timeout logic: 5s initial, 8s retry
 
 ### UI Components
 
@@ -741,11 +793,50 @@ test('complete multilingual reflection flow', async ({ page, extensionId }) => {
 - Language detection: <500ms
 - Translation: <2s per 100 words
 
+## Actual Implementation Architecture
+
+### File Structure
+
+```
+src/background/services/
+├── ai/
+│   ├── aiService.ts              # Lightweight orchestration
+│   ├── promptManager.ts          # Prompt API + fallbacks
+│   ├── summarizerManager.ts      # Summarizer API
+│   ├── writerManager.ts          # Writer API
+│   ├── rewriterManager.ts        # Rewriter API
+│   ├── proofreaderManager.ts     # Proofreader API
+│   ├── languageDetectorManager.ts # Language Detector API
+│   ├── translatorManager.ts      # Translator API
+│   └── index.ts                  # Exports
+└── capabilities/
+    ├── capabilityDetector.ts     # Centralized capability detection
+    └── index.ts                  # Exports
+```
+
+### Key Implementation Differences from Original Design
+
+1. **Lightweight Orchestration**: AIService provides manager access rather than wrapping all operations
+2. **Direct Manager Access**: `aiService.summarizer.summarize()` instead of `aiService.summarize()`
+3. **No AIResponse Wrapper**: Managers return native types; message handlers add response wrapping
+4. **Individual Responsibility**: Each manager handles its own timeout/retry/error logic
+5. **Fallback in Handlers**: Fallback logic implemented in message handlers, not in AIService
+6. **Global API Access**: All APIs accessed via global objects (Writer, Rewriter, etc.), not `ai.writer`
+7. **Singleton Exports**: Language Detector and Translator export singleton instances
+
+### Benefits of This Approach
+
+- **Simpler**: Less abstraction layers, more direct code paths
+- **Flexible**: Easy to use managers independently or together
+- **Maintainable**: Each manager is self-contained with clear responsibilities
+- **Testable**: Managers can be tested in isolation
+- **Performant**: No unnecessary wrapper overhead
+
 ## Design Rationale
 
-### Why Unified AI Service?
+### Why Lightweight Orchestration?
 
-A single orchestration layer provides consistent error handling, capability detection, and fallback logic across all AI operations. This prevents code duplication and makes it easy to add new AI features. The service abstracts complexity from UI components, which only need to call simple methods without worrying about which API is available.
+The original design called for a heavy "Unified AI Service" that wrapped all operations. The actual implementation uses a lightweight approach where AIService simply provides access to individual managers. This reduces complexity and makes the code more maintainable. Fallback logic is implemented in message handlers where it's needed, not in a central service layer.
 
 ### Why Prompt API as Universal Fallback?
 
