@@ -5,7 +5,7 @@
  */
 
 import type { SummaryFormat } from '../types';
-import type { AISummarizer } from '../types/chrome-ai';
+import type { AISummarizer, AISummarizerFactory } from '../types/chrome-ai';
 import { capabilityDetector } from './capabilityDetector';
 
 /**
@@ -63,7 +63,7 @@ export class SummarizerManager {
    * @returns AISummarizer session or null if unavailable
    */
   private async createSession(
-    type: 'tl;dr' | 'key-points' | 'teaser' | 'headline' = 'key-points',
+    type: 'tldr' | 'key-points' | 'teaser' | 'headline' = 'key-points',
     format: 'plain-text' | 'markdown' = 'plain-text',
     length: 'short' | 'medium' | 'long' = 'medium'
   ): Promise<AISummarizer | null> {
@@ -75,14 +75,20 @@ export class SummarizerManager {
     }
 
     try {
-      // Access ai.summarizer from globalThis (service worker context)
-      if (typeof ai === 'undefined' || !ai?.summarizer) {
+      // Access Summarizer from globalThis (global API, not under ai namespace)
+      const SummarizerAPI = (
+        globalThis as typeof globalThis & {
+          Summarizer?: AISummarizerFactory;
+        }
+      ).Summarizer;
+
+      if (!SummarizerAPI) {
         console.warn('Summarizer API not available');
         return null;
       }
 
       // Create new session with specified options
-      const session = await ai.summarizer.create({
+      const session = await SummarizerAPI.create({
         type,
         format,
         length,
@@ -222,7 +228,7 @@ export class SummarizerManager {
    * @returns Array with single paragraph
    */
   private async summarizeParagraph(text: string): Promise<string[]> {
-    const session = await this.createSession('tl;dr', 'plain-text', 'medium');
+    const session = await this.createSession('tldr', 'plain-text', 'medium');
 
     if (!session) {
       throw new Error('Failed to create summarizer session');

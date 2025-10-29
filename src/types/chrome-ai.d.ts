@@ -7,16 +7,32 @@
  * Summarizer API types
  */
 export interface AISummarizer {
-  summarize(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  summarizeStreaming(input: string): ReadableStream;
+  summarize(
+    input: string,
+    options?: { context?: string; signal?: AbortSignal }
+  ): Promise<string>;
+  summarizeStreaming(
+    input: string,
+    options?: { context?: string }
+  ): ReadableStream;
   destroy(): void;
 }
 
 export interface AISummarizerFactory {
   create(options?: {
-    type?: 'tl;dr' | 'key-points' | 'teaser' | 'headline';
+    sharedContext?: string;
+    type?: 'tldr' | 'key-points' | 'teaser' | 'headline';
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
+    expectedInputLanguages?: string[];
+    outputLanguage?: string;
+    expectedContextLanguages?: string[];
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
     signal?: AbortSignal;
   }): Promise<AISummarizer>;
   availability(): Promise<
@@ -237,12 +253,12 @@ export interface AILanguageModelFactory {
 }
 
 /**
- * Chrome AI namespace containing some built-in AI APIs
- * Note: Writer, Rewriter, Proofreader, LanguageModel, Translator, and LanguageDetector are NOT in the ai namespace
- * They are available as global objects
+ * Chrome AI namespace - currently empty as all APIs are globals
+ * Note: All Chrome Built-in AI APIs are available as global objects, not under the ai namespace
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ChromeAI {
-  summarizer?: AISummarizerFactory;
+  // Empty - all APIs are globals
 }
 
 /**
@@ -251,7 +267,8 @@ interface ChromeAI {
 declare global {
   interface Window {
     ai?: ChromeAI;
-    // These APIs are available as globals (not under ai namespace)
+    // All Chrome Built-in AI APIs are available as globals (not under ai namespace)
+    Summarizer?: AISummarizerFactory;
     Writer?: AIWriterFactory;
     Rewriter?: AIRewriterFactory;
     Proofreader?: AIProofreaderFactory;
@@ -262,6 +279,7 @@ declare global {
 
   // For service workers and global scope
   var ai: ChromeAI | undefined;
+  var Summarizer: AISummarizerFactory | undefined;
   var Writer: AIWriterFactory | undefined;
   var Rewriter: AIRewriterFactory | undefined;
   var Proofreader: AIProofreaderFactory | undefined;

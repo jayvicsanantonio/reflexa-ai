@@ -37,13 +37,14 @@ Chrome's Built-in AI APIs provide on-device AI capabilities powered by Gemini Na
 ```
 Chrome Built-in AI APIs
 │
-├── Global Objects (NOT in ai namespace)
-│   ├── Writer ← Generate new content
-│   ├── Rewriter ← Improve existing content
-│   └── Proofreader ← Grammar and spelling
-│
-└── ai Object
-    └── summarizer ← Summarize content
+└── Global Objects (NOT in ai namespace)
+    ├── Writer ← Generate new content
+    ├── Rewriter ← Improve existing content
+    ├── Proofreader ← Grammar and spelling
+    ├── Summarizer ← Summarize content
+    ├── LanguageModel ← Prompt API
+    ├── Translator ← Translate text
+    └── LanguageDetector ← Detect languages
 ```
 
 ## Quick Start

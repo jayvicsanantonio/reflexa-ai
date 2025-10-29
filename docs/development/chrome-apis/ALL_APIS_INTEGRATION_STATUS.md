@@ -10,29 +10,17 @@ Complete status of all Chrome Built-in AI APIs integration in Reflexa AI Chrome 
 
 ### ✅ Global APIs (Correctly Integrated)
 
-These APIs are accessed via global objects, NOT through the `ai` namespace:
+All Chrome Built-in AI APIs are accessed via global objects:
 
-| API                 | Global Object   | Status       | Documentation                                  |
-| ------------------- | --------------- | ------------ | ---------------------------------------------- |
-| **Writer API**      | `Writer`        | ✅ Verified  | [Quick Ref](WRITER_API_QUICK_REFERENCE.md)     |
-| **Rewriter API**    | `Rewriter`      | ✅ Verified  | [Quick Ref](REWRITER_API_QUICK_REFERENCE.md)   |
-| **Proofreader API** | `Proofreader`   | ✅ Verified  | [Corrections](PROOFREADER_API_CORRECTIONS.md)  |
-| **Prompt API**      | `LanguageModel` | ✅ Corrected | [Quick Ref](PROMPT_API_QUICK_REFERENCE.md)     |
-| **Translator API**  | `Translator`    | ✅ Corrected | [Quick Ref](TRANSLATOR_API_QUICK_REFERENCE.md) |
-
-### ✅ Additional Global APIs
-
-| API                       | Global Object      | Status       | Documentation                                       |
-| ------------------------- | ------------------ | ------------ | --------------------------------------------------- |
-| **Language Detector API** | `LanguageDetector` | ✅ Corrected | [Corrections](LANGUAGE_DETECTOR_API_CORRECTIONS.md) |
-
-### ⚠️ AI Namespace APIs (To Be Verified)
-
-These APIs are accessed through the `ai` namespace:
-
-| API                | Access Pattern  | Status                | Notes                      |
-| ------------------ | --------------- | --------------------- | -------------------------- |
-| **Summarizer API** | `ai.summarizer` | ⚠️ Needs Verification | Should verify against docs |
+| API                       | Global Object      | Status       | Documentation                                         |
+| ------------------------- | ------------------ | ------------ | ----------------------------------------------------- |
+| **Writer API**            | `Writer`           | ✅ Verified  | [Quick Ref](WRITER_API_QUICK_REFERENCE.md)            |
+| **Rewriter API**          | `Rewriter`         | ✅ Verified  | [Quick Ref](REWRITER_API_QUICK_REFERENCE.md)          |
+| **Proofreader API**       | `Proofreader`      | ✅ Verified  | [Corrections](PROOFREADER_API_CORRECTIONS.md)         |
+| **Summarizer API**        | `Summarizer`       | ✅ Corrected | [Quick Ref](SUMMARIZER_API_QUICK_REFERENCE.md)        |
+| **Prompt API**            | `LanguageModel`    | ✅ Corrected | [Quick Ref](PROMPT_API_QUICK_REFERENCE.md)            |
+| **Translator API**        | `Translator`       | ✅ Corrected | [Quick Ref](TRANSLATOR_API_QUICK_REFERENCE.md)        |
+| **Language Detector API** | `LanguageDetector` | ✅ Corrected | [Quick Ref](LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md) |
 
 ## Correct API Access Patterns
 
@@ -66,14 +54,9 @@ if (typeof Translator !== 'undefined') {
 if (typeof LanguageDetector !== 'undefined') {
   const detector = await LanguageDetector.create();
 }
-```
 
-### AI Namespace APIs
-
-```typescript
-// ✅ CORRECT
-if (typeof ai !== 'undefined' && ai?.summarizer) {
-  const summarizer = await ai.summarizer.create();
+if (typeof Summarizer !== 'undefined') {
+  const summarizer = await Summarizer.create();
 }
 ```
 
@@ -83,20 +66,14 @@ if (typeof ai !== 'undefined' && ai?.summarizer) {
 
 ```typescript
 declare global {
-  // Global AI APIs
+  // All Chrome Built-in AI APIs are global
   var Writer: AIWriterFactory | undefined;
   var Rewriter: AIRewriterFactory | undefined;
   var Proofreader: AIProofreaderFactory | undefined;
+  var Summarizer: AISummarizerFactory | undefined;
   var LanguageModel: AILanguageModelFactory | undefined;
   var Translator: AITranslatorFactory | undefined;
   var LanguageDetector: AILanguageDetectorFactory | undefined;
-
-  // AI namespace
-  var ai:
-    | {
-        summarizer?: AISummarizerFactory;
-      }
-    | undefined;
 }
 ```
 
@@ -106,18 +83,16 @@ declare global {
 // src/background/capabilityDetector.ts
 
 private checkAPIAvailability(apiName: string): boolean {
-  // Global APIs
+  // All APIs are global
   if (apiName === 'writer') return 'Writer' in globalThis;
   if (apiName === 'rewriter') return 'Rewriter' in globalThis;
   if (apiName === 'proofreader') return 'Proofreader' in globalThis;
+  if (apiName === 'summarizer') return 'Summarizer' in globalThis;
   if (apiName === 'languageModel') return 'LanguageModel' in globalThis;
   if (apiName === 'translator') return 'Translator' in globalThis;
   if (apiName === 'languageDetector') return 'LanguageDetector' in globalThis;
 
-  // AI namespace APIs
-  const ai = globalThis.ai;
-  if (!ai) return false;
-  return apiName in ai;
+  return false;
 }
 ```
 
@@ -141,8 +116,9 @@ private checkAPIAvailability(apiName: string): boolean {
 4. ✅ `src/background/promptManager.ts`
 5. ✅ `src/background/translatorManager.ts`
 6. ✅ `src/background/languageDetectorManager.ts`
-7. ✅ `src/types/chrome-ai.d.ts`
-8. ✅ `src/background/capabilityDetector.ts`
+7. ✅ `src/background/summarizerManager.ts`
+8. ✅ `src/types/chrome-ai.d.ts`
+9. ✅ `src/background/capabilityDetector.ts`
 
 ### Documentation Files
 
@@ -155,22 +131,22 @@ private checkAPIAvailability(apiName: string): boolean {
 7. ✅ `TRANSLATOR_API_CORRECTIONS.md`
 8. ✅ `TRANSLATOR_API_INTEGRATION_COMPLETE.md`
 9. ✅ `LANGUAGE_DETECTOR_API_CORRECTIONS.md`
+10. ✅ `SUMMARIZER_API_CORRECTIONS.md`
+11. ✅ `SUMMARIZER_API_QUICK_REFERENCE.md`
+12. ✅ `SUMMARIZER_API_INTEGRATION_COMPLETE.md`
 
 ## Chrome Flags Required
 
 Users must enable these flags in `chrome://flags`:
 
-### Global APIs
+### All APIs (Global)
 
 - `#writer-api` → **Enabled**
 - `#rewriter-api` → **Enabled**
 - `#proofreader-api` → **Enabled**
+- `#summarizer-api` → **Enabled**
 - `#prompt-api-for-gemini-nano` → **Enabled**
 - `#translator-api` → **Enabled**
-
-### AI Namespace APIs
-
-- `#summarizer-api` → **Enabled**
 - `#language-detector-api` → **Enabled**
 
 ### Required for All
@@ -186,23 +162,20 @@ Then restart Chrome completely.
 - [ ] Test Writer API in console: `typeof Writer`
 - [ ] Test Rewriter API in console: `typeof Rewriter`
 - [ ] Test Proofreader API in console: `typeof Proofreader`
+- [ ] Test Summarizer API in console: `typeof Summarizer`
 - [ ] Test LanguageModel API in console: `typeof LanguageModel`
 - [ ] Test Translator API in console: `typeof Translator`
 - [ ] Test LanguageDetector API in console: `typeof LanguageDetector`
-
-### AI Namespace APIs
-
-- [ ] Test Summarizer API in console: `ai?.summarizer`
 
 ### Functionality Tests
 
 - [ ] Test Writer.create() and write()
 - [ ] Test Rewriter.create() and rewrite()
 - [ ] Test Proofreader.create() and proofread()
+- [ ] Test Summarizer.create() and summarize()
 - [ ] Test LanguageModel.create() and prompt()
 - [ ] Test Translator.create() and translate()
 - [ ] Test LanguageDetector.create() and detect()
-- [ ] Test ai.summarizer.create() and summarize()
 
 ## Known Issues
 
@@ -220,7 +193,7 @@ These warnings occur because the global objects are only available at runtime in
 
 ## Next Steps
 
-1. ⏳ Verify Summarizer API integration
+1. ✅ Verify Summarizer API integration (Corrected)
 2. ✅ Verify Language Detector API integration (Corrected)
 3. ⏳ Test all APIs with Chrome flags enabled
 4. ⏳ Update user-facing documentation

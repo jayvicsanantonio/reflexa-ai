@@ -46,6 +46,12 @@
 - [Corrections Complete](./PROMPT_API_CORRECTIONS_COMPLETE.md) - What was fixed and why
 - [Integration Review](./PROMPT_API_INTEGRATION_REVIEW.md) - Detailed review
 
+#### Summarizer API
+
+- [Quick Reference](./SUMMARIZER_API_QUICK_REFERENCE.md) - One-page cheat sheet
+- [Corrections Summary](./SUMMARIZER_API_CORRECTIONS.md) - What was fixed and why
+- [Integration Complete](./SUMMARIZER_API_INTEGRATION_COMPLETE.md) - Complete integration guide
+
 ### 🔄 Combined Documentation
 
 - [Writing Assistance APIs Complete](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs
@@ -66,6 +72,7 @@
 - **Translator API**: Read [Translator Quick Reference](./TRANSLATOR_API_QUICK_REFERENCE.md)
 - **Language Detector API**: Read [Language Detector Quick Reference](./LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md)
 - **Prompt API**: Read [Prompt Quick Reference](./PROMPT_API_QUICK_REFERENCE.md)
+- **Summarizer API**: Read [Summarizer Quick Reference](./SUMMARIZER_API_QUICK_REFERENCE.md)
 
 #### Compare all three APIs
 
@@ -305,6 +312,7 @@ Main entry point with overview, quick start examples, and navigation to all othe
 - [WriterManager](../../../src/background/writerManager.ts)
 - [RewriterManager](../../../src/background/rewriterManager.ts)
 - [ProofreaderManager](../../../src/background/proofreaderManager.ts)
+- [SummarizerManager](../../../src/background/summarizerManager.ts)
 - [TranslatorManager](../../../src/background/translatorManager.ts)
 - [LanguageDetectorManager](../../../src/background/languageDetectorManager.ts)
 - [PromptManager](../../../src/background/promptManager.ts)
@@ -323,19 +331,17 @@ Main entry point with overview, quick start examples, and navigation to all othe
 ### API Access Pattern
 
 ```typescript
-// ✅ CORRECT - Global objects (NOT in ai namespace)
+// ✅ CORRECT - All APIs are global objects
 const writer = await Writer.create();
 const rewriter = await Rewriter.create();
 const proofreader = await Proofreader.create();
+const summarizer = await Summarizer.create();
 const translator = await Translator.create({
   sourceLanguage: 'en',
   targetLanguage: 'es',
 });
 const detector = await LanguageDetector.create();
 const session = await LanguageModel.create();
-
-// ✅ CORRECT - Through ai namespace
-const summarizer = await ai.summarizer.create();
 ```
 
 ### Return Types
@@ -349,7 +355,7 @@ const result: ProofreadResult = await proofreader.proofread('text');
 ### Feature Detection
 
 ```typescript
-// Global APIs
+// All APIs are global
 if ('Writer' in self) {
   /* ... */
 }
@@ -359,6 +365,9 @@ if ('Rewriter' in self) {
 if ('Proofreader' in self) {
   /* ... */
 }
+if ('Summarizer' in self) {
+  /* ... */
+}
 if ('Translator' in self) {
   /* ... */
 }
@@ -366,11 +375,6 @@ if ('LanguageDetector' in self) {
   /* ... */
 }
 if ('LanguageModel' in self) {
-  /* ... */
-}
-
-// AI namespace APIs
-if (typeof ai !== 'undefined' && ai?.summarizer) {
   /* ... */
 }
 ```
@@ -429,7 +433,7 @@ When updating these APIs:
 ---
 
 **Documentation Status**: ✅ Complete
-**APIs Covered**: Writer, Rewriter, Proofreader, Translator, Language Detector, Prompt, Summarizer
-**Total Documents**: 22+ files
-**Total Lines**: ~8,000+ lines
+**APIs Covered**: Writer, Rewriter, Proofreader, Summarizer, Translator, Language Detector, Prompt
+**Total Documents**: 25+ files
+**Total Lines**: ~9,000+ lines
 **Last Updated**: October 28, 2025
