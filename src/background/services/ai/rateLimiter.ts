@@ -20,6 +20,34 @@ export function isRateLimitError(error: unknown): boolean {
 }
 
 /**
+ * Session error detection
+ */
+export function isSessionError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('session') ||
+      message.includes('invalid session') ||
+      message.includes('session expired') ||
+      message.includes('session closed') ||
+      message.includes('session not found')
+    );
+  }
+  return false;
+}
+
+/**
+ * Timeout error detection
+ */
+export function isTimeoutError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return message.includes('timeout');
+  }
+  return false;
+}
+
+/**
  * Exponential backoff delays (in milliseconds)
  */
 const BACKOFF_DELAYS = [2000, 4000, 8000]; // 2s, 4s, 8s

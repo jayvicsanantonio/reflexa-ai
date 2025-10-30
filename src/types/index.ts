@@ -109,7 +109,9 @@ export type MessageType =
   | 'rewrite'
   | 'write'
   | 'detectLanguage'
-  | 'getUsageStats';
+  | 'getUsageStats'
+  | 'canTranslate'
+  | 'checkTranslationAvailability';
 
 /**
  * Message structure for background worker communication

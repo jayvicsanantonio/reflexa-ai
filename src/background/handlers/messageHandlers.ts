@@ -11,6 +11,8 @@ import type {
   ProofreadResult,
 } from '../../types';
 import { createSuccessResponse, createErrorResponse } from '../../types';
+import { rateLimiter } from '../services/ai/rateLimiter';
+import { getUserFriendlyMessage, AIError } from '../services/ai/errorHandler';
 
 /**
  * Handle incoming messages from content scripts and popup
@@ -73,6 +75,25 @@ export async function handleMessage(
       case 'checkAllAI':
         return await handleCheckAllAI();
 
+      case 'getUsageStats':
+        return handleGetUsageStats();
+
+      case 'canTranslate':
+        return await handleCanTranslate(
+          message.payload as {
+            source: string;
+            target: string;
+          }
+        );
+
+      case 'checkTranslationAvailability':
+        return await handleCheckTranslationAvailability(
+          message.payload as {
+            source: string;
+            targets: string[];
+          }
+        );
+
       default:
         return createErrorResponse(`Unknown message type: ${message.type}`, 0);
     }
@@ -93,7 +114,11 @@ async function handleSummarize(payload: {
 }): Promise<AIResponse<string[]>> {
   const startTime = Date.now();
   try {
-    const summary = await aiService.prompt.summarize(payload.content);
+    // Execute with rate limiting and retry logic
+    const summary = await rateLimiter.executeWithRetry(
+      () => aiService.prompt.summarize(payload.content),
+      'summarizations'
+    );
 
     if (summary.length === 0) {
       return createErrorResponse(
@@ -105,11 +130,9 @@ async function handleSummarize(payload: {
 
     return createSuccessResponse(summary, 'prompt', Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Summarization failed',
-      Date.now() - startTime,
-      'prompt'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'prompt');
   }
 }
 
@@ -121,8 +144,10 @@ async function handleReflect(payload: {
 }): Promise<AIResponse<string[]>> {
   const startTime = Date.now();
   try {
-    const questions = await aiService.prompt.generateReflectionPrompts(
-      payload.summary
+    // Execute with rate limiting and retry logic
+    const questions = await rateLimiter.executeWithRetry(
+      () => aiService.prompt.generateReflectionPrompts(payload.summary),
+      'drafts'
     );
 
     if (questions.length === 0) {
@@ -135,11 +160,9 @@ async function handleReflect(payload: {
 
     return createSuccessResponse(questions, 'prompt', Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Reflection generation failed',
-      Date.now() - startTime,
-      'prompt'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'prompt');
   }
 }
 
@@ -161,11 +184,19 @@ async function handleProofread(payload: {
 
     if (proofreaderAvailable) {
       console.log('[Background] Using native Proofreader API');
-      result = await aiService.proofreader.proofread(payload.text);
+      // Execute with rate limiting and retry logic
+      result = await rateLimiter.executeWithRetry(
+        () => aiService.proofreader.proofread(payload.text),
+        'proofreads'
+      );
       apiUsed = 'proofreader';
     } else {
       console.log('[Background] Falling back to Prompt API for proofreading');
-      const correctedText = await aiService.prompt.proofread(payload.text);
+      // Execute with rate limiting and retry logic
+      const correctedText = await rateLimiter.executeWithRetry(
+        () => aiService.prompt.proofread(payload.text),
+        'proofreads'
+      );
       // Prompt API returns just the corrected text, so we create a ProofreadResult
       result = {
         correctedText,
@@ -176,11 +207,9 @@ async function handleProofread(payload: {
 
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Proofreading failed',
-      Date.now() - startTime,
-      'proofreader'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'proofreader');
   }
 }
 
@@ -207,19 +236,22 @@ async function handleTranslate(payload: {
       );
     }
 
-    const result = await aiService.translator.translate(
-      payload.text,
-      payload.target,
-      payload.source
+    // Execute with rate limiting and retry logic
+    const result = await rateLimiter.executeWithRetry(
+      () =>
+        aiService.translator.translate(
+          payload.text,
+          payload.target,
+          payload.source
+        ),
+      'translations'
     );
 
     return createSuccessResponse(result, 'translator', Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Translation failed',
-      Date.now() - startTime,
-      'translator'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'translator');
   }
 }
 
@@ -246,19 +278,17 @@ async function handleRewrite(payload: {
     // Default to 'calm' preset if not specified
     const preset = payload.preset ?? 'calm';
 
-    const result = await aiService.rewriter.rewrite(
-      payload.text,
-      preset,
-      payload.context
+    // Execute with rate limiting and retry logic
+    const result = await rateLimiter.executeWithRetry(
+      () => aiService.rewriter.rewrite(payload.text, preset, payload.context),
+      'rewrites'
     );
 
     return createSuccessResponse(result, 'rewriter', Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Rewriting failed',
-      Date.now() - startTime,
-      'rewriter'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'rewriter');
   }
 }
 
@@ -285,18 +315,17 @@ async function handleWrite(payload: {
       );
     }
 
-    const result = await aiService.writer.write(
-      payload.prompt,
-      payload.options
+    // Execute with rate limiting and retry logic
+    const result = await rateLimiter.executeWithRetry(
+      () => aiService.writer.write(payload.prompt, payload.options),
+      'drafts'
     );
 
     return createSuccessResponse(result, 'writer', Date.now() - startTime);
   } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Writing failed',
-      Date.now() - startTime,
-      'writer'
-    );
+    const message =
+      error instanceof AIError ? error.message : getUserFriendlyMessage(error);
+    return createErrorResponse(message, Date.now() - startTime, 'writer');
   }
 }
 
@@ -343,6 +372,131 @@ async function handleCheckAllAI(): Promise<
       error instanceof Error ? error.message : 'Availability check failed',
       Date.now() - startTime,
       'unified'
+    );
+  }
+}
+
+/**
+ * Handle usage statistics request
+ */
+function handleGetUsageStats(): AIResponse<{
+  stats: {
+    summarizations: number;
+    drafts: number;
+    rewrites: number;
+    proofreads: number;
+    translations: number;
+    languageDetections: number;
+    sessionStart: number;
+    totalOperations: number;
+  };
+  approachingQuota: boolean;
+}> {
+  const startTime = Date.now();
+  try {
+    const stats = rateLimiter.getUsageStats();
+    const totalOperations = rateLimiter.getTotalOperations();
+    const approachingQuota = rateLimiter.isApproachingQuota();
+
+    return createSuccessResponse(
+      {
+        stats: {
+          ...stats,
+          totalOperations,
+        },
+        approachingQuota,
+      },
+      'unified',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Failed to get usage stats',
+      Date.now() - startTime,
+      'unified'
+    );
+  }
+}
+
+/**
+ * Handle canTranslate check for a specific language pair
+ */
+async function handleCanTranslate(payload: {
+  source: string;
+  target: string;
+}): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
+  try {
+    const available = await aiService.translator.canTranslate(
+      payload.source,
+      payload.target
+    );
+
+    return createSuccessResponse(
+      available,
+      'translator',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error
+        ? error.message
+        : 'Failed to check translation availability',
+      Date.now() - startTime,
+      'translator'
+    );
+  }
+}
+
+/**
+ * Handle batch translation availability check
+ * Checks multiple target languages at once
+ */
+async function handleCheckTranslationAvailability(payload: {
+  source: string;
+  targets: string[];
+}): Promise<
+  AIResponse<{
+    source: string;
+    available: string[];
+    unavailable: string[];
+  }>
+> {
+  const startTime = Date.now();
+  try {
+    const available: string[] = [];
+    const unavailable: string[] = [];
+
+    // Check each target language
+    for (const target of payload.targets) {
+      const canTranslate = await aiService.translator.canTranslate(
+        payload.source,
+        target
+      );
+
+      if (canTranslate) {
+        available.push(target);
+      } else {
+        unavailable.push(target);
+      }
+    }
+
+    return createSuccessResponse(
+      {
+        source: payload.source,
+        available,
+        unavailable,
+      },
+      'translator',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error
+        ? error.message
+        : 'Failed to check translation availability',
+      Date.now() - startTime,
+      'translator'
     );
   }
 }

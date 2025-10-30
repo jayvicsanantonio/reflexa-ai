@@ -63,18 +63,32 @@ export class SummarizerManager {
    * @param type - Type of summary to generate
    * @param format - Output format (plain-text or markdown)
    * @param length - Length of summary
+   * @param forceRecreate - Force recreation of session even if cached
    * @returns AISummarizer session or null if unavailable
    */
   private async createSession(
     type: 'tldr' | 'key-points' | 'teaser' | 'headline' = 'key-points',
     format: 'plain-text' | 'markdown' = 'plain-text',
-    length: 'short' | 'medium' | 'long' = 'medium'
+    length: 'short' | 'medium' | 'long' = 'medium',
+    forceRecreate = false
   ): Promise<AISummarizer | null> {
     const sessionKey = `${type}-${format}-${length}`;
 
-    // Return cached session if available
-    if (this.sessions.has(sessionKey)) {
+    // Return cached session if available and not forcing recreation
+    if (this.sessions.has(sessionKey) && !forceRecreate) {
       return this.sessions.get(sessionKey)!;
+    }
+
+    // Clean up existing session if forcing recreation
+    if (forceRecreate && this.sessions.has(sessionKey)) {
+      const oldSession = this.sessions.get(sessionKey);
+      try {
+        oldSession?.destroy();
+        console.log(`Destroyed old summarizer session: ${sessionKey}`);
+      } catch (error) {
+        console.error(`Error destroying old session ${sessionKey}:`, error);
+      }
+      this.sessions.delete(sessionKey);
     }
 
     try {
@@ -104,6 +118,16 @@ export class SummarizerManager {
       return session;
     } catch (error) {
       console.error('Error creating summarizer session:', error);
+
+      // If session creation fails, ensure we don't have a stale entry
+      this.sessions.delete(sessionKey);
+
+      // Retry once if this was not already a retry
+      if (!forceRecreate) {
+        console.log('Retrying session creation...');
+        return this.createSession(type, format, length, true);
+      }
+
       return null;
     }
   }
@@ -193,36 +217,82 @@ export class SummarizerManager {
    * @returns Array of 3 bullet points
    */
   private async summarizeBullets(text: string): Promise<string[]> {
-    const session = await this.createSession('key-points', 'markdown', 'short');
+    try {
+      const session = await this.createSession(
+        'key-points',
+        'markdown',
+        'short'
+      );
 
-    if (!session) {
-      throw new Error('Failed to create summarizer session');
-    }
+      if (!session) {
+        throw new Error('Failed to create summarizer session');
+      }
 
-    const result = await session.summarize(text);
+      const result = await session.summarize(text);
 
-    // Parse markdown bullets into array
-    const bullets = result
-      .split('\n')
-      .filter(
-        (line: string) =>
-          line.trim().startsWith('-') ?? line.trim().startsWith('*')
-      )
-      .map((line: string) => line.replace(/^[-*]\s*/, '').trim())
-      .filter((line: string) => line.length > 0)
-      .slice(0, 3); // Ensure exactly 3 bullets
-
-    // If we don't have 3 bullets, split the result differently
-    if (bullets.length < 3) {
-      const lines = result
+      // Parse markdown bullets into array
+      const bullets = result
         .split('\n')
-        .map((line: string) => line.trim())
+        .filter(
+          (line: string) =>
+            line.trim().startsWith('-') ?? line.trim().startsWith('*')
+        )
+        .map((line: string) => line.replace(/^[-*]\s*/, '').trim())
         .filter((line: string) => line.length > 0)
-        .slice(0, 3);
-      return lines;
-    }
+        .slice(0, 3); // Ensure exactly 3 bullets
 
-    return bullets;
+      // If we don't have 3 bullets, split the result differently
+      if (bullets.length < 3) {
+        const lines = result
+          .split('\n')
+          .map((line: string) => line.trim())
+          .filter((line: string) => line.length > 0)
+          .slice(0, 3);
+        return lines;
+      }
+
+      return bullets;
+    } catch (error) {
+      // Check if it's a session error
+      const errorMessage =
+        error instanceof Error ? error.message.toLowerCase() : '';
+      if (
+        errorMessage.includes('session') ||
+        errorMessage.includes('invalid') ||
+        errorMessage.includes('closed')
+      ) {
+        console.warn(
+          'Session error detected, recreating session and retrying...'
+        );
+        // Force recreate session and retry once
+        const session = await this.createSession(
+          'key-points',
+          'markdown',
+          'short',
+          true
+        );
+        if (!session) {
+          throw new Error('Failed to recreate summarizer session after error');
+        }
+        const result = await session.summarize(text);
+        const bullets = result
+          .split('\n')
+          .filter(
+            (line: string) =>
+              line.trim().startsWith('-') ?? line.trim().startsWith('*')
+          )
+          .map((line: string) => line.replace(/^[-*]\s*/, '').trim())
+          .filter((line: string) => line.length > 0)
+          .slice(0, 3);
+        return bullets.length >= 3
+          ? bullets
+          : result
+              .split('\n')
+              .filter((l) => l.trim())
+              .slice(0, 3);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -293,17 +363,54 @@ export class SummarizerManager {
   /**
    * Clean up all active sessions
    * Should be called when the manager is no longer needed
+   * Also called automatically on critical errors
    */
   destroy(): void {
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
         console.log(`Destroyed summarizer session: ${key}`);
-      } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+      } catch (err) {
+        console.error(`Error destroying session ${key}:`, err);
+        // Continue cleanup even if one session fails
       }
     }
     this.sessions.clear();
+  }
+
+  /**
+   * Clean up invalid or stale sessions
+   * Useful for recovering from session errors
+   */
+  cleanupInvalidSessions(): void {
+    const keysToRemove: string[] = [];
+
+    for (const [key, session] of this.sessions.entries()) {
+      try {
+        // Try to access session to check if it's still valid
+        // If session is invalid, this will throw
+        if (!session) {
+          keysToRemove.push(key);
+        }
+      } catch {
+        console.warn(`Session ${key} is invalid, marking for cleanup`);
+        keysToRemove.push(key);
+      }
+    }
+
+    for (const key of keysToRemove) {
+      try {
+        const session = this.sessions.get(key);
+        session?.destroy();
+      } catch {
+        // Ignore errors during cleanup
+      }
+      this.sessions.delete(key);
+    }
+
+    if (keysToRemove.length > 0) {
+      console.log(`Cleaned up ${keysToRemove.length} invalid sessions`);
+    }
   }
 
   /**

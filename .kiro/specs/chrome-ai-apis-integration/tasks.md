@@ -342,26 +342,26 @@
   - _Requirements: 9.4, 9.5_
 
 - [ ] 22. Implement error handling for AI operations
-  - [ ] 22.1 Add timeout handling with retry logic
+  - [x] 22.1 Add timeout handling with retry logic
     - Wrap all AI calls in Promise.race with 5-second timeout
     - Implement single retry with 8-second extended timeout
     - Fall back to Prompt API or manual mode after timeout
     - _Requirements: 9.3, 12.1, 12.2_
 
-  - [ ] 22.2 Add rate limiting error handling
+  - [x] 22.2 Add rate limiting error handling
     - Catch rate limit errors from API calls
     - Implement exponential backoff retry strategy
     - Display user-friendly message after max retries
     - _Requirements: 12.1, 12.2, 12.3_
 
-  - [ ] 22.3 Add session error handling
+  - [x] 22.3 Add session error handling
     - Catch session creation failures
     - Retry session creation once
     - Fall back to direct API calls without session
     - Implement automatic session cleanup on errors
     - _Requirements: 9.3_
 
-  - [ ] 22.4 Add translation unavailability handling
+  - [x] 22.4 Add translation unavailability handling
     - Check canTranslate before offering language options
     - Gray out unsupported language pairs in UI
     - Display tooltip explaining unavailability
