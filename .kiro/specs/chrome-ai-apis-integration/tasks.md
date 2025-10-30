@@ -288,20 +288,20 @@
     - Display diff view when clicked
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 19. Create AI Status Panel component for Dashboard
-  - [ ] 19.1 Build grid layout showing each API status
+- [x] 19. Create AI Status Panel component for Dashboard
+  - [x] 19.1 Build grid layout showing each API status
     - Display seven API cards with availability indicators
     - Use green checkmark for available, gray X for unavailable
     - Add refresh button to re-check capabilities
     - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-  - [ ] 19.2 Add usage statistics display
+  - [x] 19.2 Add usage statistics display
     - Show counters for summarizations, drafts, rewrites, proofreads, translations
     - Display session start time
     - Calculate and show total AI operations
     - _Requirements: 11.2, 12.4, 12.5_
 
-  - [ ] 19.3 Add experimental mode badge
+  - [x] 19.3 Add experimental mode badge
     - Display badge when experimental mode is enabled
     - Show tooltip explaining experimental features
     - _Requirements: 10.2, 10.5, 11.5_

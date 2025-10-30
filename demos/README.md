@@ -14,6 +14,7 @@ This directory contains standalone HTML demos for testing and showcasing individ
 - **ProofreadDiffView.html** - Side-by-side proofreading diff view
 - **LanguagePill.html** - Language detection pill with confidence score
 - **TranslateDropdown.html** - Translation language selector with search and filtering
+- **AIStatusPanel.html** - AI Status Panel showing Chrome AI APIs availability and usage statistics
 
 ## How to Run
 

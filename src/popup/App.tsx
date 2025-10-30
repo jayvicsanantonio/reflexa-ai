@@ -12,10 +12,13 @@ import { VirtualList } from './VirtualList';
 import { StreakCounter } from './StreakCounter';
 import { CalmStats } from './CalmStats';
 import { ExportModal } from './ExportModal';
+import { AIStatusPanel } from './AIStatusPanel';
 import type {
   Reflection,
   StreakData,
   CalmStats as CalmStatsType,
+  AICapabilities,
+  UsageStats,
 } from '../types';
 import { STORAGE_KEYS, PRIVACY_NOTICE } from '../constants';
 import { formatISODate } from '../utils';
@@ -38,6 +41,26 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [aiCapabilities, setAiCapabilities] = useState<AICapabilities>({
+    summarizer: false,
+    writer: false,
+    rewriter: false,
+    proofreader: false,
+    languageDetector: false,
+    translator: false,
+    prompt: false,
+    experimental: false,
+  });
+  const [usageStats, setUsageStats] = useState<UsageStats>({
+    summarizations: 0,
+    drafts: 0,
+    rewrites: 0,
+    proofreads: 0,
+    translations: 0,
+    languageDetections: 0,
+    sessionStart: Date.now(),
+  });
+  const [experimentalMode, setExperimentalMode] = useState(false);
 
   // Calculate calm stats from reflections
   const calmStats = useMemo<CalmStatsType>(() => {
@@ -76,6 +99,83 @@ export const App: React.FC = () => {
     };
   }, [reflections]);
 
+  // Load AI capabilities and usage stats
+  const loadAIData = useCallback(() => {
+    try {
+      // Get capabilities
+      void chrome.runtime
+        .sendMessage({
+          type: 'getCapabilities',
+        })
+        .then((response: unknown) => {
+          if (
+            response &&
+            typeof response === 'object' &&
+            'success' in response &&
+            response.success &&
+            'data' in response
+          ) {
+            setAiCapabilities(response.data as AICapabilities);
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to get capabilities:', error);
+        });
+
+      // Get usage stats
+      void chrome.runtime
+        .sendMessage({
+          type: 'getUsageStats',
+        })
+        .then((response: unknown) => {
+          if (
+            response &&
+            typeof response === 'object' &&
+            'success' in response &&
+            response.success &&
+            'stats' in response
+          ) {
+            setUsageStats(response.stats as UsageStats);
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to get usage stats:', error);
+        });
+
+      // Get settings for experimental mode
+      void chrome.runtime
+        .sendMessage({
+          type: 'getSettings',
+        })
+        .then((response: unknown) => {
+          if (
+            response &&
+            typeof response === 'object' &&
+            'success' in response &&
+            response.success &&
+            'data' in response &&
+            response.data &&
+            typeof response.data === 'object' &&
+            'experimentalMode' in response.data
+          ) {
+            setExperimentalMode(
+              (response.data.experimentalMode as boolean) ?? false
+            );
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to get settings:', error);
+        });
+    } catch (error) {
+      console.error('Failed to load AI data:', error);
+    }
+  }, []);
+
+  // Handle refresh capabilities
+  const handleRefreshCapabilities = useCallback(() => {
+    loadAIData();
+  }, [loadAIData]);
+
   // Load data from storage on mount
   useEffect(() => {
     const loadData = async () => {
@@ -110,6 +210,9 @@ export const App: React.FC = () => {
             [STORAGE_KEYS.FIRST_LAUNCH]: true,
           });
         }
+
+        // Load AI data
+        loadAIData();
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       } finally {
@@ -118,7 +221,7 @@ export const App: React.FC = () => {
     };
 
     void loadData();
-  }, []);
+  }, [loadAIData]);
 
   // Listen for storage changes to update data in real-time
   useEffect(() => {
@@ -356,6 +459,14 @@ export const App: React.FC = () => {
 
           {/* Calm Stats */}
           <CalmStats stats={calmStats} />
+
+          {/* AI Status Panel */}
+          <AIStatusPanel
+            capabilities={aiCapabilities}
+            usageStats={usageStats}
+            experimentalMode={experimentalMode}
+            onRefresh={handleRefreshCapabilities}
+          />
 
           {/* Reflection List */}
           {reflections.length > 0 ? (

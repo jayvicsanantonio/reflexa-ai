@@ -17,6 +17,10 @@ import type {
   Reflection,
   ExtractedContent,
   SummaryFormat,
+  LanguageDetection,
+  AICapabilities,
+  TonePreset,
+  ProofreadResult,
 } from '../types';
 import { generateUUID } from '../utils';
 import { ERROR_MESSAGES } from '../constants';
@@ -58,15 +62,14 @@ let currentSummaryFormat: SummaryFormat = 'bullets';
 let isLoadingSummary = false;
 
 // Language detection state
-let currentLanguageDetection: import('../types').LanguageDetection | null =
-  null;
+let currentLanguageDetection: LanguageDetection | null = null;
 let isTranslating = false;
 
 // Rewrite state
 const isRewritingArray: boolean[] = [false, false];
 
 // AI capabilities
-let aiCapabilities: import('../types').AICapabilities | null = null;
+let aiCapabilities: AICapabilities | null = null;
 
 // AI availability status
 let aiAvailable: boolean | null = null;
@@ -219,11 +222,10 @@ const initiateReflectionFlow = async () => {
 
     // Get AI capabilities
     if (aiCapabilities === null) {
-      const capabilitiesResponse = await sendMessageToBackground<
-        import('../types').AICapabilities
-      >({
-        type: 'getCapabilities',
-      });
+      const capabilitiesResponse =
+        await sendMessageToBackground<AICapabilities>({
+          type: 'getCapabilities',
+        });
 
       if (capabilitiesResponse.success) {
         aiCapabilities = capabilitiesResponse.data;
@@ -342,14 +344,13 @@ const initiateReflectionFlow = async () => {
     if (currentSettings?.autoDetectLanguage) {
       console.log('Detecting language...');
       try {
-        const languageResponse = await sendMessageToBackground<
-          import('../types').LanguageDetection
-        >({
-          type: 'detectLanguage',
-          payload: {
-            text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
-          },
-        });
+        const languageResponse =
+          await sendMessageToBackground<LanguageDetection>({
+            type: 'detectLanguage',
+            payload: {
+              text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
+            },
+          });
 
         if (languageResponse.success) {
           currentLanguageDetection = languageResponse.data;
@@ -657,13 +658,11 @@ const handleCancelReflection = () => {
 const handleProofread = async (
   text: string,
   index: number
-): Promise<import('../types').ProofreadResult> => {
+): Promise<ProofreadResult> => {
   console.log(`Proofreading reflection ${index}...`);
 
   try {
-    const proofreadResponse = await sendMessageToBackground<
-      import('../types').ProofreadResult
-    >({
+    const proofreadResponse = await sendMessageToBackground<ProofreadResult>({
       type: 'proofread',
       payload: text,
     });
@@ -891,7 +890,7 @@ const handleTranslateToEnglish = async () => {
  */
 const handleRewrite = async (
   text: string,
-  tone: import('../types').TonePreset,
+  tone: TonePreset,
   index: number
 ): Promise<{ original: string; rewritten: string }> => {
   console.log(`Rewriting reflection ${index} with tone: ${tone}...`);
