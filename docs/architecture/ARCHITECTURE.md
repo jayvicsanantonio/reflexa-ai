@@ -568,9 +568,23 @@ Reflexa AI uses `chrome.storage.local` by default, with optional `chrome.storage
 
 ## AI Integration
 
+### Chrome Built-in AI APIs
+
+Reflexa AI integrates all seven Chrome Built-in AI APIs powered by Gemini Nano:
+
+1. **Summarizer API**: Generates summaries in three formats (bullets, paragraph, headline+bullets)
+2. **Writer API**: Creates first drafts with tone and length control
+3. **Rewriter API**: Adjusts tone with four presets (Calm, Concise, Empathetic, Academic)
+4. **Proofreader API**: Fixes grammar and improves clarity
+5. **Language Detector API**: Identifies language of text content (100+ languages)
+6. **Translator API**: Translates between 10+ languages
+7. **Prompt API**: Universal fallback for all operations
+
+For detailed architecture documentation, see [AI Service Architecture](../development/AI_SERVICE_ARCHITECTURE.md).
+
 ### Chrome Gemini Nano
 
-Reflexa AI uses Chrome's built-in Prompt API to access Gemini Nano.
+All Chrome AI APIs are powered by Gemini Nano, Google's on-device AI model.
 
 #### API Access
 

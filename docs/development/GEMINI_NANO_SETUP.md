@@ -20,17 +20,51 @@
 
 ### 2. Enable Required Flags
 
-#### Flag 1: Prompt API
+Reflexa AI uses all seven Chrome Built-in AI APIs. Enable each flag for full functionality:
+
+#### Flag 1: Optimization Guide (Required)
+
+1. Go to: `chrome://flags/#optimization-guide-on-device-model`
+2. Click the dropdown next to "Optimization Guide On Device Model"
+3. Select **"Enabled BypassPerfRequirement"**
+
+#### Flag 2: Prompt API (Required)
 
 1. Go to: `chrome://flags/#prompt-api-for-gemini-nano`
 2. Click the dropdown next to "Prompt API for Gemini Nano"
 3. Select **"Enabled"**
 
-#### Flag 2: Optimization Guide
+#### Flag 3: Summarizer API (Recommended)
 
-1. Go to: `chrome://flags/#optimization-guide-on-device-model`
-2. Click the dropdown next to "Optimization Guide On Device Model"
-3. Select **"Enabled BypassPerfRequirement"**
+1. Go to: `chrome://flags/#summarization-api-for-gemini-nano`
+2. Click the dropdown next to "Summarization API for Gemini Nano"
+3. Select **"Enabled"**
+
+#### Flag 4: Writer API (Recommended)
+
+1. Go to: `chrome://flags/#writer-api-for-gemini-nano`
+2. Click the dropdown next to "Writer API for Gemini Nano"
+3. Select **"Enabled"**
+
+#### Flag 5: Rewriter API (Recommended)
+
+1. Go to: `chrome://flags/#rewriter-api-for-gemini-nano`
+2. Click the dropdown next to "Rewriter API for Gemini Nano"
+3. Select **"Enabled"**
+
+#### Flag 6: Language Detection API (Optional)
+
+1. Go to: `chrome://flags/#language-detection-api`
+2. Click the dropdown next to "Language Detection API"
+3. Select **"Enabled"**
+
+#### Flag 7: Translation API (Optional)
+
+1. Go to: `chrome://flags/#translation-api`
+2. Click the dropdown next to "Translation API"
+3. Select **"Enabled"**
+
+**Note**: Flags 1-2 are required for basic AI functionality. Flags 3-5 enable specialized features with better performance. Flags 6-7 enable multilingual support.
 
 ### 3. Restart Chrome
 
@@ -40,33 +74,72 @@
 2. Quit Chrome completely (Cmd+Q on Mac, or close from taskbar on Windows)
 3. Reopen Chrome
 
-### 4. Verify AI API is Available
+### 4. Verify AI APIs are Available
 
 1. Open Chrome DevTools (F12 or Cmd+Option+I)
 2. Go to Console tab
-3. Run this command:
-   ```javascript
-   LanguageModel;
-   ```
-4. You should see the LanguageModel factory object (not undefined)
-5. If you see `undefined`, the flags didn't take effect - restart Chrome again
+3. Run these commands to check each API:
 
-**Note**: The Prompt API is accessed via the global `LanguageModel` object (capital L), NOT through `ai.languageModel` or `window.ai.languageModel`.
+```javascript
+// Check Prompt API (Required)
+LanguageModel;
+
+// Check Summarizer API
+Summarizer;
+
+// Check Writer API
+Writer;
+
+// Check Rewriter API
+Rewriter;
+
+// Check Proofreader API (may not be available yet)
+Proofreader;
+
+// Check Language Detector API
+LanguageDetector;
+
+// Check Translator API
+Translator;
+```
+
+4. Each should show a factory object (not `undefined`)
+5. If you see `undefined`, the corresponding flag didn't take effect - restart Chrome again
+
+**Note**: All Chrome AI APIs are accessed via global objects (capital first letter), NOT through `ai.*` or `window.ai.*`.
 
 ### 5. Check AI Availability
 
-Run this in the console:
+Run these commands in the console to check each API's availability:
 
 ```javascript
+// Prompt API
 await LanguageModel.availability();
+
+// Summarizer API
+await Summarizer.availability();
+
+// Writer API
+await Writer.availability();
+
+// Rewriter API
+await Rewriter.availability();
+
+// Language Detector API
+await LanguageDetector.availability();
+
+// Translator API
+await Translator.availability();
 ```
 
-Expected responses:
+Expected responses for each:
 
-- `"available"` - Model is ready to use ✅
+- `"available"` - API is ready to use ✅
 - `"downloadable"` - Model needs to be downloaded
 - `"downloading"` - Model is currently downloading
 - `"unavailable"` - Not supported on this device ❌
+
+**Note**: All APIs share the same Gemini Nano model, so downloading once enables all APIs.
 
 ### 6. Download Gemini Nano Model (if needed)
 
@@ -87,28 +160,63 @@ await LanguageModel.availability();
 
 When it returns `"available"`, you're ready!
 
-### 7. Test the Model
+### 7. Test the APIs
 
-Once available, test it:
+Once available, test each API:
 
 ```javascript
+// Test Prompt API
 const session = await LanguageModel.create();
 const result = await session.prompt('Say hello!');
 console.log(result);
 session.destroy();
+
+// Test Summarizer API
+const summarizer = await Summarizer.create();
+const summary = await summarizer.summarize('Long article text here...');
+console.log(summary);
+summarizer.destroy();
+
+// Test Writer API
+const writer = await Writer.create();
+const draft = await writer.write('Write about AI');
+console.log(draft);
+writer.destroy();
+
+// Test Rewriter API
+const rewriter = await Rewriter.create();
+const rewritten = await rewriter.rewrite('Make this more formal');
+console.log(rewritten);
+rewriter.destroy();
+
+// Test Language Detector API
+const detector = await LanguageDetector.create();
+const detection = await detector.detect('Bonjour le monde');
+console.log(detection); // Should detect French
+detector.destroy();
+
+// Test Translator API
+const translator = await Translator.create({
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+});
+const translated = await translator.translate('Hello world');
+console.log(translated); // Should output "Hola mundo"
+translator.destroy();
 ```
 
-You should see a response from Gemini Nano!
+You should see responses from Gemini Nano for each API!
 
 ## Troubleshooting
 
-### "LanguageModel is not defined" error
+### "API is not defined" error (e.g., "Summarizer is not defined")
 
-- Flags are not enabled properly
+- Corresponding flag is not enabled properly
 - Chrome wasn't restarted after enabling flags
 - Chrome version is too old
+- API not yet available in your Chrome version
 
-**Solution:** Double-check flags, restart Chrome completely, verify version
+**Solution:** Double-check flags, restart Chrome completely, verify version, check Chrome Status for API availability
 
 ### "availability() returns 'unavailable'"
 
@@ -133,15 +241,31 @@ You should see a response from Gemini Nano!
 
 ## Verification Checklist
 
-Before using Reflexa AI with Gemini Nano:
+Before using Reflexa AI with all Chrome AI APIs:
+
+**Required (Core Functionality)**:
 
 - [ ] Chrome version 127+ (or Canary/Dev)
-- [ ] `chrome://flags/#prompt-api-for-gemini-nano` = Enabled
 - [ ] `chrome://flags/#optimization-guide-on-device-model` = Enabled BypassPerfRequirement
+- [ ] `chrome://flags/#prompt-api-for-gemini-nano` = Enabled
 - [ ] Chrome restarted completely
 - [ ] `LanguageModel` is defined in console
 - [ ] `await LanguageModel.availability()` returns "available"
-- [ ] Test prompt works successfully
+
+**Recommended (Enhanced Features)**:
+
+- [ ] `chrome://flags/#summarization-api-for-gemini-nano` = Enabled
+- [ ] `chrome://flags/#writer-api-for-gemini-nano` = Enabled
+- [ ] `chrome://flags/#rewriter-api-for-gemini-nano` = Enabled
+- [ ] `Summarizer`, `Writer`, `Rewriter` are defined in console
+- [ ] Each API's `availability()` returns "available"
+
+**Optional (Multilingual Support)**:
+
+- [ ] `chrome://flags/#language-detection-api` = Enabled
+- [ ] `chrome://flags/#translation-api` = Enabled
+- [ ] `LanguageDetector`, `Translator` are defined in console
+- [ ] Each API's `availability()` returns "available"
 
 ## Still Having Issues?
 

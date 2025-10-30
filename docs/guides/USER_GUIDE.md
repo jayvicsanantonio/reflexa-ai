@@ -16,10 +16,20 @@ Welcome to Reflexa AI! This guide will help you get the most out of your reflect
 
 ### First-Time Setup
 
-1. **Enable Gemini Nano** (required for AI features):
+1. **Enable Chrome AI APIs** (required for AI features):
    - Open a new tab and go to `chrome://flags/#optimization-guide-on-device-model`
    - Set to "Enabled BypassPerfRequirement"
    - Go to `chrome://flags/#prompt-api-for-gemini-nano`
+   - Set to "Enabled"
+   - Go to `chrome://flags/#summarization-api-for-gemini-nano`
+   - Set to "Enabled"
+   - Go to `chrome://flags/#writer-api-for-gemini-nano`
+   - Set to "Enabled"
+   - Go to `chrome://flags/#rewriter-api-for-gemini-nano`
+   - Set to "Enabled"
+   - Go to `chrome://flags/#language-detection-api`
+   - Set to "Enabled"
+   - Go to `chrome://flags/#translation-api`
    - Set to "Enabled"
    - **Restart Chrome** for changes to take effect
 
@@ -29,13 +39,13 @@ Welcome to Reflexa AI! This guide will help you get the most out of your reflect
 
 3. **Review Privacy Notice**:
    - On first launch, you'll see a privacy notice
-   - All processing happens locally on your device
+   - All processing happens locally on your device powered by Gemini Nano
    - No data is sent to external servers
 
 4. **Customize Settings** (optional):
    - Click the extension icon
    - Click the settings gear icon
-   - Adjust dwell threshold, sound, and motion preferences
+   - Adjust AI features, dwell threshold, sound, and motion preferences
 
 ## Using Reflexa AI
 
@@ -64,13 +74,23 @@ When you click the lotus icon:
 
 #### Step 4: Review AI Summary
 
-The AI generates a three-bullet summary:
+The AI generates a summary in your chosen format:
+
+**Bullets Format** (default):
 
 - **Insight**: The main idea or key takeaway
 - **Surprise**: Something unexpected or counterintuitive
 - **Apply**: How to use this information practically
 
-Each bullet is concise (max 20 words) for quick comprehension.
+**Paragraph Format**:
+
+- A concise paragraph (max 150 words) capturing the essence
+
+**Headline + Bullets Format**:
+
+- A 10-word headline followed by three key points
+
+You can change the format using the dropdown in the Reflect Mode overlay. The AI uses Chrome's Summarizer API for optimal results, falling back to the Prompt API if needed.
 
 #### Step 5: Answer Reflection Questions
 
@@ -80,13 +100,28 @@ Two thoughtful questions appear below the summary:
 - Type your responses in the text areas
 - Text areas auto-expand as you type
 
-#### Step 6: Optional Proofreading
+#### Step 6: AI-Powered Writing Features
 
-If enabled in settings:
+**Tone Adjustment** (if Rewriter API available):
+
+- Click tone preset chips: Calm, Concise, Empathetic, or Academic
+- AI rewrites your reflection in the selected tone
+- Preview the rewritten version side-by-side
+- Accept or discard the changes
+
+**Proofreading** (if Proofreader API available and enabled):
 
 - Click the "Proofread" button below your reflection
-- AI improves grammar and clarity while preserving your voice
-- Review the proofread version before saving
+- AI fixes grammar and improves clarity while preserving your voice
+- View a diff showing all changes with color coding
+- Accept or discard individual corrections
+
+**Translation** (if Translator API available):
+
+- Automatically detects the language of the webpage
+- Translate summaries and reflections to 10+ languages
+- Preserves formatting including bullet points
+- Works seamlessly with non-English content
 
 #### Step 7: Save Your Reflection
 
@@ -101,6 +136,54 @@ If enabled in settings:
 - **Enter**: Move to next input
 - **Cmd/Ctrl + Enter**: Save reflection
 - **Escape**: Cancel and close overlay
+
+### AI Features Overview
+
+Reflexa AI integrates all seven Chrome Built-in AI APIs for a powerful, privacy-first experience:
+
+#### 1. Summarizer API
+
+- Generates summaries in three formats: bullets, paragraph, or headline+bullets
+- Optimized for quick comprehension
+- Fallback to Prompt API if unavailable
+
+#### 2. Writer API
+
+- Creates first drafts for your reflections
+- Adjusts tone (calm, professional, casual) and length
+- Uses your summary as context for better results
+
+#### 3. Rewriter API
+
+- Adjusts tone with four presets: Calm, Concise, Empathetic, Academic
+- Preserves meaning while changing style
+- Side-by-side preview before accepting
+
+#### 4. Proofreader API
+
+- Fixes grammar and improves clarity
+- Color-coded diff view shows all changes
+- Preserves your voice and writing style
+
+#### 5. Language Detector API
+
+- Automatically identifies webpage language
+- Supports 100+ languages
+- Shows confidence score and language name
+
+#### 6. Translator API
+
+- Translates to 10+ languages (English, Spanish, French, German, Italian, Portuguese, Chinese, Japanese, Korean, Arabic)
+- Preserves markdown formatting
+- Works with summaries and reflections
+
+#### 7. Prompt API
+
+- Universal fallback for all operations
+- Provides AI features even when specialized APIs unavailable
+- Carefully crafted prompts mimic specialized API behavior
+
+**Privacy Guarantee**: All AI processing happens locally on your device using Gemini Nano. Zero data leaves your browser.
 
 ## Dashboard
 
@@ -137,6 +220,16 @@ Visual representation of your reflection practice:
 - **Average per day**: Reflection frequency
 - **Reading vs reflection time**: Time ratio visualization
 - **Progress indicators**: Visual bars showing your engagement
+
+### AI Status Panel
+
+Monitor which Chrome AI APIs are available and active:
+
+- **API Availability**: Green checkmarks for available APIs, gray X for unavailable
+- **Usage Statistics**: Counters for summarizations, drafts, rewrites, proofreads, translations
+- **Session Info**: Current session start time and total operations
+- **Experimental Mode Badge**: Shows when experimental features are enabled
+- **Refresh Button**: Re-check API availability on demand
 
 ### Export Button
 
@@ -184,9 +277,43 @@ Access settings by clicking the gear icon in the dashboard.
 #### Enable Proofreading
 
 - **Default**: Off
-- **Purpose**: AI-powered grammar and clarity improvements
+- **Purpose**: AI-powered grammar and clarity improvements using Proofreader API
 - **Note**: Adds a "Proofread" button in Reflect Mode
 - **Tip**: Enable if you want to refine your reflections
+
+### AI Settings
+
+#### Default Summary Format
+
+- **Options**: Bullets, Paragraph, Headline + Bullets
+- **Default**: Bullets
+- **Purpose**: Choose your preferred summary format
+- **Note**: Can be changed per-reflection in Reflect Mode
+
+#### Enable Translation
+
+- **Default**: On (if Translator API available)
+- **Purpose**: Enable/disable translation features
+- **Note**: Shows language detection and translation options
+
+#### Preferred Translation Language
+
+- **Options**: English, Spanish, French, German, Italian, Portuguese, Chinese, Japanese, Korean, Arabic
+- **Default**: English
+- **Purpose**: Default target language for translations
+
+#### Auto-Detect Language
+
+- **Default**: On (if Language Detector API available)
+- **Purpose**: Automatically detect webpage language
+- **Note**: Shows language pill in Reflect Mode header
+
+#### Experimental Mode
+
+- **Default**: Off
+- **Purpose**: Enable experimental AI features and beta APIs
+- **Warning**: May be unstable or change behavior
+- **Note**: Refreshes capability detection when toggled
 
 ### Privacy Settings
 
@@ -377,16 +504,53 @@ A: Ensure:
 - Chrome is restarted after enabling flags
 - You're using Chrome 127 or later
 - Your device meets performance requirements
+- Check AI Status panel in dashboard for specific API availability
 
 **Q: What if AI times out?**
 A: The extension will:
 
-- Retry once automatically
-- Fall back to manual mode if retry fails
+- Retry once automatically with extended timeout (8 seconds)
+- Fall back to Prompt API for summarize/write/rewrite operations
+- Fall back to manual mode for proofread/translate operations
 - Allow you to enter summary and reflections manually
 
 **Q: Can I customize the AI prompts?**
 A: Not currently. Prompts are carefully designed based on learning science research. Custom prompts may be added in future versions.
+
+**Q: Which Chrome AI APIs does Reflexa use?**
+A: Reflexa integrates all seven Chrome Built-in AI APIs:
+
+- Summarizer API for summaries
+- Writer API for draft generation
+- Rewriter API for tone adjustment
+- Proofreader API for grammar checking
+- Language Detector API for language identification
+- Translator API for translations
+- Prompt API as universal fallback
+
+**Q: What happens if a specific API is unavailable?**
+A: The extension uses intelligent fallback:
+
+- Summarizer → Prompt API
+- Writer → Prompt API
+- Rewriter → Prompt API
+- Proofreader → Feature hidden (no fallback)
+- Translator → Feature hidden (no fallback)
+- Language Detector → Feature hidden (no fallback)
+
+**Q: How do I know which API is being used?**
+A: Check the AI Status panel in the dashboard to see which APIs are available. The extension automatically uses the best available API for each operation.
+
+**Q: Why are some AI features missing?**
+A: Some features require specific Chrome AI APIs:
+
+- Tone adjustment requires Rewriter API
+- Proofreading requires Proofreader API
+- Translation requires Translator API and Language Detector API
+- If these APIs are unavailable, the features won't appear
+
+**Q: Can I use Reflexa without any AI APIs?**
+A: Yes! Reflexa works in manual mode where you write your own summaries and reflections. The extension still tracks your reading, manages reflections, and provides the calm reflection experience.
 
 ### Usage Questions
 
