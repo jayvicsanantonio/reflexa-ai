@@ -241,7 +241,7 @@
   - Add tooltip showing confidence score
   - _Requirements: 6.3, 6.4_
 
-- [ ] 16. Create Translate Dropdown component
+- [x] 16. Create Translate Dropdown component
   - Build dropdown component with 10 language options
   - Add flag icons for each language
   - Show both English and native language names

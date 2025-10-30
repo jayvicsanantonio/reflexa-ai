@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Translate Dropdown Component Demo - Reflexa AI</title>
+    <style>
+      /* Import theme variables and component styles */
+      @import url('../src/content/styles.css');
+
+      body {
+        margin: 0;
+        padding: 40px;
+        font-family: var(--font-sans);
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 1) 0%,
+          rgba(30, 41, 59, 1) 50%,
+          rgba(51, 65, 85, 1) 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      .demo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .demo-header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .demo-title {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 600;
+        color: var(--color-zen-100);
+        margin: 0 0 12px 0;
+        letter-spacing: -0.02em;
+      }
+
+      .demo-subtitle {
+        font-size: 16px;
+        color: var(--color-calm-400);
+        margin: 0;
+      }
+
+      .demo-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        margin-bottom: 24px;
+      }
+
+      .demo-section-title {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--color-zen-200);
+        margin: 0 0 20px 0;
+        letter-spacing: -0.01em;
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .demo-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-md);
+      }
+
+      .demo-label {
+        font-size: 13px;
+        color: var(--color-calm-400);
+        margin-bottom: 8px;
+      }
+
+      .demo-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .demo-description {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--color-calm-300);
+        margin: 16px 0 0 0;
+        padding: 16px;
+        background: rgba(14, 165, 233, 0.05);
+        border-left: 3px solid var(--color-zen-400);
+        border-radius: var(--radius-sm);
+      }
+
+      .code-block {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-top: 16px;
+        overflow-x: auto;
+      }
+
+      .code-block code {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: var(--color-zen-200);
+        line-height: 1.6;
+      }
+
+      .demo-output {
+        margin-top: 16px;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-sm);
+        color: var(--color-zen-200);
+        font-family: var(--font-mono);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <div class="demo-header">
+        <h1 class="demo-title">Translate Dropdown Component</h1>
+        <p class="demo-subtitle">
+          Select target language for translation with search and filtering
+        </p>
+      </div>
+
+      <!-- Basic Example -->
+      <div class="demo-section">
+        <h2 class="demo-section-title">Basic Example</h2>
+        <div class="demo-item">
+          <div class="demo-label">Default State</div>
+          <div
+            class="reflexa-translate-dropdown"
+            data-testid="translate-dropdown"
+          >
+            <button
+              type="button"
+              class="reflexa-translate-dropdown__trigger"
+              onclick="toggleDropdown('dropdown1')"
+              aria-label="Select translation language"
+              aria-haspopup="listbox"
+              data-testid="translate-trigger"
+            >
+              <span class="reflexa-translate-dropdown__icon">🌐</span>
+              <span class="reflexa-translate-dropdown__label">Translate</span>
+              <span class="reflexa-translate-dropdown__chevron">▼</span>
+            </button>
+            <div
+              id="dropdown1"
+              class="reflexa-translate-dropdown__menu"
+              style="display: none"
+              role="listbox"
+              aria-label="Translation language options"
+            >
+              <div class="reflexa-translate-dropdown__search">
+                <input
+                  type="text"
+                  class="reflexa-translate-dropdown__search-input"
+                  placeholder="Search languages..."
+                  oninput="filterLanguages(this, 'dropdown1')"
+                  aria-label="Search languages"
+                />
+              </div>
+              <div class="reflexa-translate-dropdown__options">
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('English', 'en')"
+                  role="option"
+                  data-lang="english"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇬🇧</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >English</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >English</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Spanish', 'es')"
+                  role="option"
+                  data-lang="spanish español"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇪🇸</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Spanish</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Español</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('French', 'fr')"
+                  role="option"
+                  data-lang="french français"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇫🇷</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >French</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Français</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('German', 'de')"
+                  role="option"
+                  data-lang="german deutsch"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇩🇪</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >German</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Deutsch</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Italian', 'it')"
+                  role="option"
+                  data-lang="italian italiano"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇮🇹</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Italian</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Italiano</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Portuguese', 'pt')"
+                  role="option"
+                  data-lang="portuguese português"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇵🇹</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Portuguese</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Português</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Chinese', 'zh')"
+                  role="option"
+                  data-lang="chinese 中文"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇨🇳</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Chinese</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >中文</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Japanese', 'ja')"
+                  role="option"
+                  data-lang="japanese 日本語"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇯🇵</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Japanese</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >日本語</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Korean', 'ko')"
+                  role="option"
+                  data-lang="korean 한국어"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇰🇷</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Korean</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >한국어</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('Arabic', 'ar')"
+                  role="option"
+                  data-lang="arabic العربية"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇸🇦</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Arabic</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >العربية</span
+                    >
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="output1" class="demo-output" style="display: none"></div>
+        </div>
+
+        <p class="demo-description">
+          <strong>Features:</strong> The Translate Dropdown displays 10 language
+          options with flag icons, English names, and native names. Click the
+          dropdown to see all available languages. Use the search box to filter
+          languages quickly.
+        </p>
+      </div>
+
+      <!-- States -->
+      <div class="demo-section">
+        <h2 class="demo-section-title">Component States</h2>
+        <div class="demo-row">
+          <div class="demo-item">
+            <div class="demo-label">Loading State</div>
+            <div class="reflexa-translate-dropdown">
+              <button
+                type="button"
+                class="reflexa-translate-dropdown__trigger reflexa-translate-dropdown__trigger--disabled"
+                disabled
+              >
+                <span class="reflexa-translate-dropdown__icon">🌐</span>
+                <span class="reflexa-translate-dropdown__label"
+                  >Translating...</span
+                >
+                <span class="reflexa-translate-dropdown__spinner">⟳</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="demo-item">
+            <div class="demo-label">Disabled State</div>
+            <div class="reflexa-translate-dropdown">
+              <button
+                type="button"
+                class="reflexa-translate-dropdown__trigger reflexa-translate-dropdown__trigger--disabled"
+                disabled
+              >
+                <span class="reflexa-translate-dropdown__icon">🌐</span>
+                <span class="reflexa-translate-dropdown__label">Translate</span>
+                <span class="reflexa-translate-dropdown__chevron">▼</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-description">
+          <strong>Loading State:</strong> Shows a spinning icon and
+          "Translating..." text while translation is in progress. The dropdown
+          is disabled during translation.
+        </p>
+      </div>
+
+      <!-- Unsupported Languages -->
+      <div class="demo-section">
+        <h2 class="demo-section-title">Unsupported Language Pairs</h2>
+        <div class="demo-item">
+          <div class="demo-label">With Unsupported Languages</div>
+          <div class="reflexa-translate-dropdown">
+            <button
+              type="button"
+              class="reflexa-translate-dropdown__trigger"
+              onclick="toggleDropdown('dropdown2')"
+            >
+              <span class="reflexa-translate-dropdown__icon">🌐</span>
+              <span class="reflexa-translate-dropdown__label">Translate</span>
+              <span class="reflexa-translate-dropdown__chevron">▼</span>
+            </button>
+            <div
+              id="dropdown2"
+              class="reflexa-translate-dropdown__menu"
+              style="display: none"
+            >
+              <div class="reflexa-translate-dropdown__search">
+                <input
+                  type="text"
+                  class="reflexa-translate-dropdown__search-input"
+                  placeholder="Search languages..."
+                />
+              </div>
+              <div class="reflexa-translate-dropdown__options">
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('English', 'en')"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇬🇧</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >English</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >English</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option reflexa-translate-dropdown__option--unsupported"
+                  disabled
+                  title="Translation to Chinese is not available"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇨🇳</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Chinese</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >中文</span
+                    >
+                  </div>
+                  <span
+                    class="reflexa-translate-dropdown__option-badge reflexa-translate-dropdown__option-badge--unavailable"
+                  >
+                    Unavailable
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option reflexa-translate-dropdown__option--unsupported"
+                  disabled
+                  title="Translation to Japanese is not available"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇯🇵</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Japanese</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >日本語</span
+                    >
+                  </div>
+                  <span
+                    class="reflexa-translate-dropdown__option-badge reflexa-translate-dropdown__option-badge--unavailable"
+                  >
+                    Unavailable
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-description">
+          <strong>Unsupported Languages:</strong> Languages that cannot be
+          translated to (based on the current source language) are grayed out
+          and marked with an "Unavailable" badge. Hovering shows a tooltip
+          explaining why the language is unavailable.
+        </p>
+      </div>
+
+      <!-- Current Language -->
+      <div class="demo-section">
+        <h2 class="demo-section-title">Current Language Indicator</h2>
+        <div class="demo-item">
+          <div class="demo-label">With Current Language (Spanish)</div>
+          <div class="reflexa-translate-dropdown">
+            <button
+              type="button"
+              class="reflexa-translate-dropdown__trigger"
+              onclick="toggleDropdown('dropdown3')"
+            >
+              <span class="reflexa-translate-dropdown__icon">🌐</span>
+              <span class="reflexa-translate-dropdown__label">Translate</span>
+              <span class="reflexa-translate-dropdown__chevron">▼</span>
+            </button>
+            <div
+              id="dropdown3"
+              class="reflexa-translate-dropdown__menu"
+              style="display: none"
+            >
+              <div class="reflexa-translate-dropdown__search">
+                <input
+                  type="text"
+                  class="reflexa-translate-dropdown__search-input"
+                  placeholder="Search languages..."
+                />
+              </div>
+              <div class="reflexa-translate-dropdown__options">
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('English', 'en')"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇬🇧</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >English</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >English</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option reflexa-translate-dropdown__option--current"
+                  disabled
+                  title="Currently in Spanish"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇪🇸</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >Spanish</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Español</span
+                    >
+                  </div>
+                  <span class="reflexa-translate-dropdown__option-badge"
+                    >Current</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('French', 'fr')"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇫🇷</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >French</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Français</span
+                    >
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-description">
+          <strong>Current Language:</strong> The language that content is
+          currently in is highlighted with a blue background and marked with a
+          "Current" badge. This option is disabled to prevent translating to the
+          same language.
+        </p>
+      </div>
+
+      <!-- In Context -->
+      <div class="demo-section">
+        <h2 class="demo-section-title">In Context (Reflect Mode)</h2>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+          "
+        >
+          <div style="display: flex; align-items: center; gap: 16px">
+            <span
+              style="
+                font-family: var(--font-display);
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--color-zen-100);
+              "
+            >
+              Article Summary
+            </span>
+            <div
+              class="reflexa-language-pill"
+              role="status"
+              title="Spanish (ES) - 95% confidence"
+            >
+              <span class="reflexa-language-pill__icon">🌐</span>
+              <span class="reflexa-language-pill__text">Spanish</span>
+              <span class="reflexa-language-pill__confidence">95%</span>
+            </div>
+          </div>
+          <div class="reflexa-translate-dropdown">
+            <button
+              type="button"
+              class="reflexa-translate-dropdown__trigger"
+              onclick="toggleDropdown('dropdown4')"
+            >
+              <span class="reflexa-translate-dropdown__icon">🌐</span>
+              <span class="reflexa-translate-dropdown__label">Translate</span>
+              <span class="reflexa-translate-dropdown__chevron">▼</span>
+            </button>
+            <div
+              id="dropdown4"
+              class="reflexa-translate-dropdown__menu"
+              style="display: none"
+            >
+              <div class="reflexa-translate-dropdown__search">
+                <input
+                  type="text"
+                  class="reflexa-translate-dropdown__search-input"
+                  placeholder="Search languages..."
+                />
+              </div>
+              <div class="reflexa-translate-dropdown__options">
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('English', 'en')"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇬🇧</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >English</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >English</span
+                    >
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="reflexa-translate-dropdown__option"
+                  onclick="selectLanguage('French', 'fr')"
+                >
+                  <span class="reflexa-translate-dropdown__option-flag"
+                    >🇫🇷</span
+                  >
+                  <div class="reflexa-translate-dropdown__option-content">
+                    <span class="reflexa-translate-dropdown__option-name"
+                      >French</span
+                    >
+                    <span class="reflexa-translate-dropdown__option-native"
+                      >Français</span
+                    >
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="demo-description">
+          <strong>Usage in Reflect Mode:</strong> The Translate Dropdown appears
+          next to the Language Pill in the header, allowing users to translate
+          summaries and reflection prompts to their preferred language.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      function toggleDropdown(id) {
+        const menu = document.getElementById(id);
+        if (menu.style.display === 'none') {
+          menu.style.display = 'block';
+          // Focus search input
+          const searchInput = menu.querySelector(
+            '.reflexa-translate-dropdown__search-input'
+          );
+          if (searchInput) {
+            setTimeout(() => searchInput.focus(), 100);
+          }
+        } else {
+          menu.style.display = 'none';
+        }
+      }
+
+      function selectLanguage(name, code) {
+        const output = document.getElementById('output1');
+        output.style.display = 'block';
+        output.textContent = `Selected: ${name} (${code})`;
+
+        // Close dropdown
+        document.getElementById('dropdown1').style.display = 'none';
+      }
+
+      function filterLanguages(input, dropdownId) {
+        const query = input.value.toLowerCase();
+        const dropdown = document.getElementById(dropdownId);
+        const options = dropdown.querySelectorAll(
+          '.reflexa-translate-dropdown__option'
+        );
+
+        let visibleCount = 0;
+        options.forEach((option) => {
+          const langData = option.getAttribute('data-lang') || '';
+          if (langData.includes(query)) {
+            option.style.display = 'flex';
+            visibleCount++;
+          } else {
+            option.style.display = 'none';
+          }
+        });
+
+        // Show "no results" message if needed
+        const optionsContainer = dropdown.querySelector(
+          '.reflexa-translate-dropdown__options'
+        );
+        let noResults = optionsContainer.querySelector(
+          '.reflexa-translate-dropdown__no-results'
+        );
+
+        if (visibleCount === 0) {
+          if (!noResults) {
+            noResults = document.createElement('div');
+            noResults.className = 'reflexa-translate-dropdown__no-results';
+            noResults.textContent = 'No languages found';
+            optionsContainer.appendChild(noResults);
+          }
+        } else {
+          if (noResults) {
+            noResults.remove();
+          }
+        }
+      }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.reflexa-translate-dropdown')) {
+          document
+            .querySelectorAll('.reflexa-translate-dropdown__menu')
+            .forEach((menu) => {
+              menu.style.display = 'none';
+            });
+        }
+      });
+
+      // Close dropdowns on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document
+            .querySelectorAll('.reflexa-translate-dropdown__menu')
+            .forEach((menu) => {
+              menu.style.display = 'none';
+            });
+        }
+      });
+    </script>
+  </body>
+</html>

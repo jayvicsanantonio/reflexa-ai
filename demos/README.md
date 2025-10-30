@@ -13,6 +13,7 @@ This directory contains standalone HTML demos for testing and showcasing individ
 - **TonePresetChips.html** - Tone preset selection chips
 - **ProofreadDiffView.html** - Side-by-side proofreading diff view
 - **LanguagePill.html** - Language detection pill with confidence score
+- **TranslateDropdown.html** - Translation language selector with search and filtering
 
 ## How to Run
 
