@@ -6,11 +6,14 @@ A wellness-centered Chrome Extension that transforms everyday reading into calm,
 
 📚 **Documentation**
 
-- [User Guide](docs/guides/USER_GUIDE.md) - Complete user documentation
-- [AI Service Architecture](docs/development/AI_SERVICE_ARCHITECTURE.md) - Developer guide
-- [Chrome AI Operations Examples](docs/examples/CHROME_AI_OPERATIONS.md) - Code examples
-- [Fallback Behavior](docs/development/FALLBACK_BEHAVIOR.md) - Fallback strategies
-- [Gemini Nano Setup](docs/development/GEMINI_NANO_SETUP.md) - Setup instructions
+- [Documentation Index](docs/README.md) - Complete documentation index
+- [User Guide](docs/USER_GUIDE.md) - Complete user documentation
+- [Development Documentation](docs/development/) - Organized developer guides
+  - [Chrome AI APIs](docs/development/chrome-apis/) - All 7 Chrome Built-in AI APIs
+  - [Architecture](docs/development/architecture/) - System architecture
+  - [Testing](docs/development/testing/) - Testing guides
+  - [Setup](docs/development/setup/) - Environment setup
+- [Examples](docs/examples/) - Code examples and tutorials
 
 🚀 **Getting Started**
 
@@ -50,7 +53,7 @@ Reflexa AI helps you absorb more, stress less, and remember what matters by:
 ### For Users
 
 1. **Enable Chrome AI APIs**:
-   - See the complete [Gemini Nano Setup Guide](docs/development/GEMINI_NANO_SETUP.md) for detailed instructions
+   - See the complete [Gemini Nano Setup Guide](docs/development/setup/GEMINI_NANO_SETUP.md) for detailed instructions
    - **Required flags** (for basic AI functionality):
      - `chrome://flags/#optimization-guide-on-device-model` → "Enabled BypassPerfRequirement"
      - `chrome://flags/#prompt-api-for-gemini-nano` → "Enabled"
@@ -188,7 +191,7 @@ npm run package
 
 3. Upload the ZIP file from `build/` directory to Chrome Web Store
 
-For more details, see [Build Scripts Documentation](docs/development/BUILD_SCRIPTS.md).
+For more details, see [Build Scripts Documentation](docs/development/build/BUILD_SCRIPTS.md).
 
 ## Architecture
 
@@ -339,7 +342,7 @@ The background service worker uses Chrome's Built-in AI APIs:
 - **Intelligent Fallback** - Falls back to Prompt API when specialized APIs unavailable
 - **Timeout Handling** - 5-second initial timeout, 8-second retry timeout
 
-For detailed architecture, see [AI Service Architecture](docs/development/AI_SERVICE_ARCHITECTURE.md).
+For detailed architecture, see [AI Service Architecture](docs/development/architecture/AI_SERVICE_ARCHITECTURE.md).
 
 ### 4. Reflection Experience
 
@@ -356,7 +359,7 @@ The Reflect Mode overlay provides:
 - **Translation** - Translate summaries and reflections to 10+ languages
 - **Keyboard shortcuts** - Cmd/Ctrl+Enter to save, Escape to cancel
 
-For usage examples, see [Chrome AI Operations](docs/examples/CHROME_AI_OPERATIONS.md).
+For usage examples, see [Chrome AI Operations Examples](docs/examples/CHROME_AI_OPERATIONS.md).
 
 ### 5. Data Storage
 
@@ -392,7 +395,7 @@ Specialized API → Prompt API → Manual Mode
 - **Translation**: Translator API → Feature hidden if unavailable
 - **Language Detection**: Language Detector API → Feature hidden if unavailable
 
-For detailed fallback behavior, see [Fallback Behavior Documentation](docs/development/FALLBACK_BEHAVIOR.md).
+For detailed fallback behavior, see [Fallback Behavior Documentation](docs/development/architecture/FALLBACK_BEHAVIOR.md).
 
 ## AI Prompts
 
@@ -508,7 +511,7 @@ Your privacy is our top priority:
 
 ### For Users
 
-- **[User Guide](docs/guides/USER_GUIDE.md)** - Complete guide to using Reflexa AI
+- **[User Guide](docs/USER_GUIDE.md)** - Complete guide to using Reflexa AI
   - Getting started and setup
   - Using all AI features
   - Dashboard and settings
@@ -517,53 +520,53 @@ Your privacy is our top priority:
 
 ### For Developers
 
-- **[AI Service Architecture](docs/development/AI_SERVICE_ARCHITECTURE.md)** - Complete developer guide
-  - Architecture overview and system design
-  - All 7 API managers documented
-  - Capability detection system
-  - Session management and error handling
-  - Usage examples and best practices
+- **[Development Documentation](docs/development/)** - Complete developer documentation
+  - [Development Index](docs/development/INDEX.md) - Searchable documentation index
+  - [Development README](docs/development/README.md) - Development overview
 
-- **[Chrome AI Operations Examples](docs/examples/CHROME_AI_OPERATIONS.md)** - Practical code examples
-  - Examples for all operations (summarize, write, rewrite, proofread, translate)
-  - Complete workflow examples
-  - Error handling patterns
-  - Best practices with do's and don'ts
+- **[Chrome AI APIs](docs/development/chrome-apis/)** - All 7 Chrome Built-in AI APIs
+  - [Chrome AI APIs Index](docs/development/chrome-apis/INDEX.md) - Complete API index
+  - [Chrome AI APIs README](docs/development/chrome-apis/README.md) - Overview and quick start
+  - Individual API documentation (consolidated):
+    - [Writer API](docs/development/chrome-apis/WRITER_API.md)
+    - [Rewriter API](docs/development/chrome-apis/REWRITER_API.md)
+    - [Proofreader API](docs/development/chrome-apis/PROOFREADER_API.md)
+    - [Translator API](docs/development/chrome-apis/TRANSLATOR_API.md)
+    - [Language Detector API](docs/development/chrome-apis/LANGUAGE_DETECTOR_API.md)
+    - [Prompt API](docs/development/chrome-apis/PROMPT_API.md)
+    - [Summarizer API](docs/development/chrome-apis/SUMMARIZER_API.md)
 
-- **[Fallback Behavior](docs/development/FALLBACK_BEHAVIOR.md)** - Fallback strategies
-  - Fallback matrix for all operations
-  - Implementation details with prompts
-  - UI behavior based on capabilities
-  - Troubleshooting guide
+- **[Architecture](docs/development/architecture/)** - System architecture and design
+  - [AI Service Architecture](docs/development/architecture/AI_SERVICE_ARCHITECTURE.md)
+  - [Fallback Behavior](docs/development/architecture/FALLBACK_BEHAVIOR.md)
+  - [AI Manager Logging](docs/development/architecture/AI_MANAGER_LOGGING.md)
 
-- **[Gemini Nano Setup Guide](docs/development/GEMINI_NANO_SETUP.md)** - Setup instructions
-  - All 7 Chrome AI API flags
-  - Verification steps for each API
-  - Testing examples
-  - Troubleshooting
+- **[Setup Guides](docs/development/setup/)** - Environment setup and configuration
+  - [Gemini Nano Setup](docs/development/setup/GEMINI_NANO_SETUP.md)
+  - [ESLint & Prettier Setup](docs/development/setup/ESLINT_PRETTIER_SETUP.md)
+  - [Linting and Formatting](docs/development/setup/LINTING_AND_FORMATTING.md)
 
-- **[Architecture Documentation](docs/architecture/ARCHITECTURE.md)** - System architecture
-  - Component architecture
-  - Data flow diagrams
-  - Storage architecture
-  - Performance considerations
+- **[Testing](docs/development/testing/)** - Testing guides and results
+  - [Performance Testing](docs/development/testing/PERFORMANCE_TESTING.md)
+  - [Accessibility Testing](docs/development/testing/ACCESSIBILITY_TESTING.md)
 
-- **[Chrome AI APIs Documentation](docs/development/chrome-apis/INDEX.md)** - Individual API docs
-  - Quick references for each API
-  - Comprehensive guides
-  - Official Chrome resources
+- **[Examples](docs/examples/)** - Code examples and tutorials
+  - [Chrome AI Operations](docs/examples/CHROME_AI_OPERATIONS.md)
+  - [Direct API Access](docs/examples/DIRECT_API_ACCESS.md)
+  - [Error Handling](docs/examples/ERROR_HANDLING.md)
 
 ### Additional Resources
 
-- **[Build Scripts Documentation](docs/development/BUILD_SCRIPTS.md)** - Build and packaging
+- **[Build Scripts Documentation](docs/development/build/BUILD_SCRIPTS.md)** - Build and packaging
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
-- **[Documentation Update Summary](docs/development/DOCUMENTATION_UPDATE_CHROME_AI.md)** - Recent updates
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - High-level project overview
+- **[Documentation Index](docs/README.md)** - Complete documentation index
 
 ## Troubleshooting
 
 ### Chrome AI APIs not available
 
-- Ensure you've enabled the required Chrome flags (see [Gemini Nano Setup Guide](docs/development/GEMINI_NANO_SETUP.md))
+- Ensure you've enabled the required Chrome flags (see [Gemini Nano Setup Guide](docs/development/setup/GEMINI_NANO_SETUP.md))
 - Restart Chrome completely after enabling flags
 - Check Chrome version (requires Chrome 127+)
 - Verify your device meets performance requirements
@@ -589,7 +592,7 @@ Your privacy is our top priority:
 - Falls back to Prompt API if specialized API times out
 - Try refreshing the page and trying again
 - Check Chrome DevTools console for detailed error messages
-- See [Fallback Behavior](docs/development/FALLBACK_BEHAVIOR.md) for details
+- See [Fallback Behavior](docs/development/architecture/FALLBACK_BEHAVIOR.md) for details
 
 ### Some AI features are missing
 
