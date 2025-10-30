@@ -224,10 +224,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     // Show notification
     setAutoStopNotification(true);
 
-    // Play audio cue if sound is enabled
+    // Play voice stop audio cue if sound is enabled
     if (settings.enableSound && audioManagerRef.current) {
-      audioManagerRef.current.playCompletionBell().catch((err) => {
-        console.error('Failed to play auto-stop audio cue:', err);
+      audioManagerRef.current.playVoiceStopCue().catch((err) => {
+        console.error('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -299,10 +299,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     // Show notification
     setAutoStopNotification(true);
 
-    // Play audio cue if sound is enabled
+    // Play voice stop audio cue if sound is enabled
     if (settings.enableSound && audioManagerRef.current) {
-      audioManagerRef.current.playCompletionBell().catch((err) => {
-        console.error('Failed to play auto-stop audio cue:', err);
+      audioManagerRef.current.playVoiceStopCue().catch((err) => {
+        console.error('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -786,7 +786,15 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
             const handleVoiceToggle = async () => {
               if (voiceInput.isRecording) {
+                // Stop recording
                 voiceInput.stopRecording();
+
+                // Play voice stop audio cue if sound is enabled
+                if (settings.enableSound && audioManagerRef.current) {
+                  audioManagerRef.current.playVoiceStopCue().catch((err) => {
+                    console.error('Failed to play voice stop audio cue:', err);
+                  });
+                }
               } else {
                 await voiceInput.startRecording();
               }

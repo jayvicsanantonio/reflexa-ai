@@ -152,8 +152,8 @@
     - Store both original and proofread versions
     - _Requirements: 1.10_
 
-- [ ] 10. Add audio feedback
-  - [ ] 10.1 Implement stop recording audio cue
+- [x] 10. Add audio feedback
+  - [x] 10.1 Implement stop recording audio cue
     - Add subtle audio cue (<0.3 seconds) when recording stops
     - Respect sound settings from user preferences
     - Play cue for both manual and auto-stop

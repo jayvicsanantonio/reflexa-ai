@@ -13,6 +13,7 @@ const AUDIO_FILES = {
   ENTRY_CHIME: '/audio/entry-chime.mp3',
   AMBIENT_LOOP: '/audio/ambient-loop.mp3',
   COMPLETION_BELL: '/audio/completion-bell.mp3',
+  VOICE_STOP_CUE: '/audio/voice-stop-cue.mp3',
 } as const;
 
 /**
@@ -22,11 +23,13 @@ export class AudioManager {
   private entryChime: HTMLAudioElement | null = null;
   private ambientLoop: HTMLAudioElement | null = null;
   private completionBell: HTMLAudioElement | null = null;
+  private voiceStopCue: HTMLAudioElement | null = null;
   private settings: Settings | null = null;
   private isLoaded = false;
   private isEntryChimePlaying = false;
   private isAmbientLoopPlaying = false;
   private isCompletionBellPlaying = false;
+  private isVoiceStopCuePlaying = false;
 
   /**
    * Initialize the AudioManager with user settings
@@ -57,6 +60,7 @@ export class AudioManager {
       const completionBellUrl = chrome.runtime.getURL(
         AUDIO_FILES.COMPLETION_BELL
       );
+      const voiceStopCueUrl = chrome.runtime.getURL(AUDIO_FILES.VOICE_STOP_CUE);
 
       // Validate URLs before creating Audio elements
       if (
@@ -65,7 +69,9 @@ export class AudioManager {
         !ambientLoopUrl ||
         ambientLoopUrl.includes('invalid') ||
         !completionBellUrl ||
-        completionBellUrl.includes('invalid')
+        completionBellUrl.includes('invalid') ||
+        !voiceStopCueUrl ||
+        voiceStopCueUrl.includes('invalid')
       ) {
         console.warn('Invalid audio URLs, skipping audio load');
         return;
@@ -74,11 +80,13 @@ export class AudioManager {
       this.entryChime = new Audio(entryChimeUrl);
       this.ambientLoop = new Audio(ambientLoopUrl);
       this.completionBell = new Audio(completionBellUrl);
+      this.voiceStopCue = new Audio(voiceStopCueUrl);
 
       // Set volume to 30% for all audio elements
       this.entryChime.volume = AUDIO.VOLUME;
       this.ambientLoop.volume = AUDIO.VOLUME;
       this.completionBell.volume = AUDIO.VOLUME;
+      this.voiceStopCue.volume = AUDIO.VOLUME;
 
       // Enable looping for ambient sound
       this.ambientLoop.loop = true;
@@ -87,6 +95,7 @@ export class AudioManager {
       this.entryChime.preload = 'none';
       this.ambientLoop.preload = 'none';
       this.completionBell.preload = 'none';
+      this.voiceStopCue.preload = 'none';
 
       this.isLoaded = true;
     } catch (error) {
@@ -216,6 +225,40 @@ export class AudioManager {
   }
 
   /**
+   * Play the voice stop cue sound
+   * Plays when voice recording stops (manual or auto-stop)
+   * Duration: 250ms (< 0.3 seconds as per requirements)
+   */
+  async playVoiceStopCue(): Promise<void> {
+    if (!this.shouldPlayAudio()) return;
+
+    if (!this.isLoaded) {
+      this.loadAudioFiles();
+    }
+
+    try {
+      if (this.voiceStopCue) {
+        this.isVoiceStopCuePlaying = true;
+        this.voiceStopCue.currentTime = 0; // Reset to start
+
+        // Track when audio ends
+        this.voiceStopCue.addEventListener(
+          'ended',
+          () => {
+            this.isVoiceStopCuePlaying = false;
+          },
+          { once: true }
+        );
+
+        await this.voiceStopCue.play();
+      }
+    } catch (error) {
+      console.error('Failed to play voice stop cue:', error);
+      this.isVoiceStopCuePlaying = false;
+    }
+  }
+
+  /**
    * Stop the entry chime sound
    */
   stopEntryChime(): void {
@@ -249,12 +292,24 @@ export class AudioManager {
   }
 
   /**
+   * Stop the voice stop cue sound
+   */
+  stopVoiceStopCue(): void {
+    if (this.voiceStopCue) {
+      this.voiceStopCue.pause();
+      this.voiceStopCue.currentTime = 0;
+      this.isVoiceStopCuePlaying = false;
+    }
+  }
+
+  /**
    * Stop all currently playing audio
    */
   stopAll(): void {
     this.stopEntryChime();
     this.stopAmbientLoop();
     this.stopCompletionBell();
+    this.stopVoiceStopCue();
   }
 
   /**
@@ -265,7 +320,8 @@ export class AudioManager {
     return (
       this.isEntryChimePlaying ||
       this.isAmbientLoopPlaying ||
-      this.isCompletionBellPlaying
+      this.isCompletionBellPlaying ||
+      this.isVoiceStopCuePlaying
     );
   }
 
@@ -294,6 +350,14 @@ export class AudioManager {
   }
 
   /**
+   * Check if voice stop cue is currently playing
+   * @returns True if voice stop cue is playing
+   */
+  isVoiceStopCuePlayingNow(): boolean {
+    return this.isVoiceStopCuePlaying;
+  }
+
+  /**
    * Set volume for all audio elements
    * @param volume Volume level between 0.0 (mute) and 1.0 (full volume)
    */
@@ -309,6 +373,9 @@ export class AudioManager {
     }
     if (this.completionBell) {
       this.completionBell.volume = clampedVolume;
+    }
+    if (this.voiceStopCue) {
+      this.voiceStopCue.volume = clampedVolume;
     }
   }
 
@@ -432,6 +499,7 @@ export class AudioManager {
     this.entryChime = null;
     this.ambientLoop = null;
     this.completionBell = null;
+    this.voiceStopCue = null;
     this.isLoaded = false;
   }
 }

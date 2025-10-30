@@ -56,6 +56,7 @@ export const AUDIO = {
   ENTRY_CHIME_DURATION: 1000, // Entry chime duration in ms
   AMBIENT_LOOP_DURATION: 8000, // Ambient loop duration in ms
   COMPLETION_BELL_DURATION: 800, // Completion bell duration in ms
+  VOICE_STOP_CUE_DURATION: 250, // Voice stop cue duration in ms (< 0.3s per requirements)
 };
 
 /**
