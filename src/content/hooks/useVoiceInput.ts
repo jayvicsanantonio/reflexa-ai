@@ -256,8 +256,10 @@ export const useVoiceInput = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const noSpeechTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isStoppingRef = useRef(false);
   const isPausedRef = useRef(false);
+  const hasSpeechDetectedRef = useRef(false);
 
   // Check browser support for SpeechRecognition
   const isSupported = useMemo(() => {
@@ -337,6 +339,38 @@ export const useVoiceInput = (
     }
   }, []);
 
+  // Clear no speech timer
+  const clearNoSpeechTimer = useCallback(() => {
+    if (noSpeechTimerRef.current) {
+      clearTimeout(noSpeechTimerRef.current);
+      noSpeechTimerRef.current = null;
+    }
+  }, []);
+
+  // Start no speech detection timer (10 seconds)
+  const startNoSpeechTimer = useCallback(() => {
+    clearNoSpeechTimer();
+    hasSpeechDetectedRef.current = false;
+
+    noSpeechTimerRef.current = setTimeout(() => {
+      // If no speech detected after 10 seconds, stop recording and show error
+      if (
+        !hasSpeechDetectedRef.current &&
+        recognitionRef.current &&
+        isRecording
+      ) {
+        isStoppingRef.current = true;
+
+        // Stop recognition
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        recognitionRef.current.stop();
+
+        // Trigger no-speech error
+        handleError('no-speech');
+      }
+    }, 10000); // 10 seconds
+  }, [isRecording, handleError, clearNoSpeechTimer]);
+
   // Start auto-stop timer
   const startAutoStopTimer = useCallback(() => {
     clearAutoStopTimer();
@@ -415,8 +449,10 @@ export const useVoiceInput = (
           onTranscript(finalTranscript, true);
         }
 
-        // Reset auto-stop timer on speech
+        // Mark that speech has been detected and clear no-speech timer
         if (interimTranscript || finalTranscript) {
+          hasSpeechDetectedRef.current = true;
+          clearNoSpeechTimer();
           clearAutoStopTimer();
         }
       };
@@ -427,6 +463,9 @@ export const useVoiceInput = (
         updateStatus('recording');
         setError(null);
         isStoppingRef.current = false;
+
+        // Start no-speech detection timer
+        startNoSpeechTimer();
       };
 
       // Handle end event
@@ -434,7 +473,9 @@ export const useVoiceInput = (
         setIsRecording(false);
         updateStatus('idle');
         clearAutoStopTimer();
+        clearNoSpeechTimer();
         isStoppingRef.current = false;
+        hasSpeechDetectedRef.current = false;
       };
 
       // Handle speechend event (user stopped speaking)
@@ -494,6 +535,7 @@ export const useVoiceInput = (
           }
         }
         clearAutoStopTimer();
+        clearNoSpeechTimer();
       };
     } catch (err) {
       console.error('Failed to initialize SpeechRecognition:', err);
@@ -506,7 +548,9 @@ export const useVoiceInput = (
     handleError,
     updateStatus,
     clearAutoStopTimer,
+    clearNoSpeechTimer,
     startAutoStopTimer,
+    startNoSpeechTimer,
   ]);
 
   // Start recording function
@@ -558,6 +602,7 @@ export const useVoiceInput = (
       isStoppingRef.current = true;
       updateStatus('stopping');
       clearAutoStopTimer();
+      clearNoSpeechTimer();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       recognitionRef.current.stop();
       setIsPaused(false);
@@ -569,7 +614,7 @@ export const useVoiceInput = (
       setIsPaused(false);
       isPausedRef.current = false;
     }
-  }, [isRecording, updateStatus, clearAutoStopTimer]);
+  }, [isRecording, updateStatus, clearAutoStopTimer, clearNoSpeechTimer]);
 
   // Pause recording function (keeps session active but ignores results)
   const pauseRecording = useCallback(() => {
@@ -580,11 +625,12 @@ export const useVoiceInput = (
     setIsPaused(true);
     isPausedRef.current = true;
     clearAutoStopTimer();
+    clearNoSpeechTimer();
 
     if (onTypingDetected) {
       onTypingDetected();
     }
-  }, [isRecording, clearAutoStopTimer, onTypingDetected]);
+  }, [isRecording, clearAutoStopTimer, clearNoSpeechTimer, onTypingDetected]);
 
   // Resume recording function
   const resumeRecording = useCallback(() => {

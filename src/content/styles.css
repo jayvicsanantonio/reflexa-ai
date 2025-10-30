@@ -2219,6 +2219,30 @@
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle gradient overlay on hover */
+.reflexa-voice-toggle-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.1) 0%,
+    rgba(14, 165, 233, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.reflexa-voice-toggle-button:hover:not(:disabled)::before {
+  opacity: 1;
 }
 
 .reflexa-voice-toggle-button:hover:not(:disabled) {
@@ -2230,11 +2254,13 @@
 
 .reflexa-voice-toggle-button:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(14, 165, 233, 0.15);
 }
 
 .reflexa-voice-toggle-button:focus-visible {
   outline: 2px solid #0ea5e9;
   outline-offset: 2px;
+  border-radius: var(--radius-md);
 }
 
 .reflexa-voice-toggle-button--disabled {
@@ -2247,6 +2273,27 @@
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.5);
   color: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  animation: recordingGlow 2s ease-in-out infinite;
+}
+
+@keyframes recordingGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.3);
+  }
+}
+
+.reflexa-voice-toggle-button--recording::before {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.1) 0%,
+    rgba(220, 38, 38, 0.1) 100%
+  );
+  opacity: 1;
 }
 
 .reflexa-voice-toggle-button--recording:hover:not(:disabled) {
@@ -2261,6 +2308,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .reflexa-voice-toggle-button__indicator {
@@ -2269,6 +2319,9 @@
   background: #ef4444;
   border-radius: 50%;
   animation: voicePulse 1s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 @keyframes voicePulse {
@@ -2288,6 +2341,9 @@
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Reduce motion support */
@@ -2295,6 +2351,12 @@
   .reflexa-voice-toggle-button__indicator {
   animation: none;
   opacity: 1;
+  background: #ef4444;
+}
+
+.reflexa-voice-toggle-button--reduce-motion.reflexa-voice-toggle-button--recording {
+  animation: none;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
 .reflexa-voice-toggle-button--reduce-motion:hover:not(:disabled) {
@@ -2308,7 +2370,13 @@
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .reflexa-voice-toggle-button {
-    transition: none;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .reflexa-voice-toggle-button::before {
+    transition: opacity 0.2s ease;
   }
 
   .reflexa-voice-toggle-button:hover:not(:disabled) {
@@ -2322,6 +2390,11 @@
   .reflexa-voice-toggle-button__indicator {
     animation: none;
   }
+
+  .reflexa-voice-toggle-button--recording {
+    animation: none;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  }
 }
 
 /* Responsive Design */
@@ -2329,6 +2402,8 @@
   .reflexa-voice-toggle-button {
     padding: 8px 14px;
     font-size: 13px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .reflexa-voice-toggle-button__icon {
@@ -2352,6 +2427,21 @@
   border-radius: var(--radius-full);
   font-family: var(--font-sans);
   user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+  animation: voiceIndicatorFadeIn 0.3s ease-in-out;
+}
+
+@keyframes voiceIndicatorFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .reflexa-voice-indicator-dot {
@@ -2360,6 +2450,23 @@
   background: #ef4444;
   border-radius: 50%;
   animation: voiceIndicatorPulse 1s ease-in-out infinite;
+  position: relative;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+/* Pulsing ring effect */
+.reflexa-voice-indicator-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: #ef4444;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: voiceIndicatorRing 1s ease-in-out infinite;
+  opacity: 0;
 }
 
 @keyframes voiceIndicatorPulse {
@@ -2367,19 +2474,37 @@
   100% {
     transform: scale(1);
     opacity: 1;
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
   }
   50% {
     transform: scale(1.2);
     opacity: 0.8;
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
   }
 }
 
+@keyframes voiceIndicatorRing {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Reduce motion alternative - static color with subtle glow */
 .reflexa-voice-indicator-dot.reduce-motion {
   animation: none;
   background: #ef4444;
   opacity: 1;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+}
+
+.reflexa-voice-indicator-dot.reduce-motion::before {
+  animation: none;
+  opacity: 0;
 }
 
 .reflexa-voice-indicator-text {
@@ -2387,12 +2512,24 @@
   font-weight: 500;
   color: #ef4444;
   line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.01em;
 }
 
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
+  .reflexa-voice-indicator {
+    animation: none;
+  }
+
   .reflexa-voice-indicator-dot {
     animation: none;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+  }
+
+  .reflexa-voice-indicator-dot::before {
+    animation: none;
+    opacity: 0;
   }
 }
 
@@ -2423,11 +2560,35 @@
   gap: 12px;
 }
 
-/* Recording state for textarea */
+/* Recording state for textarea with enhanced visual feedback */
 .reflexa-overlay__reflection-input--recording {
-  border-color: var(--color-accent);
+  border-color: rgba(14, 165, 233, 0.6);
   border-width: 2px;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow:
+    0 0 0 3px rgba(14, 165, 233, 0.1),
+    0 0 16px rgba(14, 165, 233, 0.15);
+  background: rgba(14, 165, 233, 0.03);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
+  animation: recordingBorderPulse 2s ease-in-out infinite;
+}
+
+@keyframes recordingBorderPulse {
+  0%,
+  100% {
+    border-color: rgba(14, 165, 233, 0.6);
+    box-shadow:
+      0 0 0 3px rgba(14, 165, 233, 0.1),
+      0 0 16px rgba(14, 165, 233, 0.15);
+  }
+  50% {
+    border-color: rgba(56, 189, 248, 0.7);
+    box-shadow:
+      0 0 0 4px rgba(14, 165, 233, 0.15),
+      0 0 20px rgba(14, 165, 233, 0.2);
+  }
 }
 
 /* Interim text display (hidden visually, used for screen readers) */
@@ -2443,6 +2604,45 @@
   border-width: 0;
 }
 
+/* Interim transcription styling within textarea */
+.reflexa-overlay__reflection-input--recording::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+  font-style: italic;
+}
+
+/* Visual indicator for interim text (applied via inline styles in component) */
+.reflexa-interim-transcription {
+  color: rgba(148, 163, 184, 0.7);
+  font-style: italic;
+  transition: color 0.3s ease;
+  animation: interimTextFadeIn 0.3s ease-in-out;
+}
+
+@keyframes interimTextFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Final transcription transition */
+.reflexa-final-transcription {
+  color: var(--color-calm-50);
+  font-style: normal;
+  animation: finalTextTransition 0.4s ease-in-out;
+}
+
+@keyframes finalTextTransition {
+  0% {
+    color: rgba(148, 163, 184, 0.7);
+  }
+  100% {
+    color: var(--color-calm-50);
+  }
+}
+
 /* Voice toggle button positioning */
 .reflexa-overlay__reflection-input-wrapper .reflexa-voice-toggle-button {
   flex-shrink: 0;
@@ -2453,4 +2653,49 @@
 .reflexa-overlay__reflection-input-wrapper .reflexa-overlay__reflection-input {
   flex: 1;
   min-width: 0;
+}
+
+/* Enhanced focus state when recording */
+.reflexa-overlay__reflection-input--recording:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow:
+    0 0 0 4px rgba(14, 165, 233, 0.15),
+    0 0 20px rgba(14, 165, 233, 0.25);
+}
+
+/* Ensure 4.5:1 contrast ratio for interim text */
+/* Gray color: rgba(148, 163, 184, 0.7) on dark background meets WCAG AA */
+/* Final text: var(--color-calm-50) ensures high contrast */
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .reflexa-overlay__reflection-input--recording {
+    animation: none;
+    border-color: rgba(14, 165, 233, 0.6);
+    box-shadow:
+      0 0 0 3px rgba(14, 165, 233, 0.1),
+      0 0 16px rgba(14, 165, 233, 0.15);
+  }
+
+  .reflexa-interim-transcription {
+    animation: none;
+  }
+
+  .reflexa-final-transcription {
+    animation: none;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reflexa-overlay__reflection-input-wrapper {
+    gap: 10px;
+  }
+
+  .reflexa-overlay__reflection-input--recording {
+    box-shadow:
+      0 0 0 2px rgba(14, 165, 233, 0.1),
+      0 0 12px rgba(14, 165, 233, 0.15);
+  }
 }

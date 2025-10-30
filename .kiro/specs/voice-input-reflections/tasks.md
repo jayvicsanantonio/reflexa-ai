@@ -159,48 +159,48 @@
     - Play cue for both manual and auto-stop
     - _Requirements: 1.4, 1.5_
 
-- [ ] 11. Add error handling and notifications
-  - [ ] 11.1 Implement browser support detection
+- [x] 11. Add error handling and notifications
+  - [x] 11.1 Implement browser support detection
     - Check for SpeechRecognition API availability
     - Hide voice button if not supported
     - No error message needed (graceful degradation)
     - _Requirements: 1.8_
 
-  - [ ] 11.2 Handle permission denied errors
+  - [x] 11.2 Handle permission denied errors
     - Display notification with permission request message
     - Provide link to browser settings
     - Allow retry after permission grant
     - _Requirements: 1.8_
 
-  - [ ] 11.3 Handle no speech detected errors
+  - [x] 11.3 Handle no speech detected errors
     - Set 10-second timeout for speech detection
     - Display notification if no speech detected
     - Auto-stop session and reset button state
     - _Requirements: 1.8_
 
-  - [ ] 11.4 Handle network and abort errors
+  - [x] 11.4 Handle network and abort errors
     - Catch network errors from SpeechRecognition
     - Display fallback notification to use typing
     - Preserve previously transcribed text
     - Log errors for debugging
     - _Requirements: 1.8_
 
-- [ ] 12. Add styling and animations
-  - [ ] 12.1 Style VoiceToggleButton component
+- [x] 12. Add styling and animations
+  - [x] 12.1 Style VoiceToggleButton component
     - Create button styles matching Reflexa aesthetic
     - Add pulsing animation for recording state
     - Implement hover and focus states
     - Ensure proper spacing and alignment
     - _Requirements: 2.1, 2.2, 2.7_
 
-  - [ ] 12.2 Style VoiceIndicator component
+  - [x] 12.2 Style VoiceIndicator component
     - Create pulsing dot animation with CSS
     - Style "Recording..." label
     - Position indicator appropriately
     - Add reduce motion alternative styles
     - _Requirements: 2.7_
 
-  - [ ] 12.3 Style interim results display
+  - [x] 12.3 Style interim results display
     - Add gray color for interim transcription text
     - Create smooth transition to final text color
     - Add visual border to input during recording
