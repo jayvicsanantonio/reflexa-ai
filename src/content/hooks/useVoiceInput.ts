@@ -66,6 +66,7 @@ export interface UseVoiceInputOptions {
   onStatusChange?: (status: VoiceInputStatus) => void;
   autoStopDelay?: number; // default 3000ms
   onTypingDetected?: () => void; // callback when typing is detected during recording
+  onAutoStop?: () => void; // callback when auto-stop is triggered
 }
 
 /**
@@ -98,6 +99,7 @@ export const useVoiceInput = (
     onStatusChange,
     autoStopDelay = 3000,
     onTypingDetected,
+    onAutoStop,
   } = options;
 
   // State management
@@ -182,11 +184,17 @@ export const useVoiceInput = (
     autoStopTimerRef.current = setTimeout(() => {
       if (recognitionRef.current && isRecording && !isStoppingRef.current) {
         isStoppingRef.current = true;
+
+        // Notify that auto-stop is triggered
+        if (onAutoStop) {
+          onAutoStop();
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         recognitionRef.current.stop();
       }
     }, autoStopDelay);
-  }, [autoStopDelay, isRecording, clearAutoStopTimer]);
+  }, [autoStopDelay, isRecording, clearAutoStopTimer, onAutoStop]);
 
   // Initialize SpeechRecognition instance
   useEffect(() => {

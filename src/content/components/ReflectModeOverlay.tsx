@@ -18,6 +18,7 @@ import type {
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
+import { AudioManager } from '../../utils/audioManager';
 import '../styles.css';
 
 /**
@@ -128,8 +129,11 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     { isRecording: false, interimText: '' },
   ]);
   const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
+  const [autoStopNotification, setAutoStopNotification] =
+    useState<boolean>(false);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const audioManagerRef = useRef<AudioManager | null>(null);
 
   // Track text segments with timestamps for chronological merging
   const textSegmentsRef = useRef<TextSegment[][]>([[], []]);
@@ -201,11 +205,26 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     console.log('Typing detected in field 0, pausing transcription');
   }, []);
 
+  const handleAutoStop0 = useCallback(() => {
+    console.log('Auto-stop triggered for field 0');
+
+    // Show notification
+    setAutoStopNotification(true);
+
+    // Play audio cue if sound is enabled
+    if (settings.enableSound && audioManagerRef.current) {
+      audioManagerRef.current.playCompletionBell().catch((err) => {
+        console.error('Failed to play auto-stop audio cue:', err);
+      });
+    }
+  }, [settings.enableSound]);
+
   const voiceInput0 = useVoiceInput({
     language: settings.preferredTranslationLanguage || navigator.language,
     onTranscript: handleTranscript0,
     onError: handleVoiceError0,
     onTypingDetected: handleTypingDetected0,
+    onAutoStop: handleAutoStop0,
     autoStopDelay: 3000,
   });
 
@@ -258,11 +277,26 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     console.log('Typing detected in field 1, pausing transcription');
   }, []);
 
+  const handleAutoStop1 = useCallback(() => {
+    console.log('Auto-stop triggered for field 1');
+
+    // Show notification
+    setAutoStopNotification(true);
+
+    // Play audio cue if sound is enabled
+    if (settings.enableSound && audioManagerRef.current) {
+      audioManagerRef.current.playCompletionBell().catch((err) => {
+        console.error('Failed to play auto-stop audio cue:', err);
+      });
+    }
+  }, [settings.enableSound]);
+
   const voiceInput1 = useVoiceInput({
     language: settings.preferredTranslationLanguage || navigator.language,
     onTranscript: handleTranscript1,
     onError: handleVoiceError1,
     onTypingDetected: handleTypingDetected1,
+    onAutoStop: handleAutoStop1,
     autoStopDelay: 3000,
   });
 
@@ -281,6 +315,18 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       await onFormatChange(format);
     }
   };
+
+  // Initialize audio manager
+  useEffect(() => {
+    audioManagerRef.current = new AudioManager(settings);
+    audioManagerRef.current.loadAudioFiles();
+
+    return () => {
+      if (audioManagerRef.current) {
+        audioManagerRef.current.cleanup();
+      }
+    };
+  }, [settings]);
 
   // Auto-focus first input on mount and announce to screen readers
   useEffect(() => {
@@ -778,6 +824,17 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             type="error"
             duration={5000}
             onClose={() => setVoiceError(null)}
+          />
+        )}
+
+        {/* Auto-Stop Notification */}
+        {autoStopNotification && (
+          <Notification
+            title="Voice Input Stopped"
+            message="Recording stopped after silence detected"
+            type="info"
+            duration={3000}
+            onClose={() => setAutoStopNotification(false)}
           />
         )}
       </div>

@@ -102,15 +102,15 @@
     - Maintain natural text flow between input modes
     - _Requirements: 1.6_
 
-- [ ] 6. Add auto-stop functionality
-  - [ ] 6.1 Implement silence detection and auto-stop
+- [x] 6. Add auto-stop functionality
+  - [x] 6.1 Implement silence detection and auto-stop
     - Configure auto-stop timer on speech end event
     - Stop recognition session after 3 seconds of silence
     - Finalize any pending interim results
     - Update button state to inactive
     - _Requirements: 1.5_
 
-  - [ ] 6.2 Add auto-stop notification
+  - [x] 6.2 Add auto-stop notification
     - Display brief notification when auto-stop triggers
     - Respect sound settings for audio cue
     - Update voice indicator state
