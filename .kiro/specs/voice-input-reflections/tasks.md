@@ -45,15 +45,15 @@
     - Ensure all visual feedback works without animation
     - _Requirements: 2.1, 2.7_
 
-- [ ] 3. Create VoiceIndicator component
-  - [ ] 3.1 Build visual recording indicator
+- [x] 3. Create VoiceIndicator component
+  - [x] 3.1 Build visual recording indicator
     - Create pulsing animation with 1-second cycle using CSS
     - Add "Recording..." text label
     - Implement positioning near microphone button
     - Add screen reader accessible label
     - _Requirements: 2.7_
 
-  - [ ] 3.2 Implement reduce motion alternative
+  - [x] 3.2 Implement reduce motion alternative
     - Add static color change for reduce motion mode
     - Ensure indicator remains visible without animation
     - Maintain 4.5:1 color contrast ratio
