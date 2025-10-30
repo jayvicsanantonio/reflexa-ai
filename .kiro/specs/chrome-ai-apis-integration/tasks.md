@@ -374,7 +374,7 @@
   - Display performance metrics in AI Status panel
   - _Requirements: 9.5, 11.2_
 
-- [ ] 24. Update content script to trigger language detection
+- [x] 24. Update content script to trigger language detection
   - Call detectLanguage when content is extracted
   - Pass detected language to Reflect Mode overlay
   - Cache language detection result per page

@@ -340,27 +340,32 @@ const initiateReflectionFlow = async () => {
     currentSummary = summaryResponse.data;
     console.log('Summary received:', currentSummary);
 
-    // Detect language if auto-detect is enabled
-    if (currentSettings?.autoDetectLanguage) {
-      console.log('Detecting language...');
-      try {
-        const languageResponse =
-          await sendMessageToBackground<LanguageDetection>({
-            type: 'detectLanguage',
-            payload: {
-              text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
-            },
-          });
-
-        if (languageResponse.success) {
-          currentLanguageDetection = languageResponse.data;
-          console.log('Language detected:', currentLanguageDetection);
-        } else {
-          console.warn('Language detection failed:', languageResponse.error);
+    // Detect language when content is extracted
+    // Pass page URL for per-page caching
+    console.log('Detecting language...');
+    try {
+      const languageResponse = await sendMessageToBackground<LanguageDetection>(
+        {
+          type: 'detectLanguage',
+          payload: {
+            text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
+            pageUrl: currentExtractedContent.url, // Pass URL for caching
+          },
         }
-      } catch (error) {
-        console.error('Error detecting language:', error);
+      );
+
+      if (languageResponse.success) {
+        currentLanguageDetection = languageResponse.data;
+        console.log('Language detected:', currentLanguageDetection);
+      } else {
+        console.warn('Language detection failed:', languageResponse.error);
+        // Don't block the flow if language detection fails
+        currentLanguageDetection = null;
       }
+    } catch (error) {
+      console.error('Error detecting language:', error);
+      // Don't block the flow if language detection fails
+      currentLanguageDetection = null;
     }
 
     // Request AI reflection prompts
