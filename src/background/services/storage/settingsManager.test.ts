@@ -56,6 +56,9 @@ describe('SettingsManager', () => {
         preferredTranslationLanguage: 'es',
         experimentalMode: false,
         autoDetectLanguage: true,
+        voiceInputEnabled: false,
+        voiceLanguage: 'es-ES',
+        voiceAutoStopDelay: 5000,
       };
 
       mockStorage.set('settings', customSettings);
@@ -208,6 +211,94 @@ describe('SettingsManager', () => {
       await settingsManager.updateSettings({ dwellThreshold: 350 });
       const settings = await settingsManager.getSettings();
       expect(settings.dwellThreshold).toBe(DEFAULT_SETTINGS.dwellThreshold);
+    });
+  });
+
+  describe('voice input settings validation', () => {
+    it('should validate voiceInputEnabled as boolean', async () => {
+      await settingsManager.updateSettings({ voiceInputEnabled: true });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceInputEnabled).toBe(true);
+    });
+
+    it('should fix invalid voiceInputEnabled type', async () => {
+      const invalidSettings = {
+        ...DEFAULT_SETTINGS,
+        voiceInputEnabled: 'yes' as any,
+      };
+      mockStorage.set('settings', invalidSettings);
+      settingsManager.invalidateCache();
+
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceInputEnabled).toBe(
+        DEFAULT_SETTINGS.voiceInputEnabled
+      );
+    });
+
+    it('should accept valid voiceLanguage string', async () => {
+      await settingsManager.updateSettings({ voiceLanguage: 'en-US' });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceLanguage).toBe('en-US');
+    });
+
+    it('should accept undefined voiceLanguage', async () => {
+      await settingsManager.updateSettings({ voiceLanguage: undefined });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceLanguage).toBeUndefined();
+    });
+
+    it('should fix invalid voiceLanguage type', async () => {
+      const invalidSettings = {
+        ...DEFAULT_SETTINGS,
+        voiceLanguage: 123 as any,
+      };
+      mockStorage.set('settings', invalidSettings);
+      settingsManager.invalidateCache();
+
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceLanguage).toBe(DEFAULT_SETTINGS.voiceLanguage);
+    });
+
+    it('should accept minimum voiceAutoStopDelay', async () => {
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 1000 });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceAutoStopDelay).toBe(1000);
+    });
+
+    it('should accept maximum voiceAutoStopDelay', async () => {
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 10000 });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceAutoStopDelay).toBe(10000);
+    });
+
+    it('should reject voiceAutoStopDelay below minimum', async () => {
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 500 });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceAutoStopDelay).toBe(
+        DEFAULT_SETTINGS.voiceAutoStopDelay
+      );
+    });
+
+    it('should reject voiceAutoStopDelay above maximum', async () => {
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 15000 });
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceAutoStopDelay).toBe(
+        DEFAULT_SETTINGS.voiceAutoStopDelay
+      );
+    });
+
+    it('should fix invalid voiceAutoStopDelay type', async () => {
+      const invalidSettings = {
+        ...DEFAULT_SETTINGS,
+        voiceAutoStopDelay: '3000' as any,
+      };
+      mockStorage.set('settings', invalidSettings);
+      settingsManager.invalidateCache();
+
+      const settings = await settingsManager.getSettings();
+      expect(settings.voiceAutoStopDelay).toBe(
+        DEFAULT_SETTINGS.voiceAutoStopDelay
+      );
     });
   });
 });

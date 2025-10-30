@@ -116,6 +116,28 @@ export class SettingsManager {
       validated.privacyMode = DEFAULT_SETTINGS.privacyMode;
     }
 
+    // Validate voiceInputEnabled (boolean)
+    if (typeof validated.voiceInputEnabled !== 'boolean') {
+      validated.voiceInputEnabled = DEFAULT_SETTINGS.voiceInputEnabled;
+    }
+
+    // Validate voiceLanguage (string or undefined)
+    if (
+      validated.voiceLanguage !== undefined &&
+      typeof validated.voiceLanguage !== 'string'
+    ) {
+      validated.voiceLanguage = DEFAULT_SETTINGS.voiceLanguage;
+    }
+
+    // Validate voiceAutoStopDelay (number, 1000-10000ms)
+    if (
+      typeof validated.voiceAutoStopDelay !== 'number' ||
+      validated.voiceAutoStopDelay < 1000 ||
+      validated.voiceAutoStopDelay > 10000
+    ) {
+      validated.voiceAutoStopDelay = DEFAULT_SETTINGS.voiceAutoStopDelay;
+    }
+
     return validated;
   }
 

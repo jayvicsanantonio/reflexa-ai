@@ -207,8 +207,8 @@
     - Ensure 4.5:1 contrast ratio
     - _Requirements: 1.3, 2.7_
 
-- [ ] 13. Update Settings type and UI
-  - [ ] 13.1 Extend Settings type with voice options
+- [-] 13. Update Settings type and UI
+  - [x] 13.1 Extend Settings type with voice options
     - Add voiceInputEnabled boolean field (default true)
     - Add voiceLanguage string field (default browser language)
     - Add voiceAutoStopDelay number field (default 3000ms)
