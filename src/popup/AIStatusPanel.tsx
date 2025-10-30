@@ -6,7 +6,6 @@ interface AIStatusPanelProps {
   usageStats: UsageStats;
   experimentalMode: boolean;
   performanceStats?: PerformanceStats;
-  onRefresh?: () => void;
 }
 
 interface PerformanceStats {
@@ -51,24 +50,8 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
   usageStats,
   experimentalMode,
   performanceStats,
-  onRefresh,
 }) => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Handle refresh button click
-  const handleRefresh = () => {
-    if (isRefreshing || !onRefresh) return;
-
-    setIsRefreshing(true);
-
-    // Call onRefresh and handle as promise
-    void Promise.resolve(onRefresh()).finally(() => {
-      // Reset refreshing state after animation
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 600);
-    });
-  };
+  const [showSetupModal, setShowSetupModal] = useState(false);
 
   // Calculate total AI operations
   const totalOperations =
@@ -175,16 +158,15 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
           </div>
         </div>
 
-        {/* Refresh Button */}
+        {/* Setup Info Button */}
         <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="text-calm-600 hover:bg-calm-100 hover:text-calm-900 focus-visible:outline-zen-500 rounded-md p-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-          aria-label="Refresh AI capabilities"
-          title="Refresh AI capabilities"
+          onClick={() => setShowSetupModal(true)}
+          className="text-calm-600 hover:bg-calm-100 hover:text-calm-900 focus-visible:outline-zen-500 rounded-md p-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-label="View setup instructions"
+          title="View setup instructions"
         >
           <svg
-            className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -192,10 +174,235 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2" />
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
           </svg>
         </button>
       </div>
+
+      {/* Setup Instructions Modal */}
+      {showSetupModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowSetupModal(false)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="border-calm-200 sticky top-0 flex items-center justify-between border-b bg-white p-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-zen-100 flex h-10 w-10 items-center justify-center rounded-full">
+                  <svg
+                    className="text-zen-600 h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-display text-calm-900 text-lg font-semibold">
+                    Enable Chrome AI APIs
+                  </h2>
+                  <p className="text-calm-500 text-xs">
+                    One-time setup required
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSetupModal(false)}
+                className="text-calm-400 hover:text-calm-600 rounded-md p-1 transition-colors"
+                aria-label="Close modal"
+              >
+                <svg
+                  className="h-6 w-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="space-y-6 p-6">
+              {/* Introduction */}
+              <div className="bg-zen-50 border-zen-200 rounded-lg border p-4">
+                <p className="text-calm-700 text-sm leading-relaxed">
+                  All Reflexa AI features are powered by Chrome's Built-in AI
+                  APIs (Gemini Nano). You need to enable these flags once to
+                  unlock all features.
+                </p>
+              </div>
+
+              {/* Base AI Model */}
+              <div>
+                <h3 className="text-calm-900 mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="bg-zen-600 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white">
+                    1
+                  </span>
+                  Base AI Model (Required)
+                </h3>
+                <div className="bg-calm-50 rounded-lg p-4">
+                  <p className="text-calm-600 mb-2 text-xs">
+                    Navigate to this Chrome flag:
+                  </p>
+                  <code className="bg-calm-100 text-calm-900 border-calm-200 block rounded border p-2 text-xs">
+                    chrome://flags/#optimization-guide-on-device-model
+                  </code>
+                  <p className="text-calm-600 mt-2 text-xs">
+                    Set to:{' '}
+                    <span className="text-calm-900 font-semibold">
+                      "Enabled BypassPerfRequirement"
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Core APIs */}
+              <div>
+                <h3 className="text-calm-900 mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="bg-zen-600 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white">
+                    2
+                  </span>
+                  Core APIs
+                </h3>
+                <div className="space-y-2">
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#prompt-api-for-gemini-nano
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#summarization-api-for-gemini-nano
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Writing Assistance APIs */}
+              <div>
+                <h3 className="text-calm-900 mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="bg-zen-600 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white">
+                    3
+                  </span>
+                  Writing Assistance APIs
+                </h3>
+                <div className="space-y-2">
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#writer-api
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#rewriter-api
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#proofreader-api
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Translation APIs */}
+              <div>
+                <h3 className="text-calm-900 mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <span className="bg-zen-600 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white">
+                    4
+                  </span>
+                  Translation APIs
+                </h3>
+                <div className="space-y-2">
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#translator-api
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                  <div className="bg-calm-50 rounded-lg p-3">
+                    <code className="text-calm-900 block text-xs">
+                      chrome://flags/#language-detection-api
+                    </code>
+                    <p className="text-calm-600 mt-1 text-xs">
+                      Set to: <span className="font-semibold">"Enabled"</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Final Step */}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <div>
+                    <p className="mb-1 text-sm font-semibold text-amber-900">
+                      Important: Restart Chrome
+                    </p>
+                    <p className="text-xs leading-relaxed text-amber-800">
+                      After enabling all flags, you must completely restart
+                      Chrome for the changes to take effect. Close all Chrome
+                      windows and reopen the browser.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-calm-200 sticky bottom-0 border-t bg-white p-6">
+              <button
+                onClick={() => setShowSetupModal(false)}
+                className="bg-zen-600 hover:bg-zen-700 focus-visible:outline-zen-500 w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Experimental Mode Badge */}
       {experimentalMode && (
@@ -506,8 +713,7 @@ export const AIStatusPanel = React.memo(
       prevProps.performanceStats?.totalOperations ===
         nextProps.performanceStats?.totalOperations &&
       prevProps.performanceStats?.averageResponseTime ===
-        nextProps.performanceStats?.averageResponseTime &&
-      prevProps.onRefresh === nextProps.onRefresh
+        nextProps.performanceStats?.averageResponseTime
     );
   }
 );

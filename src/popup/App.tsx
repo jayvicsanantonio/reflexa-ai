@@ -174,11 +174,6 @@ export const App: React.FC = () => {
     [experimentalMode]
   );
 
-  // Handle refresh capabilities
-  const handleRefreshCapabilities = useCallback(() => {
-    void loadAIData(true);
-  }, [loadAIData]);
-
   // Load data from storage on mount
   useEffect(() => {
     const loadData = async () => {
@@ -468,7 +463,6 @@ export const App: React.FC = () => {
             capabilities={aiCapabilities}
             usageStats={usageStats}
             experimentalMode={experimentalMode}
-            onRefresh={handleRefreshCapabilities}
           />
 
           {/* Reflection List */}
