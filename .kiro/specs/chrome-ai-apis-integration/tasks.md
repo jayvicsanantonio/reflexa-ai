@@ -407,7 +407,7 @@
   - Test settings persistence for new AI options
   - _Requirements: 2.1, 2.2, 4.1, 4.2, 5.1, 5.2, 6.1, 7.1, 11.1_
 
-- [ ]* 28. Create API mock tests
+- [x] 28. Create API mock tests
   - Mock responses for each Chrome AI API
   - Simulate API unavailability scenarios
   - Test Prompt API fallback behavior
