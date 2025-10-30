@@ -1,8 +1,8 @@
 # 🌿 Product Requirements Document (PRD)
 
-**Project Name:** Reflexa AI — Mindful Knowledge Companion  
-**Version:** 1.0  
-**Date:** 2025-10-26  
+**Project Name:** Reflexa AI — Mindful Knowledge Companion
+**Version:** 1.0
+**Date:** 2025-10-26
 **Scope:** 5-Day Hackathon Build
 
 ---
@@ -11,7 +11,7 @@
 
 ### 1.1 Purpose
 
-Reflexa AI is a **wellness-centered Chrome Extension** that transforms everyday reading into calm, reflective micro-sessions.  
+Reflexa AI is a **wellness-centered Chrome Extension** that transforms everyday reading into calm, reflective micro-sessions.
 It helps users **absorb more, stress less**, and **remember what matters** through guided reflection, summarization, and focus tracking — all powered by **Chrome’s Gemini Nano AI**.
 
 ### 1.2 Core Value
@@ -61,9 +61,9 @@ Users often read endlessly but forget key takeaways. Reflexa AI turns reading in
 | **1. Dwell Detection**         | User reads an article for ≥ N seconds                       | Content script tracks dwell time              |
 | **2. Reflect Nudge**           | Gentle “Reflect?” lotus icon pulses                         | User clicks or ignores                        |
 | **3. Reflect Mode Activation** | Overlay opens with breathing orb animation                  | Page dims, ambient chime plays                |
-| **4. AI Summary Generation**   | Gemini Nano summarizes visible text                         | Outputs 3 bullets: Insight / Surprise / Apply |
-| **5. Reflection Coaching**     | Gemini Nano asks 2 reflection questions                     | User answers directly in overlay              |
-| **6. Proofread (Optional)**    | Gemini Nano polishes reflection text                        | User-triggered                                |
+| **4. AI Summary Generation**   | Chrome Built-in AI APIs summarize visible text              | Outputs 3 bullets: Insight / Surprise / Apply |
+| **5. Reflection Coaching**     | Chrome Built-in AI APIs ask 2 reflection questions          | User answers directly in overlay              |
+| **6. Proofread (Optional)**    | Chrome Built-in AI APIs polish reflection text              | User-triggered                                |
 | **7. Save & Link**             | Reflection stored locally, optionally linked via embeddings | User can revisit in Dashboard                 |
 | **8. Dashboard Review**        | Popup UI shows past reflections, streak stats               | Calm visual metrics display                   |
 
@@ -78,7 +78,7 @@ Users often read endlessly but forget key takeaways. Reflexa AI turns reading in
 |                            | Side Nudge Icon         | Floating lotus; fades in gently                               | ✅ Core     |
 | **AI Capabilities**        | 3-Bullet Summarization  | “Insight / Surprise / Apply” bullets                          | ✅ Core     |
 |                            | 2 Reflection Prompts    | Coaching-style prompts for application                        | ✅ Core     |
-|                            | Proofreading            | Gemini Nano lightly edits grammar                             | 🟡 Optional |
+|                            | Proofreading            | Chrome Built-in AI APIs lightly edit grammar                  | 🟡 Optional |
 |                            | Embedding-based Linking | Suggests related reflections (semantic match)                 | 🟡 Optional |
 | **Data & Storage**         | Local Reflection Log    | Chrome storage API for reflections                            | ✅ Core     |
 |                            | Sync Option             | Chrome storage sync for cloud continuity                      | 🟡 Optional |
@@ -91,14 +91,17 @@ Users often read endlessly but forget key takeaways. Reflexa AI turns reading in
 
 ---
 
-## 6. AI Integration (Gemini Nano)
+## 6. Chrome Built-in AI APIs Integration
 
-| Function                   | API                                  | Description                                 |
-| -------------------------- | ------------------------------------ | ------------------------------------------- |
-| **Summarizer**             | `chrome.aiOriginTrial` (Gemini Nano) | 3-bullet output: Insight / Surprise / Apply |
-| **Reflection Coach**       | `chrome.aiOriginTrial`               | Two concise reflection questions            |
-| **Proofreader (Optional)** | `chrome.aiOriginTrial`               | Refines grammar on demand                   |
-| **Embedding Generator**    | Local model (if available)           | Vector for semantic linking                 |
+| Function                 | API                   | Global Object      | Description                                 |
+| ------------------------ | --------------------- | ------------------ | ------------------------------------------- |
+| **Summarization**        | Summarizer API        | `Summarizer`       | 3-bullet output: Insight / Surprise / Apply |
+| **Reflection Prompting** | Prompt API            | `LanguageModel`    | Two concise reflection questions            |
+| **Content Generation**   | Writer API            | `Writer`           | Draft reflective paragraphs                 |
+| **Text Improvement**     | Rewriter API          | `Rewriter`         | Refine tone and clarity                     |
+| **Proofreading**         | Proofreader API       | `Proofreader`      | Fix grammar and spelling                    |
+| **Translation**          | Translator API        | `Translator`       | Translate to user's language                |
+| **Language Detection**   | Language Detector API | `LanguageDetector` | Auto-detect page language                   |
 
 **Example AI Prompts:**
 
@@ -123,7 +126,7 @@ User Reading → Content Script (monitor dwell)
 
 ### 7.2 Chrome APIs Used
 
-- `chrome.aiOriginTrial` → Gemini Nano AI access
+- Chrome Built-in AI APIs → Gemini Nano AI access
 - `chrome.storage.local` / `.sync` → persistence
 - `chrome.scripting.executeScript()` → DOM extraction
 - `chrome.offscreen.createDocument()` → optional AI sandbox
@@ -172,13 +175,13 @@ type Settings = {
 
 ## 10. Milestones & 5-Day Build Plan
 
-| Day       | Focus                    | Deliverables                                                            |
-| --------- | ------------------------ | ----------------------------------------------------------------------- |
-| **Day 1** | Setup                    | Repo, manifest, base React app, Tailwind theme, content script scaffold |
-| **Day 2** | Core Detection & Overlay | Dwell timer, nudge icon, breathing orb overlay                          |
-| **Day 3** | Gemini Nano Integration  | AI summary + reflection prompts                                         |
-| **Day 4** | Storage + Dashboard      | Save reflections, view history, streak counter                          |
-| **Day 5** | Enhancements             | Proofreader, export, linking, final polish & demo video                 |
+| Day       | Focus                               | Deliverables                                                            |
+| --------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| **Day 1** | Setup                               | Repo, manifest, base React app, Tailwind theme, content script scaffold |
+| **Day 2** | Core Detection & Overlay            | Dwell timer, nudge icon, breathing orb overlay                          |
+| **Day 3** | Chrome Built-in AI APIs Integration | AI summary + reflection prompts                                         |
+| **Day 4** | Storage + Dashboard                 | Save reflections, view history, streak counter                          |
+| **Day 5** | Enhancements                        | Proofreader, export, linking, final polish & demo video                 |
 
 ---
 

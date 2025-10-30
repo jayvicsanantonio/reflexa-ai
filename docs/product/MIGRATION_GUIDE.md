@@ -120,26 +120,23 @@ unifiedAI.destroyAll();
 
 ## Updated Documentation
 
-### New Guides
+### Chrome AI APIs Documentation
 
-- [Gemini Nano APIs Guide](./GEMINI_NANO_APIS_GUIDE.md) - Comprehensive guide for all 6 APIs
-- [Quick Start Guide](./examples/QUICK_START_NEW_APIS.md) - Quick start examples
-- [Integration Example](./examples/INTEGRATION_EXAMPLE.md) - Full integration example
+For comprehensive documentation on all Chrome Built-in AI APIs, see:
 
-### Updated Files
+- [Chrome AI APIs Documentation](../development/chrome-apis/README.md) - Main documentation hub
+- [Documentation Index](../development/chrome-apis/INDEX.md) - Complete index of all API docs
+- [All APIs Integration Status](../development/chrome-apis/ALL_APIS_INTEGRATION_STATUS.md) - Current status
 
-- API_REFERENCE.md - Updated with all new managers
-- ARCHITECTURE.md - Updated architecture diagrams
+### Individual API Quick References
 
-### Outdated Files
-
-The following files still reference `AIManager` and need updates:
-
-- docs/PROMPT_API_UPDATE_GUIDE.md
-- docs/API_CORRECTIONS_SUMMARY.md
-- docs/DOCUMENTATION_UPDATE_COMPLETE.md
-
-These are historical documents and can be referenced for context, but use the new guides for current development.
+- [Writer API Quick Reference](../development/chrome-apis/WRITER_API_QUICK_REFERENCE.md)
+- [Rewriter API Quick Reference](../development/chrome-apis/REWRITER_API_QUICK_REFERENCE.md)
+- [Proofreader API Corrections](../development/chrome-apis/PROOFREADER_API_CORRECTIONS.md)
+- [Summarizer API Quick Reference](../development/chrome-apis/SUMMARIZER_API_QUICK_REFERENCE.md)
+- [Translator API Quick Reference](../development/chrome-apis/TRANSLATOR_API_QUICK_REFERENCE.md)
+- [Language Detector API Quick Reference](../development/chrome-apis/LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md)
+- [Prompt API Quick Reference](../development/chrome-apis/PROMPT_API_QUICK_REFERENCE.md)
 
 ## Testing
 
@@ -172,12 +169,12 @@ A: No, the functionality is identical. Only the name changed.
 
 ### Q: What about the other APIs?
 
-A: See the [Gemini Nano APIs Guide](./GEMINI_NANO_APIS_GUIDE.md) for comprehensive documentation on all available APIs.
+A: See the [Chrome AI APIs Documentation](../development/chrome-apis/README.md) for comprehensive documentation on all available APIs.
 
 ## Support
 
 For questions or issues:
 
-- Check the [Gemini Nano APIs Guide](./GEMINI_NANO_APIS_GUIDE.md)
-- Review [Integration Examples](./examples/INTEGRATION_EXAMPLE.md)
-- See [Quick Start Guide](./examples/QUICK_START_NEW_APIS.md)
+- Check the [Chrome AI APIs Documentation](../development/chrome-apis/README.md)
+- Review the [Documentation Index](../development/chrome-apis/INDEX.md)
+- See individual API quick references in `docs/development/chrome-apis/`

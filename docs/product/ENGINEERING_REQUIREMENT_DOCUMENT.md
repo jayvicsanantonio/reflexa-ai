@@ -1,8 +1,8 @@
 # ⚙️ Engineering Requirements Document (ERD)
 
-**Project:** Reflexa AI — Mindful Knowledge Companion  
-**Version:** 1.0  
-**Date:** 2025-10-26  
+**Project:** Reflexa AI — Mindful Knowledge Companion
+**Version:** 1.0
+**Date:** 2025-10-26
 **Scope:** 5-Day Hackathon Build
 
 ---
@@ -11,13 +11,13 @@
 
 ### 1.1 Purpose
 
-This document defines the **engineering blueprint** for the Reflexa AI Chrome Extension.  
-It translates the PRD and Design System into concrete technical requirements and implementation guidance for developers.  
+This document defines the **engineering blueprint** for the Reflexa AI Chrome Extension.
+It translates the PRD and Design System into concrete technical requirements and implementation guidance for developers.
 It also justifies architectural choices, trade-offs, and limitations.
 
 ### 1.2 Summary
 
-Reflexa AI is a **mindfulness and retention-focused Chrome Extension** powered by **Gemini Nano**, Chrome’s built-in AI model.  
+Reflexa AI is a **mindfulness and retention-focused Chrome Extension** powered by **Gemini Nano**, Chrome’s built-in AI model.
 It detects when a user has been focused on a webpage for a while, gently invites them to reflect, summarizes the page, and records key takeaways in a calming “Reflect Mode.”
 
 ### 1.3 Engineering Goals
@@ -38,7 +38,7 @@ User Reading → Content Script (detect dwell time & extract DOM)
     ↓
 Background Service Worker (AI orchestrator, storage)
     ↓
-Gemini Nano via chrome.aiOriginTrial (Summarize, Reflect, Proofread)
+Chrome Built-in AI APIs (Summarizer, LanguageModel, Proofreader, Writer, Rewriter, Translator, LanguageDetector)
     ↓
 Reflect Overlay (UI injection on page)
     ↓
@@ -49,38 +49,38 @@ Popup Dashboard (history, streaks, related reflections)
 
 ### 2.2 Core Modules
 
-| Module                            | Role                                                                     | Key Dependencies                                           |
-| --------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| **Manifest (MV3)**                | Registers permissions, declares service worker and content scripts       | Chrome Extension Manifest v3                               |
-| **Background Service Worker**     | Mediates AI calls, manages reflection data, syncs settings               | `chrome.runtime`, `chrome.storage`, `chrome.aiOriginTrial` |
-| **Content Script**                | Injects Reflect Mode overlay, monitors user dwell time                   | `chrome.scripting`, React for UI                           |
-| **Popup (Dashboard)**             | Displays reflections, metrics, and streaks                               | React + Tailwind                                           |
-| **Options Page**                  | User settings for sound, motion, privacy                                 | Chrome Storage API                                         |
-| **Offscreen Document (optional)** | Isolated AI runtime if Gemini Nano session must run outside page context | `chrome.offscreen.createDocument()`                        |
+| Module                            | Role                                                               | Key Dependencies                                            |
+| --------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+| **Manifest (MV3)**                | Registers permissions, declares service worker and content scripts | Chrome Extension Manifest v3                                |
+| **Background Service Worker**     | Mediates AI calls, manages reflection data, syncs settings         | `chrome.runtime`, `chrome.storage`, Chrome Built-in AI APIs |
+| **Content Script**                | Injects Reflect Mode overlay, monitors user dwell time             | `chrome.scripting`, React for UI                            |
+| **Popup (Dashboard)**             | Displays reflections, metrics, and streaks                         | React + Tailwind                                            |
+| **Options Page**                  | User settings for sound, motion, privacy                           | Chrome Storage API                                          |
+| **Offscreen Document (optional)** | Isolated AI runtime if AI session must run outside page context    | `chrome.offscreen.createDocument()`                         |
 
 ---
 
 ## 3. Technology Stack
 
-| Layer            | Tech                                 | Reason                                          |
-| ---------------- | ------------------------------------ | ----------------------------------------------- |
-| **Framework**    | React + TypeScript                   | Componentized, fast iteration, type safety      |
-| **Styling**      | Tailwind CSS                         | Rapid prototyping with consistent design tokens |
-| **Animations**   | Framer Motion                        | Smooth transitions & breathing orb effects      |
-| **AI**           | Gemini Nano (`chrome.aiOriginTrial`) | On-device summarization, reflection, proofing   |
-| **Storage**      | Chrome Storage API (local / sync)    | Native, lightweight persistence                 |
-| **Build System** | Vite                                 | Modern bundler, fast rebuilds, MV3 compatible   |
-| **Testing**      | Vitest + Playwright                  | Unit & UI validation                            |
-| **Audio**        | Web Audio API                        | Ambient sound control                           |
-| **Icons**        | Lucide Icons                         | Thin, minimal SVG icon set                      |
+| Layer            | Tech                                  | Reason                                          |
+| ---------------- | ------------------------------------- | ----------------------------------------------- |
+| **Framework**    | React + TypeScript                    | Componentized, fast iteration, type safety      |
+| **Styling**      | Tailwind CSS                          | Rapid prototyping with consistent design tokens |
+| **Animations**   | Framer Motion                         | Smooth transitions & breathing orb effects      |
+| **AI**           | Chrome Built-in AI APIs (Gemini Nano) | On-device summarization, reflection, proofing   |
+| **Storage**      | Chrome Storage API (local / sync)     | Native, lightweight persistence                 |
+| **Build System** | Vite                                  | Modern bundler, fast rebuilds, MV3 compatible   |
+| **Testing**      | Vitest + Playwright                   | Unit & UI validation                            |
+| **Audio**        | Web Audio API                         | Ambient sound control                           |
+| **Icons**        | Lucide Icons                          | Thin, minimal SVG icon set                      |
 
 ---
 
 ## 4. API Usage & AI Integration
 
-### 4.1 Gemini Nano (Built-In AI)
+### 4.1 Chrome Built-in AI APIs (Powered by Gemini Nano)
 
-Gemini Nano is the **core intelligence engine** of the extension. It runs locally on the user’s machine, enabling **zero network dependence** and instant inference.
+Chrome's Built-in AI APIs, powered by Gemini Nano, are the **core intelligence engine** of the extension. It runs locally on the user’s machine, enabling **zero network dependence** and instant inference.
 
 #### Pros:
 
@@ -94,7 +94,7 @@ Gemini Nano is the **core intelligence engine** of the extension. It runs locall
 - ⚠️ Requires Chrome Canary or supported builds (initially)
 - ⚠️ Unavailable on older systems
 
-#### Tasks Powered by Gemini Nano
+#### Available Chrome Built-in AI APIs
 
 | Task                        | Prompt Example                                                              | Output                        |
 | --------------------------- | --------------------------------------------------------------------------- | ----------------------------- |
@@ -105,17 +105,47 @@ Gemini Nano is the **core intelligence engine** of the extension. It runs locall
 
 ---
 
-### 4.2 Chrome APIs Used
+### 4.2 Chrome Extension APIs Used
 
 | API                                 | Purpose                       | Notes                              |
 | ----------------------------------- | ----------------------------- | ---------------------------------- |
-| `chrome.aiOriginTrial`              | Gemini Nano integration       | Local AI inference                 |
 | `chrome.scripting.executeScript()`  | Extract visible DOM text      | Runs securely per-page             |
 | `chrome.storage.local`              | Persist reflections           | Local-only privacy                 |
 | `chrome.storage.sync`               | Sync optional reflections     | Requires explicit opt-in           |
 | `chrome.offscreen.createDocument()` | Optional isolated AI context  | Ensures stability in background SW |
 | `chrome.runtime.sendMessage()`      | Communication between scripts | Used for event propagation         |
 | `chrome.sidePanel`                  | Optional secondary interface  | Future alternate UI mode           |
+
+### 4.3 Chrome Built-in AI API Access Pattern
+
+All Chrome Built-in AI APIs are accessed via global objects:
+
+```typescript
+// Feature detection
+if ('Summarizer' in self) {
+  const summarizer = await Summarizer.create();
+  const summary = await summarizer.summarize(text);
+  summarizer.destroy();
+}
+
+if ('LanguageModel' in self) {
+  const session = await LanguageModel.create();
+  const response = await session.prompt('Generate reflection questions');
+  session.destroy();
+}
+
+if ('Writer' in self) {
+  const writer = await Writer.create({ tone: 'neutral', length: 'medium' });
+  const draft = await writer.write('Write about mindfulness');
+  writer.destroy();
+}
+
+if ('Proofreader' in self) {
+  const proofreader = await Proofreader.create();
+  const result = await proofreader.proofread(text);
+  proofreader.destroy();
+}
+```
 
 ---
 
@@ -157,7 +187,7 @@ type Settings = {
 | ---- | --------------------------------------------- | ------------------------------------------ |
 | FR-1 | Detect dwell time ≥ N seconds on readable DOM | Ensures reflection triggered intentionally |
 | FR-2 | Extract article title + text                  | Provides AI with clean context             |
-| FR-3 | Call Gemini Nano summarizer                   | Generate 3 actionable takeaways            |
+| FR-3 | Call Chrome Built-in AI APIs for processing   | Generate 3 actionable takeaways            |
 | FR-4 | Show breathing overlay with summary + prompts | Core meditative UX                         |
 | FR-5 | Save reflections locally                      | Enables history dashboard                  |
 | FR-6 | Optionally proofread reflection               | Improve clarity and retention              |
@@ -185,7 +215,7 @@ type Settings = {
 ### 8.1 Prerequisites
 
 - Node.js 18+
-- Chrome Canary (Gemini Nano enabled)
+- Chrome 137+ (with Built-in AI APIs enabled)
 - pnpm or npm 9+
 
 ### 8.2 Local Setup
@@ -250,8 +280,8 @@ browse-reflect/
 
 - **Input:** Extract main readable DOM content (ignore ads/nav).
 - **Pre-processing:** Strip HTML, truncate to 2–3k tokens.
-- **Summarization:** Gemini Nano → 3 bullets (“Insight, Surprise, Apply”).
-- **Prompting:** Gemini Nano → 2 reflective questions.
+- **Summarization:** `Summarizer` API → 3 bullets (“Insight, Surprise, Apply”).
+- **Prompting:** `LanguageModel` API → 2 reflective questions.
 - **Post-processing:** Display + store in Chrome storage.
 
 **Reasoning:**
@@ -285,7 +315,7 @@ Mitigation: fallback modal (`chrome.sidePanel`).
 
 | Scenario                                | Handling                                                       | Reason                |
 | --------------------------------------- | -------------------------------------------------------------- | --------------------- |
-| Gemini Nano unavailable                 | Show modal: “Local AI disabled — manual reflection available.” | Graceful fallback     |
+| Chrome Built-in AI unavailable          | Show modal: “Local AI disabled — manual reflection available.” | Graceful fallback     |
 | Large text input (> 3k tokens)          | Auto-truncate and notify                                       | Prevents model crash  |
 | AI failure (timeout / invalid response) | Retry once → fallback heuristic summary                        | Reliability           |
 | Storage full                            | Prompt user to export older reflections                        | Safety & transparency |
@@ -299,7 +329,7 @@ Mitigation: fallback modal (`chrome.sidePanel`).
 | ----------------- | ------------------- | --------------------------------------- |
 | **Unit**          | Vitest              | Validate logic of dwell timer, storage  |
 | **UI Snapshot**   | Playwright          | Validate overlay layout and transitions |
-| **AI Mock Tests** | Jest + Mocks        | Simulate Gemini Nano responses          |
+| **AI Mock Tests** | Jest + Mocks        | Simulate Chrome Built-in AI responses   |
 | **Performance**   | Lighthouse          | Check FPS, memory                       |
 | **Accessibility** | AXE + manual review | Confirm WCAG AA compliance              |
 
@@ -328,7 +358,7 @@ npm run zip
 
 | Risk                                            | Impact | Mitigation                         |
 | ----------------------------------------------- | ------ | ---------------------------------- |
-| Gemini Nano unsupported in some Chrome versions | High   | Provide fallback manual reflection |
+| Chrome Built-in AI unsupported in some versions | High   | Provide fallback manual reflection |
 | Extension injection blocked by page CSP         | Medium | SidePanel fallback                 |
 | Audio/motion sensitivity                        | Medium | User toggles for accessibility     |
 | Performance issues on long articles             | Low    | Text truncation & batching         |
@@ -338,13 +368,14 @@ npm run zip
 
 ## 15. Trade-offs and Design Rationale
 
-| Decision                             | Pros                          | Cons                 | Rationale                     |
-| ------------------------------------ | ----------------------------- | -------------------- | ----------------------------- |
-| **On-device AI (Gemini Nano)**       | Privacy, offline, low latency | Model size limits    | Prioritize user trust         |
-| **Overlay UI instead of side panel** | Emotional immersion, Zen vibe | Slightly intrusive   | Matches mindfulness UX        |
-| **React + Tailwind**                 | Fast iteration                | Bundle size ↑        | Hackathon speed advantage     |
-| **Local storage**                    | Simplicity                    | No cross-device sync | Privacy-first by default      |
-| **Framer Motion**                    | Beautiful animations          | Adds dependency      | Reinforces calmness aesthetic |
+| Decision                                       | Pros                          | Cons                 | Rationale                     |
+| ---------------------------------------------- | ----------------------------- | -------------------- | ----------------------------- |
+| **Chrome Built-in AI APIs (Gemini Nano)**      | Privacy, offline, low latency | Model size limits    | Prioritize user trust         |
+| **Multiple specialized APIs vs single Prompt** | Better results per task       | More complexity      | Quality over simplicity       |
+| **Overlay UI instead of side panel**           | Emotional immersion, Zen vibe | Slightly intrusive   | Matches mindfulness UX        |
+| **React + Tailwind**                           | Fast iteration                | Bundle size ↑        | Hackathon speed advantage     |
+| **Local storage**                              | Simplicity                    | No cross-device sync | Privacy-first by default      |
+| **Framer Motion**                              | Beautiful animations          | Adds dependency      | Reinforces calmness aesthetic |
 
 ---
 
