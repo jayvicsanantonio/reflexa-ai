@@ -1,64 +1,58 @@
 # Chrome AI APIs Documentation Index
 
-**Last Updated**: October 28, 2025
-**Status**: ✅ Complete
+**Last Updated**: October 30, 2025
+**Status**: ✅ Complete and Consolidated
 
 ## Quick Links
 
 ### 🚀 Start Here
 
 - [Main README](./README.md) - Overview and quick start for all APIs
-- [Writing Assistance APIs Complete Guide](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs in one comprehensive document
+- [Chrome AI APIs Integration Plan](./CHROME_AI_APIS.md) - Complete integration overview for all 7 APIs
 
-### 📖 Individual API Documentation
+### 📖 Individual API Documentation (Consolidated)
+
+Each API now has a single comprehensive file containing:
+
+- Quick reference
+- Complete guide
+- Usage examples
+- Best practices
+- Troubleshooting
 
 #### Writer API
 
-- [Complete Guide](./WRITER_API_GUIDE.md) - 400+ lines comprehensive guide
-- [Quick Reference](./WRITER_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Update Summary](./WRITER_API_UPDATE_SUMMARY.md) - What changed and why
+- [WRITER_API.md](./WRITER_API.md) - Complete reference (quick ref + guide)
 
 #### Rewriter API
 
-- [Complete Guide](./REWRITER_API_GUIDE.md) - 600+ lines comprehensive guide
-- [Quick Reference](./REWRITER_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Update Summary](./REWRITER_API_UPDATE_SUMMARY.md) - What changed and why
-- [Integration Review](./REWRITER_API_INTEGRATION_REVIEW.md) - Detailed review
+- [REWRITER_API.md](./REWRITER_API.md) - Complete reference (quick ref + guide)
 
 #### Proofreader API
 
-- [Corrections Summary](./PROOFREADER_API_CORRECTIONS.md) - What was fixed and why
+- [PROOFREADER_API.md](./PROOFREADER_API.md) - Complete reference (quick ref + corrections)
 
 #### Translator API
 
-- [Quick Reference](./TRANSLATOR_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Corrections Summary](./TRANSLATOR_API_CORRECTIONS.md) - What was fixed and why
-- [Integration Complete](./TRANSLATOR_API_INTEGRATION_COMPLETE.md) - Complete integration guide
+- [TRANSLATOR_API.md](./TRANSLATOR_API.md) - Complete reference (quick ref + guide)
 
 #### Language Detector API
 
-- [Quick Reference](./LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Corrections Summary](./LANGUAGE_DETECTOR_API_CORRECTIONS.md) - What was fixed and why
+- [LANGUAGE_DETECTOR_API.md](./LANGUAGE_DETECTOR_API.md) - Complete reference (quick ref + guide)
 
 #### Prompt API
 
-- [Quick Reference](./PROMPT_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Corrections Complete](./PROMPT_API_CORRECTIONS_COMPLETE.md) - What was fixed and why
-- [Integration Review](./PROMPT_API_INTEGRATION_REVIEW.md) - Detailed review
+- [PROMPT_API.md](./PROMPT_API.md) - Complete reference (quick ref + guide)
 
 #### Summarizer API
 
-- [Quick Reference](./SUMMARIZER_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- [Corrections Summary](./SUMMARIZER_API_CORRECTIONS.md) - What was fixed and why
-- [Integration Complete](./SUMMARIZER_API_INTEGRATION_COMPLETE.md) - Complete integration guide
+- [SUMMARIZER_API.md](./SUMMARIZER_API.md) - Complete reference (quick ref + guide)
 
 ### 🔄 Combined Documentation
 
-- [Writing Assistance APIs Complete](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs
-- [Writer & Rewriter Corrections](./WRITER_REWRITER_API_CORRECTIONS.md) - Side-by-side comparison
-- [Complete API Documentation Update](./COMPLETE_API_DOCUMENTATION_UPDATE.md) - Full update summary
-- [Chrome AI API Corrections Complete](./CHROME_AI_API_CORRECTIONS_COMPLETE.md) - Initial corrections
-- [Documentation Update Summary](./DOCUMENTATION_UPDATE_SUMMARY.md) - Latest updates
+- [Writing Assistance APIs Complete](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - Writer, Rewriter, and Proofreader APIs in one guide
+
+---
 
 ## Documentation by Use Case
 
@@ -66,41 +60,34 @@
 
 #### Learn about a specific API
 
-- **Writer API**: Start with [Writer Quick Reference](./WRITER_API_QUICK_REFERENCE.md), then [Complete Guide](./WRITER_API_GUIDE.md)
-- **Rewriter API**: Start with [Rewriter Quick Reference](./REWRITER_API_QUICK_REFERENCE.md), then [Complete Guide](./REWRITER_API_GUIDE.md)
-- **Proofreader API**: Read [Proofreader Corrections](./PROOFREADER_API_CORRECTIONS.md)
-- **Translator API**: Read [Translator Quick Reference](./TRANSLATOR_API_QUICK_REFERENCE.md)
-- **Language Detector API**: Read [Language Detector Quick Reference](./LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md)
-- **Prompt API**: Read [Prompt Quick Reference](./PROMPT_API_QUICK_REFERENCE.md)
-- **Summarizer API**: Read [Summarizer Quick Reference](./SUMMARIZER_API_QUICK_REFERENCE.md)
+- **Writer API**: [WRITER_API.md](./WRITER_API.md)
+- **Rewriter API**: [REWRITER_API.md](./REWRITER_API.md)
+- **Proofreader API**: [PROOFREADER_API.md](./PROOFREADER_API.md)
+- **Translator API**: [TRANSLATOR_API.md](./TRANSLATOR_API.md)
+- **Language Detector API**: [LANGUAGE_DETECTOR_API.md](./LANGUAGE_DETECTOR_API.md)
+- **Prompt API**: [PROMPT_API.md](./PROMPT_API.md)
+- **Summarizer API**: [SUMMARIZER_API.md](./SUMMARIZER_API.md)
 
-#### Compare all three APIs
+#### Compare writing assistance APIs
 
 - Read [Writing Assistance APIs Complete Guide](./WRITING_ASSISTANCE_APIS_COMPLETE.md)
-
-#### Understand what changed
-
-- **Writer**: [Writer Update Summary](./WRITER_API_UPDATE_SUMMARY.md)
-- **Rewriter**: [Rewriter Update Summary](./REWRITER_API_UPDATE_SUMMARY.md)
-- **Proofreader**: [Proofreader Corrections](./PROOFREADER_API_CORRECTIONS.md)
-- **All APIs**: [Complete API Documentation Update](./COMPLETE_API_DOCUMENTATION_UPDATE.md)
 
 #### Get started quickly
 
 - Read [Main README Quick Start](./README.md#quick-start)
-- Check [Writing Assistance APIs Complete](./WRITING_ASSISTANCE_APIS_COMPLETE.md#complete-usage-examples)
+- Check individual API files (each has a Quick Reference section at the top)
 
 #### See code examples
 
-- [Writer API Guide - Examples](./WRITER_API_GUIDE.md#basic-usage)
-- [Rewriter API Guide - Examples](./REWRITER_API_GUIDE.md#basic-usage)
+- Each API file contains comprehensive usage examples
 - [Writing Assistance APIs - All Examples](./WRITING_ASSISTANCE_APIS_COMPLETE.md#complete-usage-examples)
 
 #### Troubleshoot issues
 
-- [Writer API Guide - Troubleshooting](./WRITER_API_GUIDE.md#troubleshooting)
-- [Rewriter API Guide - Troubleshooting](./REWRITER_API_GUIDE.md#troubleshooting)
+- Each API file has a dedicated Troubleshooting section
 - [Writing Assistance APIs - Common Pitfalls](./WRITING_ASSISTANCE_APIS_COMPLETE.md#common-pitfalls)
+
+---
 
 ## Documentation Structure
 
@@ -109,39 +96,23 @@ docs/development/chrome-apis/
 │
 ├── 📋 Navigation & Overview
 │   ├── INDEX.md (this file)
-│   └── README.md
+│   ├── README.md
+│   └── CHROME_AI_APIS.md (integration plan)
 │
-├── 📚 Comprehensive Guides
-│   ├── WRITING_ASSISTANCE_APIS_COMPLETE.md (All 3 APIs)
-│   ├── WRITER_API_GUIDE.md (400+ lines)
-│   └── REWRITER_API_GUIDE.md (600+ lines)
+├── 📚 Individual API Documentation (Consolidated)
+│   ├── WRITER_API.md
+│   ├── REWRITER_API.md
+│   ├── PROOFREADER_API.md
+│   ├── TRANSLATOR_API.md
+│   ├── LANGUAGE_DETECTOR_API.md
+│   ├── PROMPT_API.md
+│   └── SUMMARIZER_API.md
 │
-├── ⚡ Quick References
-│   ├── WRITER_API_QUICK_REFERENCE.md
-│   ├── REWRITER_API_QUICK_REFERENCE.md
-│   ├── TRANSLATOR_API_QUICK_REFERENCE.md
-│   ├── LANGUAGE_DETECTOR_API_QUICK_REFERENCE.md
-│   └── PROMPT_API_QUICK_REFERENCE.md
-│
-├── 📝 Updates & Corrections
-│   ├── PROOFREADER_API_CORRECTIONS.md
-│   ├── WRITER_API_UPDATE_SUMMARY.md
-│   ├── REWRITER_API_UPDATE_SUMMARY.md
-│   ├── TRANSLATOR_API_CORRECTIONS.md
-│   ├── TRANSLATOR_API_INTEGRATION_COMPLETE.md
-│   ├── LANGUAGE_DETECTOR_API_CORRECTIONS.md
-│   ├── PROMPT_API_CORRECTIONS_COMPLETE.md
-│   ├── WRITER_REWRITER_API_CORRECTIONS.md
-│   ├── COMPLETE_API_DOCUMENTATION_UPDATE.md
-│   ├── CHROME_AI_API_CORRECTIONS_COMPLETE.md
-│   ├── API_ACCESS_PATTERNS_SUMMARY.md
-│   ├── ALL_APIS_INTEGRATION_STATUS.md
-│   └── DOCUMENTATION_UPDATE_SUMMARY.md
-│
-└── 🔍 Detailed Reviews
-    ├── REWRITER_API_INTEGRATION_REVIEW.md
-    └── PROMPT_API_INTEGRATION_REVIEW.md
+└── 🔄 Combined Documentation
+    └── WRITING_ASSISTANCE_APIS_COMPLETE.md
 ```
+
+---
 
 ## Document Descriptions
 
@@ -155,132 +126,57 @@ Complete index of all documentation with quick links organized by use case.
 
 Main entry point with overview, quick start examples, and navigation to all other docs.
 
-### Comprehensive Guides
+#### CHROME_AI_APIS.md
+
+Complete integration plan for all 7 Chrome Built-in AI APIs in Reflexa AI.
+
+### Individual API Documentation
+
+Each API file is now consolidated and contains:
+
+- **Quick Reference** - One-page summary at the top
+- **Complete Guide** - Comprehensive documentation
+- **Usage Examples** - Multiple real-world examples
+- **Best Practices** - Recommended patterns
+- **Troubleshooting** - Common issues and solutions
+- **System Requirements** - Hardware and software needs
+- **Resources** - Official documentation links
+
+#### WRITER_API.md
+
+Generate new content with tone and length control.
+
+#### REWRITER_API.md
+
+Revise and restructure existing text while preserving meaning.
+
+#### PROOFREADER_API.md
+
+Fix grammar, spelling, and punctuation errors.
+
+#### TRANSLATOR_API.md
+
+Translate text between languages on-device.
+
+#### LANGUAGE_DETECTOR_API.md
+
+Detect the language of text content.
+
+#### PROMPT_API.md
+
+General-purpose AI interactions (LanguageModel).
+
+#### SUMMARIZER_API.md
+
+Create concise summaries of text content.
+
+### Combined Documentation
 
 #### WRITING_ASSISTANCE_APIS_COMPLETE.md
 
-**Best for**: Understanding all three APIs together
+Comprehensive guide covering Writer, Rewriter, and Proofreader APIs together with side-by-side comparisons.
 
-- Complete comparison of Writer, Rewriter, and Proofreader
-- Side-by-side feature comparison
-- Usage examples for all three APIs
-- Best practices and common pitfalls
-- System requirements and setup
-
-#### WRITER_API_GUIDE.md
-
-**Best for**: Deep dive into Writer API
-
-- Comprehensive 400+ line guide
-- Detailed configuration options
-- Multiple usage examples
-- Streaming implementation
-- Best practices
-- Troubleshooting
-
-#### REWRITER_API_GUIDE.md
-
-**Best for**: Deep dive into Rewriter API
-
-- Comprehensive 600+ line guide
-- Detailed configuration options
-- Multiple usage examples
-- Streaming implementation
-- Best practices
-- Troubleshooting
-
-### Quick References
-
-#### WRITER_API_QUICK_REFERENCE.md
-
-**Best for**: Quick lookup while coding
-
-- One-page reference
-- Basic usage
-- Configuration tables
-- Common patterns
-- Error handling
-
-#### REWRITER_API_QUICK_REFERENCE.md
-
-**Best for**: Quick lookup while coding
-
-- One-page reference
-- Basic usage
-- Configuration tables
-- Common patterns
-- Error handling
-
-### Updates & Corrections
-
-#### PROOFREADER_API_CORRECTIONS.md
-
-**Best for**: Understanding Proofreader API fixes
-
-- Key issues found
-- Fixes applied with examples
-- Type definitions
-- Usage examples
-- Testing recommendations
-
-#### WRITER_API_UPDATE_SUMMARY.md
-
-**Best for**: Understanding Writer API changes
-
-- What changed and why
-- Before/after comparisons
-- Migration notes
-
-#### REWRITER_API_UPDATE_SUMMARY.md
-
-**Best for**: Understanding Rewriter API changes
-
-- What changed and why
-- Before/after comparisons
-- Migration notes
-
-#### WRITER_REWRITER_API_CORRECTIONS.md
-
-**Best for**: Side-by-side comparison of corrections
-
-- Writer and Rewriter corrections together
-- API hierarchy explanation
-- Correct usage patterns
-
-#### COMPLETE_API_DOCUMENTATION_UPDATE.md
-
-**Best for**: Complete overview of all updates
-
-- All three APIs covered
-- All files modified
-- Verification results
-- Testing recommendations
-
-#### CHROME_AI_API_CORRECTIONS_COMPLETE.md
-
-**Best for**: Initial corrections summary
-
-- Critical discoveries
-- Key corrections
-- Verification status
-
-#### DOCUMENTATION_UPDATE_SUMMARY.md
-
-**Best for**: Latest documentation updates
-
-- What was updated
-- New documents created
-- Changes made to existing docs
-
-### Detailed Reviews
-
-#### REWRITER_API_INTEGRATION_REVIEW.md
-
-**Best for**: Detailed Rewriter implementation review
-
-- Issues found
-- Fixes applied
-- Recommendations
+---
 
 ## Official Chrome Resources
 
@@ -305,6 +201,8 @@ Main entry point with overview, quick start examples, and navigation to all othe
 - [Gemini Nano Information](https://deepmind.google/technologies/gemini/nano/)
 - [Chrome Status](https://chromestatus.com/)
 
+---
+
 ## Source Code
 
 ### Managers
@@ -325,6 +223,8 @@ Main entry point with overview, quick start examples, and navigation to all othe
 
 - [Chrome AI Type Definitions](../../../src/types/chrome-ai.d.ts)
 - [Application Types](../../../src/types/index.ts)
+
+---
 
 ## Quick Reference Card
 
@@ -350,6 +250,10 @@ const session = await LanguageModel.create();
 const text: string = await writer.write('prompt');
 const text: string = await rewriter.rewrite('text');
 const result: ProofreadResult = await proofreader.proofread('text');
+const summary: string = await summarizer.summarize('text');
+const translation: string = await translator.translate('text');
+const results: LanguageDetectionResult[] = await detector.detect('text');
+const response: string = await session.prompt('prompt');
 ```
 
 ### Feature Detection
@@ -379,7 +283,7 @@ if ('LanguageModel' in self) {
 }
 ```
 
-### Streaming (Writer & Rewriter only)
+### Streaming (Writer, Rewriter, Summarizer, Translator, Prompt)
 
 ```typescript
 const stream = writer.writeStreaming('prompt');
@@ -388,27 +292,27 @@ for await (const chunk of stream) {
 }
 ```
 
+---
+
 ## Document Status
 
-| Document                              | Status      | Last Updated | Lines |
-| ------------------------------------- | ----------- | ------------ | ----- |
-| INDEX.md                              | ✅ Complete | Oct 28, 2025 | ~400  |
-| README.md                             | ✅ Complete | Oct 28, 2025 | ~300  |
-| WRITING_ASSISTANCE_APIS_COMPLETE.md   | ✅ Complete | Oct 28, 2025 | ~600  |
-| WRITER_API_GUIDE.md                   | ✅ Complete | Oct 28, 2025 | ~400  |
-| WRITER_API_QUICK_REFERENCE.md         | ✅ Complete | Oct 28, 2025 | ~200  |
-| WRITER_API_UPDATE_SUMMARY.md          | ✅ Complete | Oct 28, 2025 | ~300  |
-| REWRITER_API_GUIDE.md                 | ✅ Complete | Oct 28, 2025 | ~600  |
-| REWRITER_API_QUICK_REFERENCE.md       | ✅ Complete | Oct 28, 2025 | ~200  |
-| REWRITER_API_UPDATE_SUMMARY.md        | ✅ Complete | Oct 28, 2025 | ~300  |
-| REWRITER_API_INTEGRATION_REVIEW.md    | ✅ Complete | Oct 28, 2025 | ~400  |
-| PROOFREADER_API_CORRECTIONS.md        | ✅ Complete | Oct 28, 2025 | ~400  |
-| WRITER_REWRITER_API_CORRECTIONS.md    | ✅ Complete | Oct 28, 2025 | ~300  |
-| COMPLETE_API_DOCUMENTATION_UPDATE.md  | ✅ Complete | Oct 28, 2025 | ~500  |
-| CHROME_AI_API_CORRECTIONS_COMPLETE.md | ✅ Complete | Oct 28, 2025 | ~400  |
-| DOCUMENTATION_UPDATE_SUMMARY.md       | ✅ Complete | Oct 28, 2025 | ~300  |
+| Document                            | Status      | Last Updated | Type         |
+| ----------------------------------- | ----------- | ------------ | ------------ |
+| INDEX.md                            | ✅ Complete | Oct 30, 2025 | Navigation   |
+| README.md                           | ✅ Complete | Oct 30, 2025 | Overview     |
+| CHROME_AI_APIS.md                   | ✅ Complete | Oct 28, 2025 | Integration  |
+| WRITER_API.md                       | ✅ Complete | Oct 30, 2025 | Consolidated |
+| REWRITER_API.md                     | ✅ Complete | Oct 30, 2025 | Consolidated |
+| PROOFREADER_API.md                  | ✅ Complete | Oct 30, 2025 | Consolidated |
+| TRANSLATOR_API.md                   | ✅ Complete | Oct 30, 2025 | Consolidated |
+| LANGUAGE_DETECTOR_API.md            | ✅ Complete | Oct 30, 2025 | Consolidated |
+| PROMPT_API.md                       | ✅ Complete | Oct 30, 2025 | Consolidated |
+| SUMMARIZER_API.md                   | ✅ Complete | Oct 30, 2025 | Consolidated |
+| WRITING_ASSISTANCE_APIS_COMPLETE.md | ✅ Complete | Oct 28, 2025 | Combined     |
 
-**Total**: 22+ documents, ~8,000+ lines of documentation
+**Total**: 11 files (down from 34 files)
+
+---
 
 ## Contributing
 
@@ -417,23 +321,22 @@ When updating these APIs:
 1. Always verify against official Chrome documentation
 2. Update type definitions first
 3. Update implementation to match types
-4. Update all relevant documentation
+4. Update the relevant consolidated API file
 5. Test with Chrome Canary
 6. Run full test suite
+
+---
 
 ## Questions?
 
 1. Check this INDEX for the right document
-2. Read the relevant quick reference
-3. Consult the comprehensive guide
-4. Review the update summaries
-5. Check official Chrome documentation
-6. Examine the source code
+2. Read the relevant API file (has quick ref at top)
+3. Check official Chrome documentation
+4. Examine the source code
 
 ---
 
-**Documentation Status**: ✅ Complete
+**Documentation Status**: ✅ Complete and Consolidated
 **APIs Covered**: Writer, Rewriter, Proofreader, Summarizer, Translator, Language Detector, Prompt
-**Total Documents**: 25+ files
-**Total Lines**: ~9,000+ lines
-**Last Updated**: October 28, 2025
+**Total Documents**: 11 files
+**Last Updated**: October 30, 2025

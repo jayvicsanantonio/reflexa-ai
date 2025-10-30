@@ -6,27 +6,22 @@ Complete documentation for Chrome's Built-in AI APIs integration in Reflexa AI.
 
 ## Quick Navigation
 
-### Writer API
+### Individual API Documentation (Consolidated)
 
-- 📖 [Complete Guide](./WRITER_API_GUIDE.md) - Comprehensive integration guide
-- ⚡ [Quick Reference](./WRITER_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- 📝 [Update Summary](./WRITER_API_UPDATE_SUMMARY.md) - What changed and why
+Each API now has a single comprehensive file with quick reference + complete guide:
 
-### Rewriter API
-
-- 📖 [Complete Guide](./REWRITER_API_GUIDE.md) - Comprehensive integration guide
-- ⚡ [Quick Reference](./REWRITER_API_QUICK_REFERENCE.md) - One-page cheat sheet
-- 📝 [Update Summary](./REWRITER_API_UPDATE_SUMMARY.md) - What changed and why
-- 🔍 [Integration Review](./REWRITER_API_INTEGRATION_REVIEW.md) - Detailed review
-
-### Proofreader API
-
-- 📝 [Corrections Summary](./PROOFREADER_API_CORRECTIONS.md) - What was fixed and why
+- 📖 [Writer API](./WRITER_API.md) - Generate new content with tone control
+- 📖 [Rewriter API](./REWRITER_API.md) - Improve existing text
+- 📖 [Proofreader API](./PROOFREADER_API.md) - Fix grammar and spelling
+- 📖 [Translator API](./TRANSLATOR_API.md) - Translate between languages
+- 📖 [Language Detector API](./LANGUAGE_DETECTOR_API.md) - Detect text language
+- 📖 [Prompt API](./PROMPT_API.md) - General-purpose AI interactions
+- 📖 [Summarizer API](./SUMMARIZER_API.md) - Summarize content
 
 ### Combined Resources
 
-- 📚 [Writing Assistance APIs Complete Guide](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - All three APIs in one place
-- 🔄 [API Corrections Summary](./WRITER_REWRITER_API_CORRECTIONS.md) - Side-by-side comparison
+- 📚 [Writing Assistance APIs Complete Guide](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - Writer, Rewriter, and Proofreader in one place
+- 🧠 [Chrome AI APIs Integration Plan](./CHROME_AI_APIS.md) - Complete integration overview for all 7 APIs
 
 ## Overview
 
@@ -152,27 +147,27 @@ if ('Proofreader' in self) {
 
 ## Documentation Structure
 
-### For Quick Reference
+All API documentation has been consolidated into single comprehensive files. Each file contains:
 
-Start here if you need to quickly look up syntax or options:
+- **Quick Reference** - One-page summary at the top
+- **Complete Guide** - Comprehensive documentation
+- **Usage Examples** - Real-world code examples
+- **Best Practices** - Recommended patterns
+- **Troubleshooting** - Common issues and solutions
 
-- [Writer Quick Reference](./WRITER_API_QUICK_REFERENCE.md)
-- [Rewriter Quick Reference](./REWRITER_API_QUICK_REFERENCE.md)
+### Individual APIs
 
-### For Learning
+- [WRITER_API.md](./WRITER_API.md)
+- [REWRITER_API.md](./REWRITER_API.md)
+- [PROOFREADER_API.md](./PROOFREADER_API.md)
+- [TRANSLATOR_API.md](./TRANSLATOR_API.md)
+- [LANGUAGE_DETECTOR_API.md](./LANGUAGE_DETECTOR_API.md)
+- [PROMPT_API.md](./PROMPT_API.md)
+- [SUMMARIZER_API.md](./SUMMARIZER_API.md)
 
-Read these for comprehensive understanding:
+### Combined
 
-- [Writer API Guide](./WRITER_API_GUIDE.md)
-- [Rewriter API Guide](./REWRITER_API_GUIDE.md)
-
-### For Updates
-
-Check these to understand what changed:
-
-- [Writer Update Summary](./WRITER_API_UPDATE_SUMMARY.md)
-- [Rewriter Update Summary](./REWRITER_API_UPDATE_SUMMARY.md)
-- [API Corrections Summary](./WRITER_REWRITER_API_CORRECTIONS.md)
+- [WRITING_ASSISTANCE_APIS_COMPLETE.md](./WRITING_ASSISTANCE_APIS_COMPLETE.md) - Writer, Rewriter, Proofreader together
 
 ## Common Patterns
 

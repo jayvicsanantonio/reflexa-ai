@@ -1,12 +1,80 @@
-# Rewriter API Integration Guide
-
-## Overview
-
-The Chrome Rewriter API helps revise and restructure existing text while preserving meaning. It's powered by Gemini Nano and runs entirely on-device for privacy.
+# Rewriter API - Complete Reference
 
 **Official Documentation**: https://developer.chrome.com/docs/ai/rewriter-api
 
-## Key Features
+## Quick Reference
+
+Revise and restructure existing text with tone and length control using Chrome's built-in Rewriter API powered by Gemini Nano.
+
+### Basic Usage
+
+```typescript
+// Feature detection
+if ('Rewriter' in self) {
+  // Rewriter API is supported
+}
+
+// Check availability
+const available = await Rewriter.availability();
+
+// Create session
+const rewriter = await Rewriter.create({
+  tone: 'more-formal',
+  format: 'plain-text',
+  length: 'as-is',
+});
+
+// Rewrite text
+const result = await rewriter.rewrite('hey whats up');
+
+// Clean up
+rewriter.destroy();
+```
+
+### Configuration Options
+
+#### Tone
+
+| Value         | Description                           |
+| ------------- | ------------------------------------- |
+| `as-is`       | Keep original tone (default)          |
+| `more-formal` | Make more professional and structured |
+| `more-casual` | Make more conversational and relaxed  |
+
+#### Format
+
+| Value        | Description                    |
+| ------------ | ------------------------------ |
+| `as-is`      | Keep original format (default) |
+| `markdown`   | Output as markdown             |
+| `plain-text` | Output as plain text           |
+
+#### Length
+
+| Value     | Description                       |
+| --------- | --------------------------------- |
+| `as-is`   | Keep original length (default)    |
+| `shorter` | Condense while preserving meaning |
+| `longer`  | Expand with more detail           |
+
+### Reflexa AI Tone Mapping
+
+| Reflexa Tone | Rewriter API Configuration         |
+| ------------ | ---------------------------------- |
+| `calm`       | `tone: 'as-is'`                    |
+| `concise`    | `tone: 'as-is', length: 'shorter'` |
+| `empathetic` | `tone: 'more-casual'`              |
+| `academic`   | `tone: 'more-formal'`              |
+
+---
+
+## Complete Guide
+
+### Overview
+
+The Chrome Rewriter API helps revise and restructure existing text while preserving meaning. It's powered by Gemini Nano and runs entirely on-device for privacy.
+
+### Key Features
 
 - **Tone Control**: Adjust text to be more formal, more casual, or keep as-is
 - **Length Control**: Make text shorter, longer, or keep as-is
@@ -16,9 +84,9 @@ The Chrome Rewriter API helps revise and restructure existing text while preserv
 - **Session Reuse**: Cache and reuse sessions for better performance
 - **Language Support**: Specify expected input/output languages
 
-## API Structure
+### API Structure
 
-### Rewriter Factory
+#### Rewriter Factory
 
 The Rewriter API is accessed via the global `Rewriter` object:
 
@@ -36,7 +104,7 @@ const availability = await Rewriter.availability();
 const rewriter = await Rewriter.create(options);
 ```
 
-### Rewriter Session
+#### Rewriter Session
 
 Once created, a rewriter session can rewrite multiple pieces of text:
 
@@ -54,9 +122,9 @@ for await (const chunk of stream) {
 rewriter.destroy();
 ```
 
-## Configuration Options
+### Full Configuration Options
 
-### Session Creation Options
+#### Session Creation Options
 
 ```typescript
 interface RewriterCreateOptions {
@@ -94,7 +162,7 @@ interface RewriterCreateOptions {
 }
 ```
 
-### Rewrite Method Options
+#### Rewrite Method Options
 
 ```typescript
 interface RewriteOptions {
@@ -106,51 +174,11 @@ interface RewriteOptions {
 }
 ```
 
-## Reflexa AI Implementation
-
-### RewriterManager Class
-
-Located in `src/background/rewriterManager.ts`, this class wraps the Rewriter API with:
-
-- Availability checking
-- Session caching and reuse
-- Timeout handling with retry logic
-- Tone mapping (Reflexa tones → Rewriter API tones)
-- Streaming support
-- Error handling
-
-### Tone Mapping
-
-Reflexa uses custom tone names that map to Rewriter API tones:
-
-| Reflexa Tone | Rewriter API Tone |
-| ------------ | ----------------- |
-| `calm`       | `as-is`           |
-| `concise`    | `as-is` + shorter |
-| `empathetic` | `more-casual`     |
-| `academic`   | `more-formal`     |
-
-### Tone Options
-
-The Rewriter API provides three tone options:
-
-| Tone          | Description                                |
-| ------------- | ------------------------------------------ |
-| `as-is`       | Keep the original tone (default)           |
-| `more-formal` | Make text more professional and structured |
-| `more-casual` | Make text more conversational and relaxed  |
-
-### Length Options
-
-| Length    | Description                       |
-| --------- | --------------------------------- |
-| `as-is`   | Keep original length (default)    |
-| `shorter` | Condense while preserving meaning |
-| `longer`  | Expand with more detail           |
+---
 
 ## Usage Examples
 
-### Basic Usage
+### Basic Rewriting
 
 ```typescript
 import { RewriterManager } from './background/rewriterManager';
@@ -184,7 +212,6 @@ const { original, rewritten } = await rewriterManager.rewriteStreaming(
   'Rewriting for a research paper',
   (chunk) => {
     progressiveText += chunk;
-    // Update UI with progressive text
     updateTextDisplay(progressiveText);
   }
 );
@@ -192,10 +219,64 @@ const { original, rewritten } = await rewriterManager.rewriteStreaming(
 console.log('Complete rewritten text:', rewritten);
 ```
 
+### With Context
+
+```typescript
+const rewriter = await Rewriter.create({
+  sharedContext: 'Rewriting customer feedback',
+  tone: 'more-casual',
+});
+
+const result = await rewriter.rewrite('This product is subpar', {
+  context: 'Make it constructive and friendly',
+});
+
+rewriter.destroy();
+```
+
+### Multiple Rewrites (Session Reuse)
+
+```typescript
+const rewriter = await Rewriter.create({ tone: 'more-formal' });
+
+const text1 = await rewriter.rewrite('hey thanks!');
+const text2 = await rewriter.rewrite('no problem dude');
+const text3 = await rewriter.rewrite('catch ya later');
+
+rewriter.destroy();
+```
+
+### Make Text Shorter
+
+```typescript
+const rewriter = await Rewriter.create({
+  tone: 'as-is',
+  length: 'shorter',
+});
+
+const condensed = await rewriter.rewrite(
+  'This is a very long paragraph with lots of details that could be condensed...'
+);
+
+rewriter.destroy();
+```
+
+### Make Text More Formal
+
+```typescript
+const rewriter = await Rewriter.create({
+  tone: 'more-formal',
+});
+
+const formal = await rewriter.rewrite('hey can u help me with this thing?');
+// Result: "Could you please assist me with this matter?"
+
+rewriter.destroy();
+```
+
 ### With Language Support
 
 ```typescript
-// Create a multilingual rewriter
 const rewriter = await Rewriter.create({
   tone: 'more-formal',
   expectedInputLanguages: ['en', 'ja', 'es'],
@@ -209,61 +290,6 @@ const result = await rewriter.rewrite('Thanks for your help!', {
 });
 
 rewriter.destroy();
-```
-
-### Session Reuse for Multiple Texts
-
-```typescript
-// Create a rewriter for multiple reviews
-const rewriter = await Rewriter.create({
-  tone: 'more-casual',
-  format: 'plain-text',
-  sharedContext: 'Customer reviews for a product.',
-});
-
-// Rewrite multiple reviews
-const reviews = [
-  'This product exceeded my expectations.',
-  'I am thoroughly satisfied with this purchase.',
-  'The quality is exceptional.',
-];
-
-const rewrittenReviews = await Promise.all(
-  reviews.map((review) =>
-    rewriter.rewrite(review, {
-      context: 'Make it sound more conversational',
-    })
-  )
-);
-
-// Clean up when done
-rewriter.destroy();
-```
-
-### With Abort Signal
-
-```typescript
-const controller = new AbortController();
-
-// Set timeout
-setTimeout(() => controller.abort(), 5000);
-
-try {
-  const rewriter = await Rewriter.create({
-    tone: 'more-formal',
-    signal: controller.signal,
-  });
-
-  const result = await rewriter.rewrite('Text to rewrite', {
-    signal: controller.signal,
-  });
-
-  console.log(result);
-} catch (error) {
-  if (error.name === 'AbortError') {
-    console.log('Operation timed out');
-  }
-}
 ```
 
 ### Different Tone and Length Combinations
@@ -291,85 +317,44 @@ rewriter1.destroy();
 rewriter2.destroy();
 ```
 
-## Best Practices
-
-### 1. Check Availability First
+### With Abort Signal
 
 ```typescript
-const availability = await Rewriter.availability();
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 5000);
 
-if (availability === 'unavailable') {
-  // Fall back to manual editing or alternative method
-  return;
-}
-
-if (availability === 'downloadable') {
-  // Inform user that model needs to be downloaded
-  showDownloadNotice();
-}
-```
-
-### 2. Use Shared Context for Related Tasks
-
-```typescript
-// Good: Shared context for multiple related rewrites
-const rewriter = await Rewriter.create({
-  sharedContext: 'Rewriting customer feedback to be more constructive.',
-});
-
-const feedback1 = await rewriter.rewrite('This product is terrible');
-const feedback2 = await rewriter.rewrite('Waste of money');
-```
-
-### 3. Cache and Reuse Sessions
-
-```typescript
-// RewriterManager automatically caches sessions by configuration
-const result1 = await rewriterManager.rewrite('Text 1', 'academic');
-
-// Reuses the same session (same tone)
-const result2 = await rewriterManager.rewrite('Text 2', 'academic');
-```
-
-### 4. Handle Timeouts and Errors
-
-```typescript
 try {
-  const result = await rewriterManager.rewrite(text, tone, context);
-  return result;
+  const rewriter = await Rewriter.create({
+    tone: 'more-formal',
+    signal: controller.signal,
+  });
+
+  const result = await rewriter.rewrite('Text to rewrite', {
+    signal: controller.signal,
+  });
+
+  console.log(result);
 } catch (error) {
-  if (error.message.includes('timeout')) {
-    // Retry with longer timeout or fall back
-    console.warn('Rewriter timed out, using original text');
-    return { original: text, rewritten: text };
+  if (error.name === 'AbortError') {
+    console.log('Operation timed out');
   }
-  throw error;
 }
 ```
 
-### 5. Use Streaming for Long Content
+---
 
-```typescript
-// For better UX, use streaming for longer content
-if (text.length > 500) {
-  return await rewriterManager.rewriteStreaming(text, tone, context, onChunk);
-} else {
-  return await rewriterManager.rewrite(text, tone, context);
-}
-```
+## Reflexa AI Integration
 
-### 6. Clean Up Sessions
+### RewriterManager Class
 
-```typescript
-// Clean up when component unmounts or is no longer needed
-useEffect(() => {
-  return () => {
-    rewriterManager.destroy();
-  };
-}, []);
-```
+Located in `src/background/rewriterManager.ts`, this class wraps the Rewriter API with:
 
-## Integration with Reflexa AI
+- Availability checking
+- Session caching and reuse
+- Timeout handling with retry logic
+- Tone mapping (Reflexa tones → Rewriter API tones)
+- Streaming support
+- Error handling
 
 ### Use Case: Improve User Reflections
 
@@ -436,6 +421,87 @@ async function condenseText(longText: string) {
 }
 ```
 
+---
+
+## Best Practices
+
+### 1. Check Availability First
+
+```typescript
+const availability = await Rewriter.availability();
+
+if (availability === 'unavailable') {
+  // Fall back to manual editing or alternative method
+  return;
+}
+
+if (availability === 'downloadable') {
+  // Inform user that model needs to be downloaded
+  showDownloadNotice();
+}
+```
+
+### 2. Use Shared Context for Related Tasks
+
+```typescript
+// Good: Shared context for multiple related rewrites
+const rewriter = await Rewriter.create({
+  sharedContext: 'Rewriting customer feedback to be more constructive.',
+});
+
+const feedback1 = await rewriter.rewrite('This product is terrible');
+const feedback2 = await rewriter.rewrite('Waste of money');
+```
+
+### 3. Cache and Reuse Sessions
+
+```typescript
+// RewriterManager automatically caches sessions by configuration
+const result1 = await rewriterManager.rewrite('Text 1', 'academic');
+
+// Reuses the same session (same tone)
+const result2 = await rewriterManager.rewrite('Text 2', 'academic');
+```
+
+### 4. Handle Timeouts and Errors
+
+```typescript
+try {
+  const result = await rewriterManager.rewrite(text, tone, context);
+  return result;
+} catch (error) {
+  if (error.message.includes('timeout')) {
+    console.warn('Rewriter timed out, using original text');
+    return { original: text, rewritten: text };
+  }
+  throw error;
+}
+```
+
+### 5. Use Streaming for Long Content
+
+```typescript
+// For better UX, use streaming for longer content
+if (text.length > 500) {
+  return await rewriterManager.rewriteStreaming(text, tone, context, onChunk);
+} else {
+  return await rewriterManager.rewrite(text, tone, context);
+}
+```
+
+### 6. Clean Up Sessions
+
+```typescript
+// Clean up when component unmounts or is no longer needed
+useEffect(() => {
+  return () => {
+    rewriterManager.destroy();
+  };
+}, []);
+```
+
+---
+
 ## Troubleshooting
 
 ### Rewriter API Not Available
@@ -483,6 +549,8 @@ async function condenseText(longText: string) {
 3. Ensure language combination is supported
 4. Check for conflicting options
 
+---
+
 ## Performance Considerations
 
 ### Session Caching
@@ -513,6 +581,39 @@ This balances responsiveness with reliability.
 - Sessions are kept in memory until `destroy()` is called
 - Call `destroy()` when manager is no longer needed
 - Individual sessions can be destroyed with `destroySession()`
+
+---
+
+## Comparison: Writer vs Rewriter
+
+| Feature        | Writer API              | Rewriter API                    |
+| -------------- | ----------------------- | ------------------------------- |
+| Purpose        | Generate new content    | Improve existing content        |
+| Input          | Prompt/topic            | Existing text                   |
+| Tone Options   | formal, neutral, casual | as-is, more-formal, more-casual |
+| Length Options | short, medium, long     | as-is, shorter, longer          |
+| Use Case       | Draft creation          | Text refinement                 |
+
+---
+
+## System Requirements
+
+- **Chrome**: Version 137+
+- **OS**: Windows 10/11, macOS 13+, Linux, ChromeOS
+- **Storage**: 22GB free space
+- **GPU**: >4GB VRAM OR CPU: 16GB RAM + 4 cores
+- **Network**: Unmetered connection for model download
+
+## Chrome Flags
+
+Enable in `chrome://flags`:
+
+- `#rewriter-api-for-gemini-nano`
+- `#optimization-guide-on-device-model`
+
+Then restart Chrome completely.
+
+---
 
 ## Testing
 
@@ -564,15 +665,7 @@ describe('RewriterManager', () => {
 });
 ```
 
-## Comparison: Writer vs Rewriter
-
-| Feature        | Writer API              | Rewriter API                    |
-| -------------- | ----------------------- | ------------------------------- |
-| Purpose        | Generate new content    | Improve existing content        |
-| Input          | Prompt/topic            | Existing text                   |
-| Tone Options   | formal, neutral, casual | as-is, more-formal, more-casual |
-| Length Options | short, medium, long     | as-is, shorter, longer          |
-| Use Case       | Draft creation          | Text refinement                 |
+---
 
 ## Resources
 
@@ -590,6 +683,6 @@ describe('RewriterManager', () => {
 
 ---
 
-**Last Updated**: October 28, 2025
+**Last Updated**: October 30, 2025
 **API Version**: Chrome 137+
 **Status**: Origin Trial

@@ -1,7 +1,5 @@
 # Reflexa AI — Chrome Built-in AI API Integration Plan (v1.0)
 
-_Generated on October 28, 2025_
-
 ## Overview
 
 Reflexa AI now integrates all **Chrome Built-in AI APIs** recommended in the Google Chrome AI Challenge 2025:

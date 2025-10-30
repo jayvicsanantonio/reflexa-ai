@@ -1,12 +1,78 @@
-# Writer API Integration Guide
-
-## Overview
-
-The Chrome Writer API helps create new content that conforms to a specified writing task. It's powered by Gemini Nano and runs entirely on-device for privacy.
+# Writer API - Complete Reference
 
 **Official Documentation**: https://developer.chrome.com/docs/ai/writer-api
 
-## Key Features
+## Quick Reference
+
+Generate new content with tone and length control using Chrome's built-in Writer API powered by Gemini Nano.
+
+### Basic Usage
+
+```typescript
+// Feature detection
+if ('Writer' in self) {
+  // Writer API is supported
+}
+
+// Check availability
+const available = await Writer.availability();
+
+// Create session
+const writer = await Writer.create({
+  tone: 'neutral',
+  format: 'markdown',
+  length: 'medium',
+});
+
+// Generate text
+const result = await writer.write('Write about mindfulness');
+
+// Clean up
+writer.destroy();
+```
+
+### Configuration Options
+
+#### Tone
+
+| Value     | Description                    |
+| --------- | ------------------------------ |
+| `formal`  | Professional, structured style |
+| `neutral` | Balanced, standard style       |
+| `casual`  | Conversational, relaxed style  |
+
+#### Format
+
+| Value        | Description                   |
+| ------------ | ----------------------------- |
+| `markdown`   | Markdown formatting (default) |
+| `plain-text` | Plain text, no formatting     |
+
+#### Length
+
+| Value    | Approximate Words |
+| -------- | ----------------- |
+| `short`  | 50-100            |
+| `medium` | 100-200           |
+| `long`   | 200-300           |
+
+### Reflexa AI Tone Mapping
+
+| Reflexa Tone   | Writer API Tone |
+| -------------- | --------------- |
+| `calm`         | `neutral`       |
+| `professional` | `formal`        |
+| `casual`       | `casual`        |
+
+---
+
+## Complete Guide
+
+### Overview
+
+The Chrome Writer API helps create new content that conforms to a specified writing task. It's powered by Gemini Nano and runs entirely on-device for privacy.
+
+### Key Features
 
 - **Tone Control**: Generate text in formal, neutral, or casual tones
 - **Length Control**: Specify short, medium, or long output
@@ -15,9 +81,9 @@ The Chrome Writer API helps create new content that conforms to a specified writ
 - **Session Reuse**: Cache and reuse sessions for better performance
 - **Language Support**: Specify expected input/output languages
 
-## API Structure
+### API Structure
 
-### Writer Factory
+#### Writer Factory
 
 The Writer API is accessed via the global `Writer` object:
 
@@ -35,7 +101,7 @@ const availability = await Writer.availability();
 const writer = await Writer.create(options);
 ```
 
-### Writer Session
+#### Writer Session
 
 Once created, a writer session can generate multiple pieces of content:
 
@@ -53,9 +119,9 @@ for await (const chunk of stream) {
 writer.destroy();
 ```
 
-## Configuration Options
+### Full Configuration Options
 
-### Session Creation Options
+#### Session Creation Options
 
 ```typescript
 interface WriterCreateOptions {
@@ -93,7 +159,7 @@ interface WriterCreateOptions {
 }
 ```
 
-### Write Method Options
+#### Write Method Options
 
 ```typescript
 interface WriteOptions {
@@ -105,44 +171,11 @@ interface WriteOptions {
 }
 ```
 
-## Reflexa AI Implementation
-
-### WriterManager Class
-
-Located in `src/background/writerManager.ts`, this class wraps the Writer API with:
-
-- Availability checking
-- Session caching and reuse
-- Timeout handling with retry logic
-- Tone mapping (Reflexa tones → Writer API tones)
-- Streaming support
-- Error handling
-
-### Tone Mapping
-
-Reflexa uses custom tone names that map to Writer API tones:
-
-| Reflexa Tone   | Writer API Tone |
-| -------------- | --------------- |
-| `calm`         | `neutral`       |
-| `professional` | `formal`        |
-| `casual`       | `casual`        |
-
-### Length Ranges
-
-The Writer API provides approximate length control:
-
-| Length   | Target Word Count |
-| -------- | ----------------- |
-| `short`  | 50-100 words      |
-| `medium` | 100-200 words     |
-| `long`   | 200-300 words     |
-
-**Note**: These are guidelines; actual output may vary.
+---
 
 ## Usage Examples
 
-### Basic Usage
+### Basic Generation
 
 ```typescript
 import { WriterManager } from './background/writerManager';
@@ -189,26 +222,22 @@ const fullText = await writerManager.generateStreaming(
 console.log('Complete text:', fullText);
 ```
 
-### With Language Support
+### With Context
 
 ```typescript
-// Create a multilingual writer
 const writer = await Writer.create({
-  tone: 'formal',
-  expectedInputLanguages: ['en', 'es', 'ja'],
-  expectedContextLanguages: ['en', 'es'],
-  outputLanguage: 'es',
-  sharedContext: 'These are messages for a Spanish language learning program.',
+  sharedContext: 'Writing reflective journal entries',
+  tone: 'neutral',
 });
 
-const message = await writer.write('Write a welcome message for new students', {
-  context: 'Students may speak English or Japanese',
+const entry = await writer.write('Reflect on today', {
+  context: 'User read an article about mindfulness',
 });
 
 writer.destroy();
 ```
 
-### Session Reuse
+### Multiple Generations (Session Reuse)
 
 ```typescript
 // Create a writer for multiple tasks
@@ -225,6 +254,25 @@ const post2 = await writer.write('Write about time management');
 const post3 = await writer.write('Write about focus techniques');
 
 // Clean up when done
+writer.destroy();
+```
+
+### With Language Support
+
+```typescript
+// Create a multilingual writer
+const writer = await Writer.create({
+  tone: 'formal',
+  expectedInputLanguages: ['en', 'es', 'ja'],
+  expectedContextLanguages: ['en', 'es'],
+  outputLanguage: 'es',
+  sharedContext: 'These are messages for a Spanish language learning program.',
+});
+
+const message = await writer.write('Write a welcome message for new students', {
+  context: 'Students may speak English or Japanese',
+});
+
 writer.destroy();
 ```
 
@@ -253,6 +301,71 @@ try {
   }
 }
 ```
+
+---
+
+## Reflexa AI Integration
+
+### WriterManager Class
+
+Located in `src/background/writerManager.ts`, this class wraps the Writer API with:
+
+- Availability checking
+- Session caching and reuse
+- Timeout handling with retry logic
+- Tone mapping (Reflexa tones → Writer API tones)
+- Streaming support
+- Error handling
+
+### Use Case: Draft Reflection
+
+```typescript
+async function generateReflectionDraft(summary: string[]) {
+  const writerManager = new WriterManager();
+
+  const available = await writerManager.checkAvailability();
+  if (!available) {
+    return null;
+  }
+
+  const context = `Summary insights: ${summary.join('. ')}`;
+
+  const draft = await writerManager.generate(
+    'Write a reflective paragraph about these insights',
+    {
+      tone: 'calm',
+      length: 'medium',
+    },
+    context
+  );
+
+  return draft;
+}
+```
+
+### Use Case: Generate Reflection Prompts
+
+```typescript
+async function generateCustomPrompts(topic: string) {
+  const writer = await Writer.create({
+    tone: 'neutral',
+    format: 'plain-text',
+    length: 'short',
+    sharedContext: 'Generate thoughtful reflection questions.',
+  });
+
+  const prompts = await Promise.all([
+    writer.write(`Generate a question about applying ${topic} to daily life`),
+    writer.write(`Generate a question about surprising aspects of ${topic}`),
+    writer.write(`Generate a question about deeper meaning of ${topic}`),
+  ]);
+
+  writer.destroy();
+  return prompts;
+}
+```
+
+---
 
 ## Best Practices
 
@@ -343,55 +456,7 @@ useEffect(() => {
 }, []);
 ```
 
-## Integration with Reflexa AI
-
-### Use Case: Draft Reflection
-
-```typescript
-async function generateReflectionDraft(summary: string[]) {
-  const writerManager = new WriterManager();
-
-  const available = await writerManager.checkAvailability();
-  if (!available) {
-    return null;
-  }
-
-  const context = `Summary insights: ${summary.join('. ')}`;
-
-  const draft = await writerManager.generate(
-    'Write a reflective paragraph about these insights',
-    {
-      tone: 'calm',
-      length: 'medium',
-    },
-    context
-  );
-
-  return draft;
-}
-```
-
-### Use Case: Generate Reflection Prompts
-
-```typescript
-async function generateCustomPrompts(topic: string) {
-  const writer = await Writer.create({
-    tone: 'neutral',
-    format: 'plain-text',
-    length: 'short',
-    sharedContext: 'Generate thoughtful reflection questions.',
-  });
-
-  const prompts = await Promise.all([
-    writer.write(`Generate a question about applying ${topic} to daily life`),
-    writer.write(`Generate a question about surprising aspects of ${topic}`),
-    writer.write(`Generate a question about deeper meaning of ${topic}`),
-  ]);
-
-  writer.destroy();
-  return prompts;
-}
-```
+---
 
 ## Troubleshooting
 
@@ -440,6 +505,8 @@ async function generateCustomPrompts(topic: string) {
 3. Ensure language combination is supported
 4. Check for conflicting options
 
+---
+
 ## Performance Considerations
 
 ### Session Caching
@@ -470,6 +537,27 @@ This balances responsiveness with reliability.
 - Sessions are kept in memory until `destroy()` is called
 - Call `destroy()` when manager is no longer needed
 - Individual sessions can be destroyed with `destroySession()`
+
+---
+
+## System Requirements
+
+- **Chrome**: Version 137+
+- **OS**: Windows 10/11, macOS 13+, Linux, ChromeOS
+- **Storage**: 22GB free space
+- **GPU**: >4GB VRAM OR CPU: 16GB RAM + 4 cores
+- **Network**: Unmetered connection for model download
+
+## Chrome Flags
+
+Enable in `chrome://flags`:
+
+- `#writer-api-for-gemini-nano`
+- `#optimization-guide-on-device-model`
+
+Then restart Chrome completely.
+
+---
 
 ## Testing
 
@@ -520,6 +608,8 @@ describe('WriterManager', () => {
 });
 ```
 
+---
+
 ## Resources
 
 - [Official Writer API Documentation](https://developer.chrome.com/docs/ai/writer-api)
@@ -536,6 +626,6 @@ describe('WriterManager', () => {
 
 ---
 
-**Last Updated**: October 28, 2025
+**Last Updated**: October 30, 2025
 **API Version**: Chrome 137+
 **Status**: Origin Trial
