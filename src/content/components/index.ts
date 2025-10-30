@@ -12,3 +12,4 @@ export { TonePresetChips } from './TonePresetChips';
 export { ProofreadDiffView } from './ProofreadDiffView';
 export { LanguagePill } from './LanguagePill';
 export { TranslateDropdown } from './TranslateDropdown';
+export { StartReflectionButton } from './StartReflectionButton';

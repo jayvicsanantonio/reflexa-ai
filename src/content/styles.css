@@ -1921,3 +1921,134 @@
     font-size: 20px;
   }
 }
+
+/* Start Reflection Button Component */
+.reflexa-start-reflection-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.3s ease;
+  box-shadow: var(--shadow-medium);
+  min-width: 180px;
+}
+
+.reflexa-start-reflection-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-large);
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+}
+
+.reflexa-start-reflection-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-soft);
+}
+
+.reflexa-start-reflection-button:focus-visible {
+  outline: 3px solid #0ea5e9;
+  outline-offset: 4px;
+}
+
+.reflexa-start-reflection-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.reflexa-start-reflection-button--loading {
+  cursor: wait;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+}
+
+.reflexa-start-reflection-button--success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  animation: successPulse 0.5s ease-out;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.reflexa-start-reflection-button__icon {
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reflexa-start-reflection-button__text {
+  line-height: 1;
+}
+
+.reflexa-start-reflection-button__spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.reflexa-start-reflection-button__spinner-svg {
+  width: 100%;
+  height: 100%;
+  animation: spin 1s linear infinite;
+}
+
+.reflexa-start-reflection-button__spinner-circle {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 25;
+  transform-origin: center;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .reflexa-start-reflection-button {
+    transition: none;
+  }
+
+  .reflexa-start-reflection-button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .reflexa-start-reflection-button:active:not(:disabled) {
+    transform: none;
+  }
+
+  .reflexa-start-reflection-button--success {
+    animation: none;
+  }
+
+  .reflexa-start-reflection-button__spinner-svg {
+    animation: none;
+  }
+}

@@ -250,7 +250,7 @@
   - Gray out unsupported language pairs
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 17. Create Start Reflection button component
+- [x] 17. Create Start Reflection button component
   - Build button that triggers draft generation
   - Show loading spinner while Writer API generates draft
   - Implement smooth insertion of generated text into reflection input
