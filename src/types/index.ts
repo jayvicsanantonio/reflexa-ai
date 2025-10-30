@@ -110,6 +110,7 @@ export type MessageType =
   | 'write'
   | 'detectLanguage'
   | 'getUsageStats'
+  | 'getPerformanceStats'
   | 'canTranslate'
   | 'checkTranslationAvailability';
 
@@ -239,6 +240,41 @@ export interface UsageStats {
   translations: number;
   languageDetections: number;
   sessionStart: number;
+}
+
+/**
+ * Performance statistics for AI operations
+ */
+export interface PerformanceStats {
+  averageResponseTime: number;
+  slowestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  fastestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  totalOperations: number;
+  slowOperationsCount: number;
+  operationsByType: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
+  operationsByAPI: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
 }
 
 /**

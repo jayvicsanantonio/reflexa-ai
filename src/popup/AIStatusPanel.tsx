@@ -5,7 +5,40 @@ interface AIStatusPanelProps {
   capabilities: AICapabilities;
   usageStats: UsageStats;
   experimentalMode: boolean;
+  performanceStats?: PerformanceStats;
   onRefresh?: () => void;
+}
+
+interface PerformanceStats {
+  averageResponseTime: number;
+  slowestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  fastestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  totalOperations: number;
+  slowOperationsCount: number;
+  operationsByType: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
+  operationsByAPI: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
 }
 
 /**
@@ -17,6 +50,7 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
   capabilities,
   usageStats,
   experimentalMode,
+  performanceStats,
   onRefresh,
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -349,6 +383,89 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
         </div>
       </div>
 
+      {/* Performance Metrics */}
+      {performanceStats && performanceStats.totalOperations > 0 && (
+        <div className="border-calm-200 mb-4 rounded-lg border p-4">
+          <h3 className="text-calm-900 mb-3 text-sm font-semibold">
+            Performance Metrics
+          </h3>
+
+          {/* Average Response Time */}
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-calm-600 text-sm">Average Response Time</span>
+            <span className="font-display text-zen-600 text-lg font-bold">
+              {(performanceStats.averageResponseTime / 1000).toFixed(2)}s
+            </span>
+          </div>
+
+          {/* Slow Operations Warning */}
+          {performanceStats.slowOperationsCount > 0 && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
+              <svg
+                className="h-4 w-4 shrink-0 text-amber-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span className="text-xs text-amber-900">
+                {performanceStats.slowOperationsCount} slow operation
+                {performanceStats.slowOperationsCount > 1 ? 's' : ''} detected
+                (&gt;5s)
+              </span>
+            </div>
+          )}
+
+          {/* Operation Type Breakdown */}
+          {Object.keys(performanceStats.operationsByType).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-calm-600 text-xs font-medium">
+                Average by Operation
+              </p>
+              {Object.entries(performanceStats.operationsByType).map(
+                ([type, data]) => (
+                  <div key={type} className="flex items-center justify-between">
+                    <span className="text-calm-600 text-xs capitalize">
+                      {type}
+                    </span>
+                    <span className="text-calm-900 font-mono text-xs font-medium">
+                      {(data.averageDuration / 1000).toFixed(2)}s
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* API Performance Breakdown */}
+          {Object.keys(performanceStats.operationsByAPI).length > 0 && (
+            <div className="border-calm-200 mt-3 space-y-2 border-t pt-3">
+              <p className="text-calm-600 text-xs font-medium">
+                Average by API
+              </p>
+              {Object.entries(performanceStats.operationsByAPI).map(
+                ([api, data]) => (
+                  <div key={api} className="flex items-center justify-between">
+                    <span className="text-calm-600 text-xs capitalize">
+                      {api}
+                    </span>
+                    <span className="text-calm-900 font-mono text-xs font-medium">
+                      {(data.averageDuration / 1000).toFixed(2)}s
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Info Message */}
       <div className="bg-calm-50 border-calm-200 rounded-lg border p-3">
         <p className="text-calm-600 text-xs leading-relaxed">
@@ -364,7 +481,7 @@ const AIStatusPanelComponent: React.FC<AIStatusPanelProps> = ({
 export const AIStatusPanel = React.memo(
   AIStatusPanelComponent,
   (prevProps, nextProps) => {
-    // Only re-render if capabilities, usage stats, or experimental mode changed
+    // Only re-render if capabilities, usage stats, performance stats, or experimental mode changed
     return (
       prevProps.capabilities.summarizer === nextProps.capabilities.summarizer &&
       prevProps.capabilities.writer === nextProps.capabilities.writer &&
@@ -386,6 +503,10 @@ export const AIStatusPanel = React.memo(
       prevProps.usageStats.languageDetections ===
         nextProps.usageStats.languageDetections &&
       prevProps.experimentalMode === nextProps.experimentalMode &&
+      prevProps.performanceStats?.totalOperations ===
+        nextProps.performanceStats?.totalOperations &&
+      prevProps.performanceStats?.averageResponseTime ===
+        nextProps.performanceStats?.averageResponseTime &&
       prevProps.onRefresh === nextProps.onRefresh
     );
   }

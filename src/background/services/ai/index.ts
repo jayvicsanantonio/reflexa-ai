@@ -10,3 +10,5 @@ export { TranslatorManager } from './translatorManager';
 export { WriterManager } from './writerManager';
 export { RewriterManager } from './rewriterManager';
 export { LanguageDetectorManager } from './languageDetectorManager';
+export { performanceMonitor, PerformanceMonitor } from './performanceMonitor';
+export type { PerformanceMetric, PerformanceStats } from './performanceMonitor';

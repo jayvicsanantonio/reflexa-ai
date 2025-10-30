@@ -3,7 +3,7 @@
  * Handles chrome.runtime.onMessage events
  */
 
-import { aiService } from '../services/ai';
+import { aiService, performanceMonitor } from '../services/ai';
 import type {
   Message,
   AIResponse,
@@ -78,6 +78,9 @@ export async function handleMessage(
       case 'getUsageStats':
         return handleGetUsageStats();
 
+      case 'getPerformanceStats':
+        return handleGetPerformanceStats();
+
       case 'canTranslate':
         return await handleCanTranslate(
           message.payload as {
@@ -113,6 +116,8 @@ async function handleSummarize(payload: {
   content: string;
 }): Promise<AIResponse<string[]>> {
   const startTime = Date.now();
+  const apiUsed = 'prompt';
+
   try {
     // Execute with rate limiting and retry logic
     const summary = await rateLimiter.executeWithRetry(
@@ -121,18 +126,24 @@ async function handleSummarize(payload: {
     );
 
     if (summary.length === 0) {
+      const duration = Date.now() - startTime;
+      performanceMonitor.recordMetric('summarize', apiUsed, duration, false);
       return createErrorResponse(
         'Failed to generate summary',
-        Date.now() - startTime,
-        'prompt'
+        duration,
+        apiUsed
       );
     }
 
-    return createSuccessResponse(summary, 'prompt', Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('summarize', apiUsed, duration, true);
+    return createSuccessResponse(summary, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('summarize', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'prompt');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -143,6 +154,8 @@ async function handleReflect(payload: {
   summary: string[];
 }): Promise<AIResponse<string[]>> {
   const startTime = Date.now();
+  const apiUsed = 'prompt';
+
   try {
     // Execute with rate limiting and retry logic
     const questions = await rateLimiter.executeWithRetry(
@@ -151,18 +164,24 @@ async function handleReflect(payload: {
     );
 
     if (questions.length === 0) {
+      const duration = Date.now() - startTime;
+      performanceMonitor.recordMetric('reflect', apiUsed, duration, false);
       return createErrorResponse(
         'Failed to generate reflection prompts',
-        Date.now() - startTime,
-        'prompt'
+        duration,
+        apiUsed
       );
     }
 
-    return createSuccessResponse(questions, 'prompt', Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('reflect', apiUsed, duration, true);
+    return createSuccessResponse(questions, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('reflect', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'prompt');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -174,13 +193,14 @@ async function handleProofread(payload: {
   text: string;
 }): Promise<AIResponse<ProofreadResult>> {
   const startTime = Date.now();
+  let apiUsed = 'proofreader';
+
   try {
     // Try native Proofreader API first
     const proofreaderAvailable =
       await aiService.proofreader.checkAvailability();
 
     let result: ProofreadResult;
-    let apiUsed: string;
 
     if (proofreaderAvailable) {
       console.log('[Background] Using native Proofreader API');
@@ -205,11 +225,15 @@ async function handleProofread(payload: {
       apiUsed = 'prompt';
     }
 
-    return createSuccessResponse(result, apiUsed, Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('proofread', apiUsed, duration, true);
+    return createSuccessResponse(result, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('proofread', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'proofreader');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -222,6 +246,8 @@ async function handleTranslate(payload: {
   target: string;
 }): Promise<AIResponse<string>> {
   const startTime = Date.now();
+  const apiUsed = 'translator';
+
   try {
     const available = await aiService.translator.canTranslate(
       payload.source,
@@ -229,10 +255,12 @@ async function handleTranslate(payload: {
     );
 
     if (!available) {
+      const duration = Date.now() - startTime;
+      performanceMonitor.recordMetric('translate', apiUsed, duration, false);
       return createErrorResponse(
         `Translation not available for ${payload.source} -> ${payload.target}`,
-        Date.now() - startTime,
-        'translator'
+        duration,
+        apiUsed
       );
     }
 
@@ -247,11 +275,15 @@ async function handleTranslate(payload: {
       'translations'
     );
 
-    return createSuccessResponse(result, 'translator', Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('translate', apiUsed, duration, true);
+    return createSuccessResponse(result, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('translate', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'translator');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -264,14 +296,18 @@ async function handleRewrite(payload: {
   context?: string;
 }): Promise<AIResponse<{ original: string; rewritten: string }>> {
   const startTime = Date.now();
+  const apiUsed = 'rewriter';
+
   try {
     const available = await aiService.rewriter.checkAvailability();
 
     if (!available) {
+      const duration = Date.now() - startTime;
+      performanceMonitor.recordMetric('rewrite', apiUsed, duration, false);
       return createErrorResponse(
         'Rewriter API not available',
-        Date.now() - startTime,
-        'rewriter'
+        duration,
+        apiUsed
       );
     }
 
@@ -284,11 +320,15 @@ async function handleRewrite(payload: {
       'rewrites'
     );
 
-    return createSuccessResponse(result, 'rewriter', Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('rewrite', apiUsed, duration, true);
+    return createSuccessResponse(result, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('rewrite', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'rewriter');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -304,15 +344,15 @@ async function handleWrite(payload: {
   };
 }): Promise<AIResponse<string>> {
   const startTime = Date.now();
+  const apiUsed = 'writer';
+
   try {
     const available = await aiService.writer.checkAvailability();
 
     if (!available) {
-      return createErrorResponse(
-        'Writer API not available',
-        Date.now() - startTime,
-        'writer'
-      );
+      const duration = Date.now() - startTime;
+      performanceMonitor.recordMetric('write', apiUsed, duration, false);
+      return createErrorResponse('Writer API not available', duration, apiUsed);
     }
 
     // Execute with rate limiting and retry logic
@@ -321,11 +361,15 @@ async function handleWrite(payload: {
       'drafts'
     );
 
-    return createSuccessResponse(result, 'writer', Date.now() - startTime);
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('write', apiUsed, duration, true);
+    return createSuccessResponse(result, apiUsed, duration);
   } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMonitor.recordMetric('write', apiUsed, duration, false);
     const message =
       error instanceof AIError ? error.message : getUserFriendlyMessage(error);
-    return createErrorResponse(message, Date.now() - startTime, 'writer');
+    return createErrorResponse(message, duration, apiUsed);
   }
 }
 
@@ -497,6 +541,84 @@ async function handleCheckTranslationAvailability(payload: {
         : 'Failed to check translation availability',
       Date.now() - startTime,
       'translator'
+    );
+  }
+}
+
+/**
+ * Handle performance statistics request
+ */
+function handleGetPerformanceStats(): AIResponse<{
+  averageResponseTime: number;
+  slowestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  fastestOperation: {
+    operationType: string;
+    apiUsed: string;
+    duration: number;
+    timestamp: number;
+  } | null;
+  totalOperations: number;
+  slowOperationsCount: number;
+  operationsByType: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
+  operationsByAPI: Record<
+    string,
+    {
+      count: number;
+      averageDuration: number;
+    }
+  >;
+}> {
+  const startTime = Date.now();
+  try {
+    const stats = performanceMonitor.getStats();
+
+    return createSuccessResponse(
+      {
+        averageResponseTime: Math.round(stats.averageResponseTime),
+        slowestOperation: stats.slowestOperation,
+        fastestOperation: stats.fastestOperation,
+        totalOperations: stats.totalOperations,
+        slowOperationsCount: stats.slowOperationsCount,
+        operationsByType: Object.fromEntries(
+          Object.entries(stats.operationsByType).map(([type, data]) => [
+            type,
+            {
+              count: data.count,
+              averageDuration: Math.round(data.averageDuration),
+            },
+          ])
+        ),
+        operationsByAPI: Object.fromEntries(
+          Object.entries(stats.operationsByAPI).map(([api, data]) => [
+            api,
+            {
+              count: data.count,
+              averageDuration: Math.round(data.averageDuration),
+            },
+          ])
+        ),
+      },
+      'unified',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error
+        ? error.message
+        : 'Failed to get performance stats',
+      Date.now() - startTime,
+      'unified'
     );
   }
 }
