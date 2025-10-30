@@ -116,15 +116,15 @@
     - Update voice indicator state
     - _Requirements: 1.5_
 
-- [ ] 7. Implement language support
-  - [ ] 7.1 Add language detection and configuration
+- [x] 7. Implement language support
+  - [x] 7.1 Add language detection and configuration
     - Detect browser default language
     - Read user's language preference from settings
     - Configure SpeechRecognition with selected language
     - Add fallback to English for unsupported languages
     - _Requirements: 1.11_
 
-  - [ ] 7.2 Display current language in UI
+  - [x] 7.2 Display current language in UI
     - Add language indicator to voice button tooltip
     - Show notification if language not supported
     - Update language when settings change

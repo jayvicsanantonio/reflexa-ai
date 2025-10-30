@@ -49,6 +49,10 @@ export interface Settings {
   preferredTranslationLanguage: string;
   experimentalMode: boolean;
   autoDetectLanguage: boolean;
+  // Voice input settings
+  voiceInputEnabled?: boolean; // Enable/disable voice input (default true)
+  voiceLanguage?: string; // Voice recognition language (default: browser language)
+  voiceAutoStopDelay?: number; // Auto-stop delay in milliseconds (default 3000)
 }
 
 /**

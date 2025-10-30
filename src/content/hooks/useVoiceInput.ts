@@ -29,6 +29,145 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 /**
+ * Get the effective language for speech recognition
+ * Falls back to English if the requested language is not supported
+ * @param requestedLanguage - The language code requested by the user
+ * @returns The language code to use for speech recognition
+ */
+const getEffectiveLanguage = (requestedLanguage?: string): string => {
+  // If no language specified, use browser default
+  if (!requestedLanguage) {
+    return navigator.language || 'en-US';
+  }
+
+  // List of commonly supported languages by Web Speech API
+  // This is a subset - actual support varies by browser
+  const supportedLanguages = [
+    'en-US',
+    'en-GB',
+    'en-AU',
+    'en-CA',
+    'en-IN',
+    'en-NZ',
+    'en-ZA',
+    'es-ES',
+    'es-MX',
+    'es-AR',
+    'es-CO',
+    'es-CL',
+    'fr-FR',
+    'fr-CA',
+    'fr-BE',
+    'fr-CH',
+    'de-DE',
+    'de-AT',
+    'de-CH',
+    'it-IT',
+    'it-CH',
+    'pt-PT',
+    'pt-BR',
+    'ru-RU',
+    'ja-JP',
+    'ko-KR',
+    'zh-CN',
+    'zh-TW',
+    'zh-HK',
+    'ar-SA',
+    'ar-EG',
+    'hi-IN',
+    'nl-NL',
+    'nl-BE',
+    'pl-PL',
+    'tr-TR',
+    'sv-SE',
+    'da-DK',
+    'no-NO',
+    'fi-FI',
+    'cs-CZ',
+    'hu-HU',
+    'ro-RO',
+    'sk-SK',
+    'uk-UA',
+    'el-GR',
+    'he-IL',
+    'id-ID',
+    'ms-MY',
+    'th-TH',
+    'vi-VN',
+  ];
+
+  // Check if the exact language code is supported
+  if (supportedLanguages.includes(requestedLanguage)) {
+    return requestedLanguage;
+  }
+
+  // Try to find a match with just the language part (e.g., 'en' from 'en-US')
+  const languagePrefix = requestedLanguage.split('-')[0];
+  const matchingLanguage = supportedLanguages.find((lang) =>
+    lang.startsWith(languagePrefix)
+  );
+
+  if (matchingLanguage) {
+    return matchingLanguage;
+  }
+
+  // Fallback to English if language not supported
+  console.warn(
+    `Language "${requestedLanguage}" not supported by Web Speech API. Falling back to English.`
+  );
+  return 'en-US';
+};
+
+/**
+ * Get human-readable language name from language code
+ * @param languageCode - ISO language code (e.g., 'en-US')
+ * @returns Human-readable language name
+ */
+const getLanguageName = (languageCode: string): string => {
+  const languageNames: Record<string, string> = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-AU': 'English (Australia)',
+    'en-CA': 'English (Canada)',
+    'en-IN': 'English (India)',
+    'es-ES': 'Spanish (Spain)',
+    'es-MX': 'Spanish (Mexico)',
+    'fr-FR': 'French',
+    'de-DE': 'German',
+    'it-IT': 'Italian',
+    'pt-PT': 'Portuguese (Portugal)',
+    'pt-BR': 'Portuguese (Brazil)',
+    'ru-RU': 'Russian',
+    'ja-JP': 'Japanese',
+    'ko-KR': 'Korean',
+    'zh-CN': 'Chinese (Simplified)',
+    'zh-TW': 'Chinese (Traditional)',
+    'ar-SA': 'Arabic',
+    'hi-IN': 'Hindi',
+    'nl-NL': 'Dutch',
+    'pl-PL': 'Polish',
+    'tr-TR': 'Turkish',
+    'sv-SE': 'Swedish',
+    'da-DK': 'Danish',
+    'no-NO': 'Norwegian',
+    'fi-FI': 'Finnish',
+    'cs-CZ': 'Czech',
+    'hu-HU': 'Hungarian',
+    'ro-RO': 'Romanian',
+    'sk-SK': 'Slovak',
+    'uk-UA': 'Ukrainian',
+    'el-GR': 'Greek',
+    'he-IL': 'Hebrew',
+    'id-ID': 'Indonesian',
+    'ms-MY': 'Malay',
+    'th-TH': 'Thai',
+    'vi-VN': 'Vietnamese',
+  };
+
+  return languageNames[languageCode] || languageCode;
+};
+
+/**
  * Voice input error types
  */
 export type VoiceInputErrorCode =
@@ -36,7 +175,8 @@ export type VoiceInputErrorCode =
   | 'permission-denied'
   | 'no-speech'
   | 'network'
-  | 'aborted';
+  | 'aborted'
+  | 'language-not-supported';
 
 /**
  * Voice input error structure
@@ -83,6 +223,9 @@ export interface UseVoiceInputReturn {
   error: VoiceInputError | null;
   status: VoiceInputStatus;
   isPaused: boolean;
+  effectiveLanguage: string; // The actual language being used for recognition
+  languageName: string; // Human-readable language name
+  isLanguageFallback: boolean; // True if using fallback language
 }
 
 /**
@@ -124,6 +267,20 @@ export const useVoiceInput = (
     );
   }, []);
 
+  // Determine effective language and check if fallback is needed
+  const effectiveLanguage = useMemo(() => {
+    return getEffectiveLanguage(language);
+  }, [language]);
+
+  const isLanguageFallback = useMemo(() => {
+    if (!language) return false;
+    return effectiveLanguage !== language;
+  }, [language, effectiveLanguage]);
+
+  const languageName = useMemo(() => {
+    return getLanguageName(effectiveLanguage);
+  }, [effectiveLanguage]);
+
   // Update status and notify callback
   const updateStatus = useCallback(
     (newStatus: VoiceInputStatus) => {
@@ -147,6 +304,8 @@ export const useVoiceInput = (
         network:
           'Voice recognition unavailable. Please check your connection or type your reflection.',
         aborted: 'Voice input was interrupted. Please try again.',
+        'language-not-supported':
+          'The selected language is not supported. Using English instead.',
       };
 
       return {
@@ -216,7 +375,7 @@ export const useVoiceInput = (
       // Configure recognition settings
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = language ?? navigator.language ?? 'en-US';
+      recognition.lang = effectiveLanguage;
       recognition.maxAlternatives = 1;
 
       // Handle result event (interim and final results)
@@ -342,7 +501,7 @@ export const useVoiceInput = (
     }
   }, [
     isSupported,
-    language,
+    effectiveLanguage,
     onTranscript,
     handleError,
     updateStatus,
@@ -448,5 +607,11 @@ export const useVoiceInput = (
     error,
     status,
     isPaused,
+    effectiveLanguage,
+    languageName,
+    isLanguageFallback,
   };
 };
+
+// Export helper functions for use in other components
+export { getEffectiveLanguage, getLanguageName };

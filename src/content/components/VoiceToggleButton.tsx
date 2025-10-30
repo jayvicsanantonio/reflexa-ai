@@ -6,6 +6,8 @@ interface VoiceToggleButtonProps {
   onToggle: () => void;
   disabled?: boolean;
   language?: string;
+  languageName?: string; // Human-readable language name
+  isLanguageFallback?: boolean; // True if using fallback language
   reduceMotion?: boolean;
 }
 
@@ -19,6 +21,8 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
   onToggle,
   disabled = false,
   language,
+  languageName,
+  isLanguageFallback = false,
   reduceMotion = false,
 }) => {
   const handleClick = () => {
@@ -35,7 +39,17 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
   };
 
   const ariaLabel = isRecording ? 'Stop voice input' : 'Start voice input';
-  const tooltipText = language ? `Voice input (${language})` : 'Voice input';
+
+  // Build tooltip text with language information
+  let tooltipText = 'Voice input';
+  if (languageName) {
+    tooltipText = `Voice input (${languageName})`;
+    if (isLanguageFallback) {
+      tooltipText += ' - Using fallback language';
+    }
+  } else if (language) {
+    tooltipText = `Voice input (${language})`;
+  }
 
   return (
     <button

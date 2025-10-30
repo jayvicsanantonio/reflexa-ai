@@ -131,6 +131,11 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
   const [autoStopNotification, setAutoStopNotification] =
     useState<boolean>(false);
+  const [languageFallbackNotification, setLanguageFallbackNotification] =
+    useState<{ show: boolean; languageName: string }>({
+      show: false,
+      languageName: '',
+    });
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const audioManagerRef = useRef<AudioManager | null>(null);
@@ -220,12 +225,15 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   }, [settings.enableSound]);
 
   const voiceInput0 = useVoiceInput({
-    language: settings.preferredTranslationLanguage || navigator.language,
+    language:
+      settings.voiceLanguage ??
+      settings.preferredTranslationLanguage ??
+      navigator.language,
     onTranscript: handleTranscript0,
     onError: handleVoiceError0,
     onTypingDetected: handleTypingDetected0,
     onAutoStop: handleAutoStop0,
-    autoStopDelay: 3000,
+    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
   });
 
   // Voice input handlers for reflection field 1
@@ -292,12 +300,15 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   }, [settings.enableSound]);
 
   const voiceInput1 = useVoiceInput({
-    language: settings.preferredTranslationLanguage || navigator.language,
+    language:
+      settings.voiceLanguage ??
+      settings.preferredTranslationLanguage ??
+      navigator.language,
     onTranscript: handleTranscript1,
     onError: handleVoiceError1,
     onTypingDetected: handleTypingDetected1,
     onAutoStop: handleAutoStop1,
-    autoStopDelay: 3000,
+    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
   });
 
   // Update voice input recording states
@@ -309,6 +320,24 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       return newStates;
     });
   }, [voiceInput0.isRecording, voiceInput1.isRecording]);
+
+  // Show notification if language fallback is detected
+  useEffect(() => {
+    if (voiceInput0.isLanguageFallback || voiceInput1.isLanguageFallback) {
+      const languageName = voiceInput0.isLanguageFallback
+        ? voiceInput0.languageName
+        : voiceInput1.languageName;
+      setLanguageFallbackNotification({
+        show: true,
+        languageName,
+      });
+    }
+  }, [
+    voiceInput0.isLanguageFallback,
+    voiceInput0.languageName,
+    voiceInput1.isLanguageFallback,
+    voiceInput1.languageName,
+  ]);
 
   const handleFormatChange = async (format: SummaryFormat) => {
     if (onFormatChange) {
@@ -407,7 +436,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       if (isTyping && voiceInput.isRecording && !voiceInput.isPaused) {
         // User started typing during voice recording - pause transcription
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           voiceInput.pauseRecording();
         } catch (err) {
           console.error('Failed to pause recording:', err);
@@ -424,7 +452,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           const currentVoiceInput = index === 0 ? voiceInput0 : voiceInput1;
           if (currentVoiceInput.isRecording && currentVoiceInput.isPaused) {
             try {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               currentVoiceInput.resumeRecording();
             } catch (err) {
               console.error('Failed to resume recording:', err);
@@ -753,10 +780,9 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                       isRecording={voiceInput.isRecording}
                       onToggle={handleVoiceToggle}
                       disabled={false}
-                      language={
-                        settings.preferredTranslationLanguage ||
-                        navigator.language
-                      }
+                      language={voiceInput.effectiveLanguage}
+                      languageName={voiceInput.languageName}
+                      isLanguageFallback={voiceInput.isLanguageFallback}
                       reduceMotion={settings.reduceMotion}
                     />
                   )}
@@ -835,6 +861,19 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             type="info"
             duration={3000}
             onClose={() => setAutoStopNotification(false)}
+          />
+        )}
+
+        {/* Language Fallback Notification */}
+        {languageFallbackNotification.show && (
+          <Notification
+            title="Language Not Supported"
+            message={`The selected language is not supported. Using ${languageFallbackNotification.languageName} instead.`}
+            type="warning"
+            duration={5000}
+            onClose={() =>
+              setLanguageFallbackNotification({ show: false, languageName: '' })
+            }
           />
         )}
       </div>

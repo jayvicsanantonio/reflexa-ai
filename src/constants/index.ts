@@ -25,6 +25,10 @@ export const DEFAULT_SETTINGS: Settings = {
   preferredTranslationLanguage: 'en',
   experimentalMode: false,
   autoDetectLanguage: true,
+  // Voice input settings
+  voiceInputEnabled: true,
+  voiceLanguage: undefined, // Will default to browser language
+  voiceAutoStopDelay: 3000,
 };
 
 /**
