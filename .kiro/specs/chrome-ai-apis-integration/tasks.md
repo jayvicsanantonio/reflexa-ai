@@ -398,7 +398,7 @@
   - Test error handling for each error type
   - _Requirements: 1.1, 1.2, 8.1, 8.2, 8.3, 8.4, 8.5, 9.3_
 
-- [ ]* 27. Write integration tests for AI workflows
+- [x] 27. Write integration tests for AI workflows
   - Test complete multilingual reflection flow (detect → translate → draft → rewrite → proofread)
   - Test summary format switching
   - Test tone adjustment workflow
