@@ -320,7 +320,7 @@ describe('WriterManager', () => {
       await manager.generate('test', options);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Generated draft:')
+        expect.stringContaining('[WriterManager] Generated draft in')
       );
     });
 
