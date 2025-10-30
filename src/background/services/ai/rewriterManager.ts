@@ -32,14 +32,16 @@ export class RewriterManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
+    console.log('[RewriterManager] Checking availability...');
     try {
       const capabilities = await Promise.resolve(
         capabilityDetector.getCapabilities()
       );
       this.available = Boolean(capabilities.rewriter);
+      console.log(`[RewriterManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('Error checking Rewriter availability:', error);
+      console.error('[RewriterManager] Error checking availability:', error);
       this.available = false;
       return false;
     }
@@ -96,32 +98,39 @@ export class RewriterManager {
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
+      console.log(`[RewriterManager] Reusing cached session: ${sessionKey}`);
       return this.sessions.get(sessionKey)!;
     }
+
+    console.log(`[RewriterManager] Creating new session: ${sessionKey}`);
 
     try {
       // Access Rewriter from globalThis (service worker context)
       // Note: Rewriter API is accessed via global Rewriter, not ai.rewriter
       if (typeof Rewriter === 'undefined') {
-        console.warn('Rewriter API not available');
+        console.warn('[RewriterManager] Rewriter API not available');
         return null;
       }
 
       // Create new session with specified options
+      const startTime = performance.now();
       const session = await Rewriter.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
         format: config.format,
         length: config.length,
       });
+      const duration = performance.now() - startTime;
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created rewriter session: ${sessionKey}`);
+      console.log(
+        `[RewriterManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
+      );
 
       return session;
     } catch (error) {
-      console.error('Error creating rewriter session:', error);
+      console.error('[RewriterManager] Error creating session:', error);
       return null;
     }
   }
@@ -141,8 +150,15 @@ export class RewriterManager {
     preset: TonePreset,
     context?: string
   ): Promise<{ original: string; rewritten: string }> {
+    console.log(
+      `[RewriterManager] rewrite() called with preset: ${preset}, text length: ${text.length}, context: ${context ? 'yes' : 'no'}`
+    );
+
     // Check availability first
     if (!this.available) {
+      console.log(
+        '[RewriterManager] API not available, checking availability...'
+      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Rewriter API is not available');
@@ -151,27 +167,45 @@ export class RewriterManager {
 
     try {
       // First attempt with standard timeout
+      console.log(
+        `[RewriterManager] Attempting rewrite with ${REWRITER_TIMEOUT}ms timeout`
+      );
       const rewritten = await this.rewriteWithTimeout(
         text,
         preset,
         context,
         REWRITER_TIMEOUT
       );
+      console.log(
+        `[RewriterManager] Rewrite successful, output length: ${rewritten.length}`
+      );
       return { original: text, rewritten };
     } catch (error) {
-      console.warn('First rewrite attempt failed, retrying...', error);
+      console.warn(
+        '[RewriterManager] First rewrite attempt failed, retrying...',
+        error
+      );
 
       try {
         // Retry with extended timeout
+        console.log(
+          `[RewriterManager] Retrying with ${RETRY_TIMEOUT}ms timeout`
+        );
         const rewritten = await this.rewriteWithTimeout(
           text,
           preset,
           context,
           RETRY_TIMEOUT
         );
+        console.log(
+          `[RewriterManager] Retry successful, output length: ${rewritten.length}`
+        );
         return { original: text, rewritten };
       } catch (retryError) {
-        console.error('Rewriting failed after retry:', retryError);
+        console.error(
+          '[RewriterManager] Rewriting failed after retry:',
+          retryError
+        );
         throw new Error(
           `Text rewriting failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -216,6 +250,9 @@ export class RewriterManager {
   ): Promise<string> {
     // Map tone preset to API parameters
     const { tone, length } = this.mapTonePreset(preset);
+    console.log(
+      `[RewriterManager] Mapped preset "${preset}" to tone: ${tone}, length: ${length}`
+    );
 
     // Build shared context if provided
     const sharedContext = context
@@ -235,7 +272,13 @@ export class RewriterManager {
     }
 
     // Rewrite text while preserving structure
+    console.log('[RewriterManager] Calling session.rewrite()...');
+    const startTime = performance.now();
     const result = await session.rewrite(text, { context });
+    const duration = performance.now() - startTime;
+    console.log(
+      `[RewriterManager] Rewrite completed in ${duration.toFixed(2)}ms`
+    );
 
     // Return cleaned text
     return result.trim();
@@ -310,15 +353,22 @@ export class RewriterManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
+    console.log(
+      `[RewriterManager] destroy() called (${this.sessions.size} sessions)`
+    );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed rewriter session: ${key}`);
+        console.log(`[RewriterManager] Destroyed session: ${key}`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        console.error(
+          `[RewriterManager] Error destroying session ${key}:`,
+          error
+        );
       }
     }
     this.sessions.clear();
+    console.log('[RewriterManager] All sessions destroyed');
   }
 
   /**

@@ -35,15 +35,17 @@ export class SummarizerManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
+    console.log('[SummarizerManager] Checking availability...');
     try {
       // Capability detection is synchronous but we return a promise for consistency
       const capabilities = await Promise.resolve(
         capabilityDetector.getCapabilities()
       );
       this.available = Boolean(capabilities.summarizer);
+      console.log(`[SummarizerManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('Error checking Summarizer availability:', error);
+      console.error('[SummarizerManager] Error checking availability:', error);
       this.available = false;
       return false;
     }
@@ -76,6 +78,7 @@ export class SummarizerManager {
 
     // Return cached session if available and not forcing recreation
     if (this.sessions.has(sessionKey) && !forceRecreate) {
+      console.log(`[SummarizerManager] Reusing cached session: ${sessionKey}`);
       return this.sessions.get(sessionKey)!;
     }
 
@@ -84,12 +87,19 @@ export class SummarizerManager {
       const oldSession = this.sessions.get(sessionKey);
       try {
         oldSession?.destroy();
-        console.log(`Destroyed old summarizer session: ${sessionKey}`);
+        console.log(`[SummarizerManager] Destroyed old session: ${sessionKey}`);
       } catch (error) {
-        console.error(`Error destroying old session ${sessionKey}:`, error);
+        console.error(
+          `[SummarizerManager] Error destroying old session ${sessionKey}:`,
+          error
+        );
       }
       this.sessions.delete(sessionKey);
     }
+
+    console.log(
+      `[SummarizerManager] Creating new session: ${sessionKey} (forceRecreate: ${forceRecreate})`
+    );
 
     try {
       // Access Summarizer from globalThis (global API, not under ai namespace)
@@ -100,31 +110,35 @@ export class SummarizerManager {
       ).Summarizer;
 
       if (!SummarizerAPI) {
-        console.warn('Summarizer API not available');
+        console.warn('[SummarizerManager] Summarizer API not available');
         return null;
       }
 
       // Create new session with specified options
+      const startTime = performance.now();
       const session = await SummarizerAPI.create({
         type,
         format,
         length,
       });
+      const duration = performance.now() - startTime;
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created summarizer session: ${sessionKey}`);
+      console.log(
+        `[SummarizerManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
+      );
 
       return session;
     } catch (error) {
-      console.error('Error creating summarizer session:', error);
+      console.error('[SummarizerManager] Error creating session:', error);
 
       // If session creation fails, ensure we don't have a stale entry
       this.sessions.delete(sessionKey);
 
       // Retry once if this was not already a retry
       if (!forceRecreate) {
-        console.log('Retrying session creation...');
+        console.log('[SummarizerManager] Retrying session creation...');
         return this.createSession(type, format, length, true);
       }
 
@@ -141,8 +155,15 @@ export class SummarizerManager {
    * @throws Error if summarization fails after retry
    */
   async summarize(text: string, format: SummaryFormat): Promise<string[]> {
+    console.log(
+      `[SummarizerManager] summarize() called with format: ${format}, text length: ${text.length}`
+    );
+
     // Check availability first
     if (!this.available) {
+      console.log(
+        '[SummarizerManager] API not available, checking availability...'
+      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Summarizer API is not available');
@@ -151,15 +172,43 @@ export class SummarizerManager {
 
     try {
       // First attempt with standard timeout
-      return await this.summarizeWithTimeout(text, format, SUMMARIZE_TIMEOUT);
+      console.log(
+        `[SummarizerManager] Attempting summarize with ${SUMMARIZE_TIMEOUT}ms timeout`
+      );
+      const result = await this.summarizeWithTimeout(
+        text,
+        format,
+        SUMMARIZE_TIMEOUT
+      );
+      console.log(
+        `[SummarizerManager] Summarization successful, got ${result.length} items`
+      );
+      return result;
     } catch (error) {
-      console.warn('First summarization attempt failed, retrying...', error);
+      console.warn(
+        '[SummarizerManager] First summarization attempt failed, retrying...',
+        error
+      );
 
       try {
         // Retry with extended timeout
-        return await this.summarizeWithTimeout(text, format, RETRY_TIMEOUT);
+        console.log(
+          `[SummarizerManager] Retrying with ${RETRY_TIMEOUT}ms timeout`
+        );
+        const result = await this.summarizeWithTimeout(
+          text,
+          format,
+          RETRY_TIMEOUT
+        );
+        console.log(
+          `[SummarizerManager] Retry successful, got ${result.length} items`
+        );
+        return result;
       } catch (retryError) {
-        console.error('Summarization failed after retry:', retryError);
+        console.error(
+          '[SummarizerManager] Summarization failed after retry:',
+          retryError
+        );
         throw new Error(
           `Summarization failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -366,16 +415,23 @@ export class SummarizerManager {
    * Also called automatically on critical errors
    */
   destroy(): void {
+    console.log(
+      `[SummarizerManager] destroy() called (${this.sessions.size} sessions)`
+    );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed summarizer session: ${key}`);
+        console.log(`[SummarizerManager] Destroyed session: ${key}`);
       } catch (err) {
-        console.error(`Error destroying session ${key}:`, err);
+        console.error(
+          `[SummarizerManager] Error destroying session ${key}:`,
+          err
+        );
         // Continue cleanup even if one session fails
       }
     }
     this.sessions.clear();
+    console.log('[SummarizerManager] All sessions destroyed');
   }
 
   /**

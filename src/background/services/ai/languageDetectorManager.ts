@@ -152,6 +152,7 @@ export class LanguageDetectorManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
+    console.log('[LanguageDetectorManager] Checking availability...');
     try {
       // Check if LanguageDetector exists in globalThis (not under ai namespace)
       const LanguageDetector = (
@@ -161,16 +162,24 @@ export class LanguageDetectorManager {
       ).LanguageDetector;
 
       if (!LanguageDetector) {
+        console.warn(
+          '[LanguageDetectorManager] LanguageDetector API not found in globalThis'
+        );
         this.available = false;
         return false;
       }
 
       // Check actual availability status
       const status = await LanguageDetector.availability();
+      console.log(`[LanguageDetectorManager] API status: ${status}`);
       this.available = status === 'available' || status === 'downloadable';
+      console.log(`[LanguageDetectorManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('Error checking Language Detector availability:', error);
+      console.error(
+        '[LanguageDetectorManager] Error checking availability:',
+        error
+      );
       this.available = false;
       return false;
     }
@@ -190,9 +199,13 @@ export class LanguageDetectorManager {
    */
   private async getDetector(): Promise<AILanguageDetector | null> {
     if (this.detector) {
+      console.log(
+        '[LanguageDetectorManager] Reusing existing detector instance'
+      );
       return this.detector;
     }
 
+    console.log('[LanguageDetectorManager] Creating new detector instance...');
     try {
       // Access LanguageDetector from globalThis (not under ai namespace)
       const LanguageDetector = (
@@ -202,17 +215,26 @@ export class LanguageDetectorManager {
       ).LanguageDetector;
 
       if (!LanguageDetector) {
-        console.warn('Language Detector API not available');
+        console.warn(
+          '[LanguageDetectorManager] Language Detector API not available'
+        );
         return null;
       }
 
       // Create detector instance
+      const startTime = performance.now();
       this.detector = await LanguageDetector.create();
-      console.log('Created language detector instance');
+      const duration = performance.now() - startTime;
+      console.log(
+        `[LanguageDetectorManager] Created detector instance in ${duration.toFixed(2)}ms`
+      );
 
       return this.detector;
     } catch (error) {
-      console.error('Error creating language detector:', error);
+      console.error(
+        '[LanguageDetectorManager] Error creating language detector:',
+        error
+      );
       return null;
     }
   }
@@ -226,8 +248,15 @@ export class LanguageDetectorManager {
    * @throws Error if detection fails
    */
   async detect(text: string, pageUrl?: string): Promise<LanguageDetection> {
+    console.log(
+      `[LanguageDetectorManager] detect() called with text length: ${text.length}, pageUrl: ${pageUrl ?? 'none'}`
+    );
+
     // Check availability first
     if (!this.available) {
+      console.log(
+        '[LanguageDetectorManager] API not available, checking availability...'
+      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Language Detector API is not available');
@@ -236,13 +265,17 @@ export class LanguageDetectorManager {
 
     // Generate cache key from page URL or text sample
     const cacheKey = pageUrl ?? this.generateCacheKey(text);
+    console.log(`[LanguageDetectorManager] Cache key: ${cacheKey}`);
 
     // Check cache first
     const cached = this.getCachedResult(cacheKey);
     if (cached) {
-      console.log(`Using cached language detection for: ${cacheKey}`);
+      console.log(
+        `[LanguageDetectorManager] Cache HIT for: ${cacheKey} - ${cached.languageName} (${cached.confidence.toFixed(2)})`
+      );
       return cached;
     }
+    console.log(`[LanguageDetectorManager] Cache MISS for: ${cacheKey}`);
 
     // Get detector instance
     const detector = await this.getDetector();
@@ -253,9 +286,17 @@ export class LanguageDetectorManager {
     try {
       // Use first 500 characters for speed
       const sample = text.slice(0, DETECTION_SAMPLE_LENGTH);
+      console.log(
+        `[LanguageDetectorManager] Using sample of ${sample.length} characters`
+      );
 
       // Detect language
+      const startTime = performance.now();
       const results: LanguageDetectionResult[] = await detector.detect(sample);
+      const duration = performance.now() - startTime;
+      console.log(
+        `[LanguageDetectorManager] Detection completed in ${duration.toFixed(2)}ms, got ${results.length} results`
+      );
 
       // Get the most confident result
       if (!results || results.length === 0) {
@@ -281,12 +322,15 @@ export class LanguageDetectorManager {
       this.cacheResult(cacheKey, result);
 
       console.log(
-        `Detected language: ${languageName} (${detectedLanguage}) with confidence ${confidence.toFixed(2)}`
+        `[LanguageDetectorManager] Detected language: ${languageName} (${detectedLanguage}) with confidence ${confidence.toFixed(2)}`
       );
 
       return result;
     } catch (error) {
-      console.error('Language detection failed:', error);
+      console.error(
+        '[LanguageDetectorManager] Language detection failed:',
+        error
+      );
       throw new Error(
         `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -362,8 +406,9 @@ export class LanguageDetectorManager {
    * Clear all cached detection results
    */
   clearCache(): void {
+    const size = this.cache.size;
     this.cache.clear();
-    console.log('Cleared language detection cache');
+    console.log(`[LanguageDetectorManager] Cleared ${size} cache entries`);
   }
 
   /**
@@ -371,14 +416,20 @@ export class LanguageDetectorManager {
    * @param pageUrl - Page URL to clear from cache
    */
   clearCacheForPage(pageUrl: string): void {
+    const existed = this.cache.has(pageUrl);
     this.cache.delete(pageUrl);
-    console.log(`Cleared cache for page: ${pageUrl}`);
+    console.log(
+      `[LanguageDetectorManager] Cleared cache for page: ${pageUrl} (existed: ${existed})`
+    );
   }
 
   /**
    * Clean up expired cache entries
    */
   cleanupCache(): void {
+    console.log(
+      `[LanguageDetectorManager] Starting cache cleanup (current size: ${this.cache.size})`
+    );
     const now = Date.now();
     const keysToDelete: string[] = [];
 
@@ -393,7 +444,11 @@ export class LanguageDetectorManager {
     }
 
     if (keysToDelete.length > 0) {
-      console.log(`Cleaned up ${keysToDelete.length} expired cache entries`);
+      console.log(
+        `[LanguageDetectorManager] Cleaned up ${keysToDelete.length} expired cache entries (new size: ${this.cache.size})`
+      );
+    } else {
+      console.log('[LanguageDetectorManager] No expired cache entries found');
     }
   }
 
@@ -401,14 +456,22 @@ export class LanguageDetectorManager {
    * Clean up detector instance
    */
   destroy(): void {
+    console.log('[LanguageDetectorManager] destroy() called');
     if (this.detector) {
       try {
         this.detector.destroy();
-        console.log('Destroyed language detector instance');
+        console.log(
+          '[LanguageDetectorManager] Destroyed language detector instance'
+        );
       } catch (error) {
-        console.error('Error destroying language detector:', error);
+        console.error(
+          '[LanguageDetectorManager] Error destroying language detector:',
+          error
+        );
       }
       this.detector = null;
+    } else {
+      console.log('[LanguageDetectorManager] No detector instance to destroy');
     }
     this.clearCache();
   }

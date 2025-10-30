@@ -41,12 +41,14 @@ export class WriterManager {
    * @returns Promise resolving to availability status
    */
   checkAvailability(): Promise<boolean> {
+    console.log('[WriterManager] Checking availability...');
     try {
       const capabilities = capabilityDetector.getCapabilities();
       this.available = capabilities.writer;
+      console.log(`[WriterManager] Available: ${this.available}`);
       return Promise.resolve(this.available);
     } catch (error) {
-      console.error('Error checking Writer availability:', error);
+      console.error('[WriterManager] Error checking availability:', error);
       this.available = false;
       return Promise.resolve(false);
     }
@@ -107,32 +109,39 @@ export class WriterManager {
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
+      console.log(`[WriterManager] Reusing cached session: ${sessionKey}`);
       return this.sessions.get(sessionKey)!;
     }
+
+    console.log(`[WriterManager] Creating new session: ${sessionKey}`);
 
     try {
       // Access Writer from globalThis (service worker context)
       // Note: Writer API is accessed via global Writer, not ai.writer
       if (typeof Writer === 'undefined') {
-        console.warn('Writer API not available');
+        console.warn('[WriterManager] Writer API not available');
         return null;
       }
 
       // Create new session with specified options
+      const startTime = performance.now();
       const session = await Writer.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
         format: config.format ?? 'markdown', // Default is markdown per docs
         length: config.length,
       });
+      const duration = performance.now() - startTime;
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created writer session: ${sessionKey}`);
+      console.log(
+        `[WriterManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
+      );
 
       return session;
     } catch (error) {
-      console.error('Error creating writer session:', error);
+      console.error('[WriterManager] Error creating session:', error);
       return null;
     }
   }
@@ -194,8 +203,15 @@ export class WriterManager {
     options: WriterOptions,
     context?: string
   ): Promise<string> {
+    console.log(
+      `[WriterManager] generate() called with topic: "${topic}", tone: ${options.tone}, length: ${options.length}, context: ${context ? 'yes' : 'no'}`
+    );
+
     // Check availability first
     if (!this.available) {
+      console.log(
+        '[WriterManager] API not available, checking availability...'
+      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Writer API is not available');
@@ -204,25 +220,43 @@ export class WriterManager {
 
     try {
       // First attempt with standard timeout
-      return await this.generateWithTimeout(
+      console.log(
+        `[WriterManager] Attempting generation with ${WRITER_TIMEOUT}ms timeout`
+      );
+      const result = await this.generateWithTimeout(
         topic,
         options,
         context,
         WRITER_TIMEOUT
       );
+      console.log(
+        `[WriterManager] Generation successful, output length: ${result.length}`
+      );
+      return result;
     } catch (error) {
-      console.warn('First generation attempt failed, retrying...', error);
+      console.warn(
+        '[WriterManager] First generation attempt failed, retrying...',
+        error
+      );
 
       try {
         // Retry with extended timeout
-        return await this.generateWithTimeout(
+        console.log(`[WriterManager] Retrying with ${RETRY_TIMEOUT}ms timeout`);
+        const result = await this.generateWithTimeout(
           topic,
           options,
           context,
           RETRY_TIMEOUT
         );
+        console.log(
+          `[WriterManager] Retry successful, output length: ${result.length}`
+        );
+        return result;
       } catch (retryError) {
-        console.error('Generation failed after retry:', retryError);
+        console.error(
+          '[WriterManager] Generation failed after retry:',
+          retryError
+        );
         throw new Error(
           `Draft generation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -268,6 +302,9 @@ export class WriterManager {
     // Map tone and length to Writer API values
     const apiTone = this.mapTone(options.tone);
     const apiLength = this.mapLength(options.length);
+    console.log(
+      `[WriterManager] Mapped tone "${options.tone}" -> ${apiTone}, length "${options.length}" -> ${apiLength}`
+    );
 
     // Build shared context from provided context
     const sharedContext = context
@@ -287,9 +324,12 @@ export class WriterManager {
     }
 
     // Generate draft - pass context in the options parameter per API spec
+    console.log('[WriterManager] Calling session.write()...');
+    const startTime = performance.now();
     const result = await session.write(topic, {
       context: context,
     });
+    const duration = performance.now() - startTime;
 
     // Format response as clean paragraph text
     const cleanedText = result.trim();
@@ -299,7 +339,7 @@ export class WriterManager {
     const range = LENGTH_RANGES[options.length];
 
     console.log(
-      `Generated draft: ${wordCount} words (target: ${range.min}-${range.max})`
+      `[WriterManager] Generated draft in ${duration.toFixed(2)}ms: ${wordCount} words (target: ${range.min}-${range.max})`
     );
 
     return cleanedText;
@@ -377,15 +417,22 @@ export class WriterManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
+    console.log(
+      `[WriterManager] destroy() called (${this.sessions.size} sessions)`
+    );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed writer session: ${key}`);
+        console.log(`[WriterManager] Destroyed session: ${key}`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        console.error(
+          `[WriterManager] Error destroying session ${key}:`,
+          error
+        );
       }
     }
     this.sessions.clear();
+    console.log('[WriterManager] All sessions destroyed');
   }
 
   /**
