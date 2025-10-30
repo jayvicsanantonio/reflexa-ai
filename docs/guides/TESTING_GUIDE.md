@@ -39,33 +39,78 @@ google-chrome --version  # Should be 127.x.x or higher
 
 ### Step 1: Enable Gemini Nano in Chrome
 
-Gemini Nano is Chrome's built-in AI that powers Reflexa AI. You need to enable it first.
+Gemini Nano is Chrome's built-in AI that powers Reflexa AI. You need to enable all Chrome AI APIs first.
 
-1. **Open Chrome Flags**:
-   - Open a new tab in Chrome
+1. **Enable Base AI Model**:
    - Navigate to: `chrome://flags/#optimization-guide-on-device-model`
-
-2. **Enable On-Device Model**:
    - Find "Optimization Guide On Device Model"
    - Set dropdown to: **"Enabled BypassPerfRequirement"**
 
-3. **Enable Prompt API**:
+2. **Enable Prompt API**:
    - Navigate to: `chrome://flags/#prompt-api-for-gemini-nano`
    - Find "Prompt API for Gemini Nano"
    - Set dropdown to: **"Enabled"**
 
-4. **Restart Chrome**:
+3. **Enable Summarizer API**:
+   - Navigate to: `chrome://flags/#summarization-api-for-gemini-nano`
+   - Find "Summarization API for Gemini Nano"
+   - Set dropdown to: **"Enabled"**
+
+4. **Enable Writer API**:
+   - Navigate to: `chrome://flags/#writer-api`
+   - Find "Writer API"
+   - Set dropdown to: **"Enabled"**
+
+5. **Enable Rewriter API**:
+   - Navigate to: `chrome://flags/#rewriter-api`
+   - Find "Rewriter API"
+   - Set dropdown to: **"Enabled"**
+
+6. **Enable Proofreader API**:
+   - Navigate to: `chrome://flags/#proofreader-api`
+   - Find "Proofreader API"
+   - Set dropdown to: **"Enabled"**
+
+7. **Enable Translator API**:
+   - Navigate to: `chrome://flags/#translator-api`
+   - Find "Translator API"
+   - Set dropdown to: **"Enabled"**
+
+8. **Enable Language Detector API**:
+   - Navigate to: `chrome://flags/#language-detection-api`
+   - Find "Language Detection API"
+   - Set dropdown to: **"Enabled"**
+
+9. **Restart Chrome**:
    - Click the "Relaunch" button that appears at the bottom
    - Or manually close and reopen Chrome
 
-5. **Verify AI is Available** (Optional):
-   - Open DevTools (F12) on any page
-   - Go to the Console tab
-   - Type: `await LanguageModel.availability()`
-   - Press Enter
-   - Should return: `"available"` or `"downloadable"`
+10. **Verify All APIs are Available**:
+    - Open DevTools (F12) on any page
+    - Go to the Console tab
+    - Copy and paste this code:
 
-> **Note**: If it returns `"downloadable"`, Chrome will download the AI model in the background. This may take a few minutes depending on your connection.
+    ```javascript
+    // Check all Chrome AI APIs
+    console.log('Writer:', typeof Writer);
+    console.log('Rewriter:', typeof Rewriter);
+    console.log('Proofreader:', typeof Proofreader);
+    console.log('Summarizer:', typeof Summarizer);
+    console.log('LanguageModel:', typeof LanguageModel);
+    console.log('Translator:', typeof Translator);
+    console.log('LanguageDetector:', typeof LanguageDetector);
+    ```
+
+    - Press Enter
+    - All should return: `"function"`
+    - If any return `"undefined"`, that API is not available
+
+11. **Check AI Model Status** (Optional):
+    - In the same console, type: `await LanguageModel.availability()`
+    - Press Enter
+    - Should return: `"available"` or `"downloadable"`
+
+> **Note**: If it returns `"downloadable"`, Chrome will download the AI model in the background. This may take a few minutes depending on your connection. All APIs use the same underlying Gemini Nano model.
 
 ### Step 2: Clone and Install
 
@@ -314,26 +359,35 @@ You should now see:
 
 ---
 
-### Test 6: AI Summary Generation
+### Test 6: Summarizer API - Summary Generation
 
-**Purpose**: Verify AI generates quality summaries.
+**Purpose**: Verify Summarizer API generates quality summaries.
 
 **Steps**:
 
 1. Trigger Reflect Mode (see Test 5)
 2. Wait for AI to generate summary
 3. Read the generated content
+4. Try changing summary format (Bullets, Paragraph, Headline + Bullets)
 
 **Expected Results**:
 
 - ✅ Summary appears within 4 seconds
-- ✅ Exactly 3 bullets are shown
+- ✅ Exactly 3 bullets are shown (in Bullets format)
 - ✅ Each bullet is labeled (Insight, Surprise, Apply)
 - ✅ Bullets are concise (~20 words each)
 - ✅ Content is relevant to the article
 - ✅ Two reflection questions appear
 - ✅ Questions end with "?"
 - ✅ Questions are action-oriented
+- ✅ Format dropdown allows switching between formats
+- ✅ Changing format regenerates summary in new format
+
+**If Summarizer API Unavailable**:
+
+- ✅ Falls back to Prompt API automatically
+- ✅ Summary still generates correctly
+- ✅ No visible difference to user
 
 **If AI Times Out**:
 
@@ -343,7 +397,181 @@ You should now see:
 
 ---
 
-### Test 7: Reflection Input
+### Test 7: Writer API - Draft Generation
+
+**Purpose**: Verify Writer API generates reflection drafts.
+
+**Steps**:
+
+1. Enter Reflect Mode
+2. Look for "Generate Draft" button (if Writer API available)
+3. Click the button
+4. Wait for AI to generate draft
+
+**Expected Results**:
+
+- ✅ Draft appears within 4 seconds
+- ✅ Draft is relevant to the article summary
+- ✅ Draft follows selected tone (casual/neutral/formal)
+- ✅ Draft length matches setting (short/medium/long)
+- ✅ Draft appears in reflection text area
+- ✅ User can edit the generated draft
+- ✅ Draft uses summary as context
+
+**If Writer API Unavailable**:
+
+- ✅ "Generate Draft" button is hidden
+- ✅ User can still type reflections manually
+- ✅ No error messages shown
+
+---
+
+### Test 8: Rewriter API - Tone Adjustment
+
+**Purpose**: Verify Rewriter API adjusts tone correctly.
+
+**Steps**:
+
+1. Enter Reflect Mode
+2. Type a reflection in the text area
+3. Look for tone preset chips (Calm, Concise, Empathetic, Academic)
+4. Click a tone preset
+5. Review rewritten version
+
+**Expected Results**:
+
+- ✅ Rewritten version appears within 3 seconds
+- ✅ Tone matches selected preset:
+  - Calm: Soothing, peaceful language
+  - Concise: Shorter, direct phrasing
+  - Empathetic: Warm, understanding tone
+  - Academic: Formal, scholarly language
+- ✅ Original meaning is preserved
+- ✅ Side-by-side preview shows both versions
+- ✅ Accept button replaces original with rewrite
+- ✅ Discard button keeps original text
+- ✅ Can try different tones before accepting
+
+**If Rewriter API Unavailable**:
+
+- ✅ Tone preset chips are hidden
+- ✅ Falls back to Prompt API (if available)
+- ✅ User can still edit text manually
+
+---
+
+### Test 9: Proofreader API - Grammar Checking
+
+**Purpose**: Verify Proofreader API fixes grammar and improves clarity.
+
+**Steps**:
+
+1. Enable proofreading in settings first
+2. Enter Reflect Mode
+3. Type text with intentional errors:
+   ```
+   This article make me think about how AI is changing things its really interesting
+   ```
+4. Click "Proofread" button
+
+**Expected Results**:
+
+- ✅ Proofread version appears within 3 seconds
+- ✅ Grammar errors are fixed:
+  - "make" → "makes"
+  - "its" → "it's"
+- ✅ Punctuation improved
+- ✅ Diff view shows changes with color coding:
+  - Red: Removed text
+  - Green: Added text
+- ✅ Original meaning preserved
+- ✅ Tone remains similar
+- ✅ Accept/Discard buttons for individual corrections
+- ✅ Can accept all or reject all changes
+
+**If Proofreader API Unavailable**:
+
+- ✅ "Proofread" button is hidden
+- ✅ Feature is disabled in settings (grayed out)
+- ✅ No fallback (Prompt API cannot replicate this)
+
+---
+
+### Test 10: Translator API - Translation
+
+**Purpose**: Verify Translator API translates content accurately.
+
+**Steps**:
+
+1. Navigate to an article (English or non-English)
+2. Enter Reflect Mode
+3. Look for language dropdown or translate button
+4. Select target language (e.g., Spanish, French, German)
+5. Click "Translate" button
+
+**Expected Results**:
+
+- ✅ Translation appears within 4 seconds
+- ✅ Summary is translated accurately
+- ✅ Formatting preserved:
+  - Bullet points remain bullets
+  - Line breaks maintained
+  - Markdown formatting intact
+- ✅ Reflection questions are translated
+- ✅ Can translate back to original language
+- ✅ Translation quality is natural and readable
+- ✅ Technical terms handled appropriately
+
+**Test Multiple Languages**:
+
+- English → Spanish
+- English → French
+- English → German
+- Spanish → English (if on Spanish article)
+
+**If Translator API Unavailable**:
+
+- ✅ Translation dropdown is hidden
+- ✅ Feature disabled in settings
+- ✅ No fallback available
+
+---
+
+### Test 11: Language Detector API - Language Detection
+
+**Purpose**: Verify Language Detector API identifies languages correctly.
+
+**Steps**:
+
+1. Navigate to a non-English article (try Spanish, French, or German)
+2. Enter Reflect Mode
+3. Check for language pill in header
+
+**Expected Results**:
+
+- ✅ Language pill appears automatically
+- ✅ Shows detected language name (e.g., "Spanish", "French")
+- ✅ Language is correctly identified
+- ✅ Confidence score displayed (if available)
+- ✅ Detection happens within 1 second
+- ✅ Works with mixed-language content
+
+**Test Different Languages**:
+
+- Spanish article: Should detect "Spanish"
+- French article: Should detect "French"
+- German article: Should detect "German"
+- English article: Should detect "English"
+
+**If Language Detector API Unavailable**:
+
+- ✅ Language pill is hidden
+- ✅ Translation features may be limited
+- ✅ No error messages shown
+
+---
+
+### Test 12: Reflection Input
 
 **Purpose**: Verify users can enter and save reflections.
 
@@ -363,35 +591,7 @@ You should now see:
 
 ---
 
-### Test 8: Proofreading (Optional)
-
-**Purpose**: Verify AI proofreading works.
-
-**Steps**:
-
-1. Enable proofreading in settings first
-2. Enter Reflect Mode
-3. Type a reflection with intentional errors
-4. Click the "Proofread" button
-
-**Example Text**:
-
-```
-This article make me think about how AI is changing things its really interesting
-```
-
-**Expected Results**:
-
-- ✅ "Proofread" button is visible
-- ✅ Button shows loading state when clicked
-- ✅ Proofread version appears within 4 seconds
-- ✅ Grammar is improved
-- ✅ Original meaning is preserved
-- ✅ Tone remains similar
-
----
-
-### Test 9: Save Reflection
+### Test 13: Save Reflection
 
 **Purpose**: Verify reflections are saved correctly.
 
@@ -421,7 +621,7 @@ This article make me think about how AI is changing things its really interestin
 
 ---
 
-### Test 10: Reflection History
+### Test 14: Reflection History
 
 **Purpose**: Verify dashboard displays reflections correctly.
 
@@ -442,7 +642,7 @@ This article make me think about how AI is changing things its really interestin
 
 ---
 
-### Test 11: Streak Tracking
+### Test 15: Streak Tracking
 
 **Purpose**: Verify streak calculation works.
 
@@ -471,7 +671,7 @@ This article make me think about how AI is changing things its really interestin
 
 ---
 
-### Test 12: Export Functionality
+### Test 16: Export Functionality
 
 **Purpose**: Verify reflections can be exported.
 
@@ -506,7 +706,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 13: Delete Reflection
+### Test 17: Delete Reflection
 
 **Purpose**: Verify reflections can be deleted.
 
@@ -526,7 +726,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 14: Keyboard Shortcuts
+### Test 18: Keyboard Shortcuts
 
 **Purpose**: Verify keyboard navigation works.
 
@@ -548,7 +748,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 15: Accessibility Features
+### Test 19: Accessibility Features
 
 **Purpose**: Verify accessibility compliance.
 
@@ -573,7 +773,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 16: Privacy Mode
+### Test 20: Privacy Mode
 
 **Purpose**: Verify storage modes work correctly.
 
@@ -593,7 +793,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 17: Storage Limits
+### Test 21: Storage Limits
 
 **Purpose**: Verify storage quota handling.
 
@@ -612,7 +812,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 18: Multiple Tabs
+### Test 22: Multiple Tabs
 
 **Purpose**: Verify extension works across multiple tabs.
 
@@ -632,7 +832,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 19: Page Navigation
+### Test 23: Page Navigation
 
 **Purpose**: Verify dwell tracker resets on navigation.
 
@@ -651,7 +851,7 @@ cat ~/Downloads/reflexa-reflections-*.md
 
 ---
 
-### Test 20: Error Handling
+### Test 24: Error Handling
 
 **Purpose**: Verify graceful error handling.
 
@@ -991,11 +1191,20 @@ DwellTracker: Threshold reached
 
 ## Testing Checklist
 
-Use this checklist to ensure comprehensive testing:
+Use this checklist to ensure comprehensive testing of all features including all 7 Chrome AI APIs:
 
 ### Installation & Setup
 
-- [ ] Chrome flags enabled
+- [ ] Base AI model flag enabled (`#optimization-guide-on-device-model`)
+- [ ] Prompt API flag enabled (`#prompt-api-for-gemini-nano`)
+- [ ] Summarizer API flag enabled (`#summarization-api-for-gemini-nano`)
+- [ ] Writer API flag enabled (`#writer-api`)
+- [ ] Rewriter API flag enabled (`#rewriter-api`)
+- [ ] Proofreader API flag enabled (`#proofreader-api`)
+- [ ] Translator API flag enabled (`#translator-api`)
+- [ ] Language Detector API flag enabled (`#language-detection-api`)
+- [ ] Chrome restarted after enabling flags
+- [ ] All APIs verified in console (all return "function")
 - [ ] Extension built successfully
 - [ ] Extension loaded in Chrome
 - [ ] Extension icon visible in toolbar
@@ -1059,11 +1268,63 @@ Use this checklist to ensure comprehensive testing:
 
 ### AI Features
 
+#### Summarizer API
+
 - [ ] AI availability check works
 - [ ] Summary is relevant
-- [ ] Summary has 3 bullets
+- [ ] Summary has 3 bullets (in Bullets format)
+- [ ] Format dropdown works (Bullets, Paragraph, Headline)
+- [ ] Changing format regenerates summary
+- [ ] Falls back to Prompt API if unavailable
+
+#### Writer API
+
+- [ ] "Generate Draft" button appears (if available)
+- [ ] Draft generates within 4 seconds
+- [ ] Draft is relevant to summary
+- [ ] Tone setting is respected
+- [ ] Length setting is respected
+- [ ] Draft is editable
+
+#### Rewriter API
+
+- [ ] Tone preset chips appear (if available)
+- [ ] Rewrite completes within 3 seconds
+- [ ] Tone matches preset (Calm, Concise, Empathetic, Academic)
+- [ ] Original meaning preserved
+- [ ] Side-by-side preview works
+- [ ] Accept/Discard buttons work
+
+#### Proofreader API
+
+- [ ] "Proofread" button appears (if enabled)
+- [ ] Proofreading completes within 3 seconds
+- [ ] Grammar errors are fixed
+- [ ] Diff view shows changes clearly
+- [ ] Accept/Discard individual corrections works
+- [ ] Original voice preserved
+
+#### Translator API
+
+- [ ] Translation dropdown appears (if available)
+- [ ] Translation completes within 4 seconds
+- [ ] Translation is accurate
+- [ ] Formatting preserved (bullets, etc.)
+- [ ] Multiple languages work
+- [ ] Can translate back to original
+
+#### Language Detector API
+
+- [ ] Language pill appears automatically
+- [ ] Language is correctly identified
+- [ ] Detection happens quickly (<1s)
+- [ ] Works with multiple languages
+
+#### Prompt API
+
 - [ ] Questions are action-oriented
-- [ ] Proofreading improves text
+- [ ] Questions end with "?"
+- [ ] Serves as fallback for other APIs
 - [ ] Timeout handled gracefully
 - [ ] Manual mode available as fallback
 

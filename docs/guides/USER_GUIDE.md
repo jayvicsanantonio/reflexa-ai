@@ -17,32 +17,62 @@ Welcome to Reflexa AI! This guide will help you get the most out of your reflect
 ### First-Time Setup
 
 1. **Enable Chrome AI APIs** (required for AI features):
-   - Open a new tab and go to `chrome://flags/#optimization-guide-on-device-model`
-   - Set to "Enabled BypassPerfRequirement"
-   - Go to `chrome://flags/#prompt-api-for-gemini-nano`
-   - Set to "Enabled"
-   - Go to `chrome://flags/#summarization-api-for-gemini-nano`
-   - Set to "Enabled"
-   - Go to `chrome://flags/#writer-api-for-gemini-nano`
-   - Set to "Enabled"
-   - Go to `chrome://flags/#rewriter-api-for-gemini-nano`
-   - Set to "Enabled"
-   - Go to `chrome://flags/#language-detection-api`
-   - Set to "Enabled"
-   - Go to `chrome://flags/#translation-api`
-   - Set to "Enabled"
-   - **Restart Chrome** for changes to take effect
+
+   All Reflexa AI features are powered by Chrome's Built-in AI APIs (Gemini Nano). You need to enable these flags once:
+
+   **a. Base AI Model** (Required for all APIs):
+   - Go to `chrome://flags/#optimization-guide-on-device-model`
+   - Set to **"Enabled BypassPerfRequirement"**
+
+   **b. Core APIs**:
+   - `chrome://flags/#prompt-api-for-gemini-nano` → **"Enabled"**
+   - `chrome://flags/#summarization-api-for-gemini-nano` → **"Enabled"**
+
+   **c. Writing Assistance APIs**:
+   - `chrome://flags/#writer-api` → **"Enabled"**
+   - `chrome://flags/#rewriter-api` → **"Enabled"**
+   - `chrome://flags/#proofreader-api` → **"Enabled"**
+
+   **d. Translation APIs**:
+   - `chrome://flags/#translator-api` → **"Enabled"**
+   - `chrome://flags/#language-detection-api` → **"Enabled"**
+
+   **Restart Chrome** completely for changes to take effect.
+
+   > **Technical Note**: All Chrome AI APIs are accessed via global objects (Writer, Rewriter, Proofreader, Summarizer, LanguageModel, Translator, LanguageDetector). Reflexa AI automatically detects which APIs are available and enables corresponding features. If an API is unavailable, the extension gracefully falls back to alternatives or hides the feature.
 
 2. **Install Reflexa AI**:
    - Download from Chrome Web Store or load unpacked extension
    - You'll see the Reflexa AI icon in your browser toolbar
 
-3. **Review Privacy Notice**:
+3. **Verify APIs are Working** (Optional but Recommended):
+   - Open DevTools (F12) on any page
+   - Go to Console tab
+   - Copy and paste this verification code:
+
+   ```javascript
+   // Verify all Chrome AI APIs
+   const apis = {
+     Writer: typeof Writer,
+     Rewriter: typeof Rewriter,
+     Proofreader: typeof Proofreader,
+     Summarizer: typeof Summarizer,
+     LanguageModel: typeof LanguageModel,
+     Translator: typeof Translator,
+     LanguageDetector: typeof LanguageDetector,
+   };
+   console.table(apis);
+   ```
+
+   - All should show `"function"` if properly enabled
+   - If any show `"undefined"`, that API is not available
+
+4. **Review Privacy Notice**:
    - On first launch, you'll see a privacy notice
    - All processing happens locally on your device powered by Gemini Nano
    - No data is sent to external servers
 
-4. **Customize Settings** (optional):
+5. **Customize Settings** (optional):
    - Click the extension icon
    - Click the settings gear icon
    - Adjust AI features, dwell threshold, sound, and motion preferences
@@ -544,10 +574,26 @@ A: Check the AI Status panel in the dashboard to see which APIs are available. T
 **Q: Why are some AI features missing?**
 A: Some features require specific Chrome AI APIs:
 
-- Tone adjustment requires Rewriter API
-- Proofreading requires Proofreader API
-- Translation requires Translator API and Language Detector API
-- If these APIs are unavailable, the features won't appear
+- Tone adjustment requires Rewriter API (`#rewriter-api`)
+- Proofreading requires Proofreader API (`#proofreader-api`)
+- Translation requires Translator API (`#translator-api`)
+- Language detection requires Language Detector API (`#language-detection-api`)
+- Draft generation requires Writer API (`#writer-api`)
+- Summaries require Summarizer API (`#summarization-api-for-gemini-nano`)
+
+If these APIs are unavailable, the features won't appear. Check that:
+
+1. All Chrome flags are enabled (see First-Time Setup)
+2. Chrome is restarted after enabling flags
+3. You're using Chrome 127 or later
+4. Your device meets performance requirements
+
+**To verify which APIs are available**:
+
+1. Open DevTools (F12) on any page
+2. Go to Console tab
+3. Type: `console.log('Writer:', typeof Writer, 'Rewriter:', typeof Rewriter, 'Proofreader:', typeof Proofreader)`
+4. All should return `"function"` if available
 
 **Q: Can I use Reflexa without any AI APIs?**
 A: Yes! Reflexa works in manual mode where you write your own summaries and reflections. The extension still tracks your reading, manages reflections, and provides the calm reflection experience.
