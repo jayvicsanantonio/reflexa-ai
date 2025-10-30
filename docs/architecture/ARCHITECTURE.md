@@ -24,15 +24,15 @@ Reflexa AI is a Chrome Manifest V3 extension that combines:
 
 ### Technology Stack
 
-| Layer        | Technology                     | Purpose                                  |
-| ------------ | ------------------------------ | ---------------------------------------- |
-| Framework    | React 18 + TypeScript 5        | UI components and type safety            |
-| Build Tool   | Vite 5 + CRXJS                 | Fast builds and HMR for extensions       |
-| Styling      | Tailwind CSS v4                | Utility-first styling with design tokens |
-| AI           | Chrome Gemini Nano             | Local on-device inference                |
-| Storage      | Chrome Storage API             | Persistent data storage                  |
-| Testing      | Vitest + React Testing Library | Unit and integration tests               |
-| Code Quality | ESLint 9 + Prettier 3          | Linting and formatting                   |
+| Layer        | Technology                            | Purpose                                  |
+| ------------ | ------------------------------------- | ---------------------------------------- |
+| Framework    | React 18 + TypeScript 5               | UI components and type safety            |
+| Build Tool   | Vite 5 + CRXJS                        | Fast builds and HMR for extensions       |
+| Styling      | Tailwind CSS v4                       | Utility-first styling with design tokens |
+| AI           | Chrome Built-in AI APIs (Gemini Nano) | Local on-device inference                |
+| Storage      | Chrome Storage API                    | Persistent data storage                  |
+| Testing      | Vitest + React Testing Library        | Unit and integration tests               |
+| Code Quality | ESLint 9 + Prettier 3                 | Linting and formatting                   |
 
 ### Design Principles
 
@@ -178,30 +178,67 @@ Clean up and reset
 
 #### Key Modules
 
-##### AIManager (`aiManager.ts`)
+##### AI Managers
 
-Handles all interactions with Chrome's Gemini Nano AI.
+Reflexa AI uses specialized managers for each Chrome Built-in AI API:
 
-**Responsibilities**:
+**PromptManager** (`promptManager.ts`) - Prompt API (LanguageModel)
 
-- Check AI availability on device
-- Initialize and manage AI model sessions
-- Generate summaries with three-bullet format
-- Create reflection prompts
-- Proofread user text
-- Handle timeouts and retries
-- Parse and validate AI responses
+- General-purpose text generation
+- Reflection prompt generation
+- Fallback for other APIs
 
-**Key Methods**:
+**SummarizerManager** (`summarizerManager.ts`) - Summarizer API
+
+- Generate summaries in multiple formats
+- Three-bullet format for reflections
+- Content condensation
+
+**WriterManager** (`writerManager.ts`) - Writer API
+
+- Draft generation with tone control
+- Content creation with length options
+- Streaming support
+
+**RewriterManager** (`rewriterManager.ts`) - Rewriter API
+
+- Text improvement and refinement
+- Tone adjustment (formal, casual, etc.)
+- Style transformation
+
+**ProofreaderManager** (`proofreaderManager.ts`) - Proofreader API
+
+- Grammar and spelling correction
+- Clarity improvements
+- Returns structured correction data
+
+**TranslatorManager** (`translatorManager.ts`) - Translator API
+
+- Multi-language translation
+- 10+ supported languages
+- Formatting preservation
+
+**LanguageDetectorManager** (`languageDetectorManager.ts`) - Language Detector API
+
+- Automatic language detection
+- 100+ language support
+- Confidence scoring
+
+**UnifiedAIService** (`unifiedAIService.ts`) - Unified Interface
+
+- Single access point for all APIs
+- Consistent error handling
+- Capability detection
+- Session management
+
+**Key Methods** (common across managers):
 
 ```typescript
 class AIManager {
   checkAvailability(): Promise<boolean>;
-  summarize(content: string): Promise<string[]>;
-  generateReflectionPrompts(summary: string[]): Promise<string[]>;
-  proofread(text: string): Promise<string>;
-  summarizeStreaming(content: string): AsyncGenerator<string>;
+  isAvailable(): boolean;
   destroy(): void;
+  // API-specific methods vary
 }
 ```
 
@@ -441,9 +478,9 @@ App.tsx
    ↓
 6. Content Script → Background: Send content via message
    ↓
-7. Background: AIManager.summarize(content)
+7. Background: SummarizerManager.summarize(content)
    ↓
-8. Background: AIManager.generateReflectionPrompts(summary)
+8. Background: PromptManager.generateReflectionPrompts(summary)
    ↓
 9. Background → Content Script: Return AI results
    ↓
@@ -582,50 +619,82 @@ Reflexa AI integrates all seven Chrome Built-in AI APIs powered by Gemini Nano:
 
 For detailed architecture documentation, see [AI Service Architecture](../development/AI_SERVICE_ARCHITECTURE.md).
 
-### Chrome Gemini Nano
+### Chrome Built-in AI APIs (Powered by Gemini Nano)
 
-All Chrome AI APIs are powered by Gemini Nano, Google's on-device AI model.
+All Chrome Built-in AI APIs are powered by Gemini Nano, Google's on-device AI model.
 
-#### API Access
+#### API Access Pattern
+
+All APIs are accessed via global objects:
 
 ```typescript
-// Check availability
-const availability = await LanguageModel.availability();
-// Returns: 'available' | 'downloadable' | 'downloading' | 'unavailable'
+// Summarizer API
+const summarizer = await Summarizer.create();
+const summary = await summarizer.summarize(text, { type: 'key-points' });
+summarizer.destroy();
 
-// Get model parameters
-const params = await LanguageModel.params();
+// Prompt API (LanguageModel)
+const session = await LanguageModel.create();
+const response = await session.prompt('Generate reflection questions');
+session.destroy();
 
-// Create session
-const model = await LanguageModel.create({
-  temperature: params.defaultTemperature,
-  topK: params.defaultTopK,
-  initialPrompts: [
-    { role: 'system', content: 'You are a helpful assistant...' },
-  ],
-  monitor: (m) => {
-    m.addEventListener('downloadprogress', (e) => {
-      console.log(`Download: ${e.loaded * 100}%`);
-    });
-  },
+// Writer API
+const writer = await Writer.create({
+  tone: 'neutral',
+  format: 'markdown',
+  length: 'medium',
 });
+const draft = await writer.write('Write about mindfulness');
+writer.destroy();
 
-// Generate response
-const response = await model.prompt('Summarize this article...', {
-  signal: abortController.signal,
+// Rewriter API
+const rewriter = await Rewriter.create({
+  tone: 'more-formal',
+  length: 'as-is',
 });
+const improved = await rewriter.rewrite('hey whats up');
+rewriter.destroy();
 
-// Streaming response
-const stream = model.promptStreaming('Summarize...');
-for await (const chunk of stream) {
-  console.log(chunk);
-}
+// Proofreader API
+const proofreader = await Proofreader.create();
+const result = await proofreader.proofread('I seen him yesterday');
+// result.correction: "I saw him yesterday."
+// result.corrections: [{ type, original, corrected, ... }]
+proofreader.destroy();
 
-// Check usage
-console.log(`${model.inputUsage}/${model.inputQuota} tokens used`);
+// Translator API
+const translator = await Translator.create({
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+});
+const translated = await translator.translate('Hello world');
+translator.destroy();
 
-// Cleanup
-model.destroy();
+// Language Detector API
+const detector = await LanguageDetector.create();
+const results = await detector.detect('Bonjour le monde');
+// results: [{ detectedLanguage: 'fr', confidence: 0.95 }]
+detector.destroy();
+```
+
+#### Unified Access via UnifiedAIService
+
+```typescript
+import { unifiedAI } from './background/unifiedAIService';
+
+// Check all APIs at once
+const availability = await unifiedAI.checkAllAvailability();
+
+// Use any API through unified interface
+const summary = await unifiedAI.summarizer.summarize(text);
+const questions = await unifiedAI.prompt.generateReflectionPrompts(summary);
+const draft = await unifiedAI.writer.write('Write about...');
+const improved = await unifiedAI.rewriter.rewrite(draft);
+const corrected = await unifiedAI.proofreader.proofread(improved);
+const translated = await unifiedAI.translator.translate(corrected, 'en', 'es');
+
+// Clean up all sessions
+unifiedAI.destroyAll();
 ```
 
 #### Session Management

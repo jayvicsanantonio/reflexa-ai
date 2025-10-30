@@ -2,6 +2,12 @@
 
 This document provides detailed API documentation for all major classes and modules in the Reflexa AI Chrome Extension.
 
+**Note:** For detailed Chrome Built-in AI APIs documentation, see:
+
+- [Chrome AI APIs Documentation](../development/chrome-apis/README.md) - Main documentation hub
+- [Documentation Index](../development/chrome-apis/INDEX.md) - Complete index of all API docs
+- Individual API Quick References in `docs/development/chrome-apis/`
+
 ## Table of Contents
 
 1. [PromptManager](#promptmanager) (formerly AIManager)
@@ -204,14 +210,16 @@ writerManager.destroySession({
 
 ---
 
-## AIManager
+## PromptManager
 
-Handles all interactions with Chrome's Gemini Nano AI.
+Handles interactions with Chrome's Prompt API (LanguageModel).
+
+**Note:** This was formerly called `AIManager`. See [Migration Guide](../product/MIGRATION_GUIDE.md) for details.
 
 ### Constructor
 
 ```typescript
-const aiManager = new AIManager();
+const promptManager = new PromptManager();
 ```
 
 No parameters required. The manager initializes lazily on first use.
@@ -220,18 +228,18 @@ No parameters required. The manager initializes lazily on first use.
 
 #### `checkAvailability(): Promise<boolean>`
 
-Checks if Gemini Nano is available on the user's system.
+Checks if Prompt API (LanguageModel) is available on the user's system.
 
-**Returns**: `Promise<boolean>` - `true` if AI is available, `false` otherwise
+**Returns**: `Promise<boolean>` - `true` if API is available, `false` otherwise
 
 **Example**:
 
 ```typescript
-const available = await aiManager.checkAvailability();
+const available = await promptManager.checkAvailability();
 if (available) {
-  console.log('AI is ready to use');
+  console.log('Prompt API is ready to use');
 } else {
-  console.log('AI unavailable, falling back to manual mode');
+  console.log('Prompt API unavailable, falling back to manual mode');
 }
 ```
 
@@ -251,7 +259,7 @@ Generates a three-bullet summary of the provided content.
 
 ```typescript
 const content = 'Long article text here...';
-const summary = await aiManager.summarize(content);
+const summary = await promptManager.summarize(content);
 // Returns: [
 //   "Insight: Main idea here",
 //   "Surprise: Unexpected finding",
@@ -285,7 +293,7 @@ const summary = [
   'Surprise: Unexpected finding',
   'Apply: Practical application',
 ];
-const prompts = await aiManager.generateReflectionPrompts(summary);
+const prompts = await promptManager.generateReflectionPrompts(summary);
 // Returns: [
 //   "How can you apply this insight to your current project?",
 //   "What surprised you most about this finding?"
@@ -308,7 +316,7 @@ Proofreads text for grammar and clarity improvements.
 
 ```typescript
 const original = 'This is my reflection it has some errors.';
-const proofread = await aiManager.proofread(original);
+const proofread = await promptManager.proofread(original);
 // Returns: "This is my reflection. It has some errors."
 ```
 
@@ -348,7 +356,7 @@ Destroys the current AI model session and frees resources.
 **Example**:
 
 ```typescript
-aiManager.destroy();
+promptManager.destroy();
 ```
 
 **Notes**:
@@ -1281,7 +1289,7 @@ All async methods may throw errors. Always use try-catch blocks:
 
 ```typescript
 try {
-  const summary = await aiManager.summarize(content);
+  const summary = await promptManager.summarize(content);
   // Handle success
 } catch (error) {
   if (error instanceof StorageFullError) {
@@ -1346,8 +1354,8 @@ dwellTracker.onThresholdReached(async () => {
   const content = extractor.extractMainContent();
 
   // 3. Check AI availability
-  const aiManager = new AIManager();
-  const available = await aiManager.checkAvailability();
+  const promptManager = new PromptManager();
+  const available = await promptManager.checkAvailability();
 
   if (!available) {
     // Fall back to manual mode
@@ -1356,10 +1364,10 @@ dwellTracker.onThresholdReached(async () => {
   }
 
   // 4. Generate summary
-  const summary = await aiManager.summarize(content.text);
+  const summary = await promptManager.summarize(content.text);
 
   // 5. Generate prompts
-  const prompts = await aiManager.generateReflectionPrompts(summary);
+  const prompts = await promptManager.generateReflectionPrompts(summary);
 
   // 6. Show overlay
   showReflectModeOverlay(summary, prompts);
