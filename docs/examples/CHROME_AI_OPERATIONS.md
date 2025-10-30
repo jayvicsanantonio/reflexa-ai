@@ -1,18 +1,46 @@
 # Chrome AI Operations Examples
 
-**Last Updated**: January 2025
+**Last Updated**: October 30, 2025
 
 This document provides practical examples for each Chrome AI API operation in Reflexa AI.
 
 ## Table of Contents
 
-1. [Summarization](#summarization)
-2. [Draft Generation](#draft-generation)
-3. [Tone Adjustment](#tone-adjustment)
-4. [Proofreading](#proofreading)
-5. [Language Detection](#language-detection)
-6. [Translation](#translation)
-7. [Complete Workflows](#complete-workflows)
+1. [API Access Patterns](#api-access-patterns)
+2. [Summarization](#summarization)
+3. [Draft Generation](#draft-generation)
+4. [Tone Adjustment](#tone-adjustment)
+5. [Proofreading](#proofreading)
+6. [Language Detection](#language-detection)
+7. [Translation](#translation)
+8. [Complete Workflows](#complete-workflows)
+
+## API Access Patterns
+
+This document shows examples using Reflexa AI's service wrappers (`aiService`, `languageDetectorManager`, etc.). These wrappers provide:
+
+- Automatic capability detection
+- Error handling and retries
+- Fallback logic
+- Caching (for language detection)
+
+For **direct Chrome AI API access** without wrappers, see [DIRECT_API_ACCESS.md](./DIRECT_API_ACCESS.md).
+
+### Wrapper vs Direct Access
+
+```typescript
+// Using Reflexa AI wrapper (shown in this document)
+const summary = await aiService.summarizer.summarize(content, 'bullets');
+
+// Direct API access (see DIRECT_API_ACCESS.md)
+if (typeof Summarizer !== 'undefined') {
+  const summarizer = await Summarizer.create({ type: 'key-points' });
+  const summary = await summarizer.summarize(content);
+  summarizer.destroy();
+}
+```
+
+Both approaches are valid. Wrappers are recommended for production use, while direct access is useful for learning and debugging.
 
 ## Summarization
 
@@ -343,6 +371,34 @@ async function detectAndDisplayLanguage(content: string, pageUrl: string) {
   if (detection.detectedLanguage !== 'en') {
     showTranslateButton(detection.detectedLanguage);
   }
+}
+```
+
+### Direct API Access
+
+```typescript
+// Using Language Detector API directly (without manager)
+async function detectLanguageDirect(text: string) {
+  if (typeof LanguageDetector === 'undefined') {
+    console.log('Language Detector API not available');
+    return null;
+  }
+
+  // Create detector session
+  const detector = await LanguageDetector.create();
+
+  // Detect language (returns array of results sorted by confidence)
+  const results = await detector.detect(text);
+
+  // Get top result
+  const topResult = results[0];
+  console.log('Language:', topResult.detectedLanguage);
+  console.log('Confidence:', topResult.confidence);
+
+  // Clean up
+  detector.destroy();
+
+  return topResult;
 }
 ```
 

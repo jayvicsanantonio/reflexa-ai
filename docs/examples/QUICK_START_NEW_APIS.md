@@ -242,11 +242,14 @@ function APIStatus() {
       <h3>AI Features Available:</h3>
       <ul>
         <li>💭 Prompt API: {availability.prompt ? '✅' : '❌'}</li>
-        <li>🔤 Proofreader: {availability.proofreader ? '✅' : '❌'}</li>
         <li>📄 Summarizer: {availability.summarizer ? '✅' : '❌'}</li>
-        <li>🌐 Translator: {availability.translator ? '✅' : '❌'}</li>
         <li>✏️ Writer: {availability.writer ? '✅' : '❌'}</li>
         <li>🖊️ Rewriter: {availability.rewriter ? '✅' : '❌'}</li>
+        <li>🔤 Proofreader: {availability.proofreader ? '✅' : '❌'}</li>
+        <li>🌐 Translator: {availability.translator ? '✅' : '❌'}</li>
+        <li>
+          🔍 Language Detector: {availability.languageDetector ? '✅' : '❌'}
+        </li>
       </ul>
     </div>
   );
@@ -255,20 +258,21 @@ function APIStatus() {
 
 ## Step 5: Enable Chrome Flags
 
-Users need to enable additional flags for new APIs:
+Users need to enable all Chrome AI API flags:
 
 1. Open `chrome://flags`
-2. Enable these flags:
-   - `#prompt-api-for-gemini-nano` (already enabled)
-   - `#optimization-guide-on-device-model` (already enabled)
-   - `#proofreader-api-for-gemini-nano` (new)
-   - `#summarizer-api-for-gemini-nano` (new)
-   - `#translator-api-for-gemini-nano` (new)
-   - `#writer-api-for-gemini-nano` (new)
-   - `#rewriter-api-for-gemini-nano` (new)
-3. Restart Chrome
+2. Enable these 8 flags:
+   - `#optimization-guide-on-device-model` → **"Enabled BypassPerfRequirement"**
+   - `#prompt-api-for-gemini-nano` → **"Enabled"**
+   - `#summarization-api-for-gemini-nano` → **"Enabled"**
+   - `#writer-api` → **"Enabled"**
+   - `#rewriter-api` → **"Enabled"**
+   - `#proofreader-api` → **"Enabled"**
+   - `#translator-api` → **"Enabled"**
+   - `#language-detection-api` → **"Enabled"**
+3. Restart Chrome completely
 
-**Note:** Flag names may vary. Check Chrome documentation for exact names.
+**Note:** All 8 flags are required for full functionality. The extension will gracefully degrade if some APIs are unavailable.
 
 ## Step 6: Test Your Integration
 
