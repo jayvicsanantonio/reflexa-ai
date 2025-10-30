@@ -2412,3 +2412,45 @@
     font-size: 12px;
   }
 }
+
+/* ===== VOICE INPUT INTEGRATION STYLES ===== */
+
+/* Reflection input wrapper for voice button positioning */
+.reflexa-overlay__reflection-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Recording state for textarea */
+.reflexa-overlay__reflection-input--recording {
+  border-color: var(--color-accent);
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Interim text display (hidden visually, used for screen readers) */
+.reflexa-overlay__interim-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Voice toggle button positioning */
+.reflexa-overlay__reflection-input-wrapper .reflexa-voice-toggle-button {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* Ensure textarea takes full width minus button */
+.reflexa-overlay__reflection-input-wrapper .reflexa-overlay__reflection-input {
+  flex: 1;
+  min-width: 0;
+}

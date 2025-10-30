@@ -6,6 +6,8 @@ import { TranslateDropdown } from './TranslateDropdown';
 import { StartReflectionButton } from './StartReflectionButton';
 import { TonePresetChips } from './TonePresetChips';
 import { ProofreadDiffView } from './ProofreadDiffView';
+import { VoiceToggleButton } from './VoiceToggleButton';
+import { Notification } from './Notification';
 import type {
   Settings,
   SummaryFormat,
@@ -14,6 +16,8 @@ import type {
   ProofreadResult,
 } from '../../types';
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
+import { useVoiceInput } from '../hooks/useVoiceInput';
+import type { VoiceInputError } from '../hooks/useVoiceInput';
 import '../styles.css';
 
 interface ReflectModeOverlayProps {
@@ -108,8 +112,101 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     index: number;
     result: ProofreadResult;
   } | null>(null);
+  const [voiceInputStates, setVoiceInputStates] = useState<
+    { isRecording: boolean; interimText: string }[]
+  >([
+    { isRecording: false, interimText: '' },
+    { isRecording: false, interimText: '' },
+  ]);
+  const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Voice input handlers for reflection field 0
+  const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      // Append final transcription to existing reflection text
+      setReflections((prev) => {
+        const newReflections = [...prev];
+        const existingText = newReflections[0].trim();
+        newReflections[0] = existingText ? `${existingText} ${text}` : text;
+        return newReflections;
+      });
+      // Clear interim text
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = '';
+        return newStates;
+      });
+    } else {
+      // Update interim text
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
+
+  const handleVoiceError0 = useCallback((error: VoiceInputError) => {
+    console.error('Voice input error (field 0):', error);
+    setVoiceError(error);
+  }, []);
+
+  const voiceInput0 = useVoiceInput({
+    language: settings.preferredTranslationLanguage || navigator.language,
+    onTranscript: handleTranscript0,
+    onError: handleVoiceError0,
+    autoStopDelay: 3000,
+  });
+
+  // Voice input handlers for reflection field 1
+  const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      // Append final transcription to existing reflection text
+      setReflections((prev) => {
+        const newReflections = [...prev];
+        const existingText = newReflections[1].trim();
+        newReflections[1] = existingText ? `${existingText} ${text}` : text;
+        return newReflections;
+      });
+      // Clear interim text
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = '';
+        return newStates;
+      });
+    } else {
+      // Update interim text
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
+
+  const handleVoiceError1 = useCallback((error: VoiceInputError) => {
+    console.error('Voice input error (field 1):', error);
+    setVoiceError(error);
+  }, []);
+
+  const voiceInput1 = useVoiceInput({
+    language: settings.preferredTranslationLanguage || navigator.language,
+    onTranscript: handleTranscript1,
+    onError: handleVoiceError1,
+    autoStopDelay: 3000,
+  });
+
+  // Update voice input recording states
+  useEffect(() => {
+    setVoiceInputStates((prev) => {
+      const newStates = [...prev];
+      newStates[0].isRecording = voiceInput0.isRecording;
+      newStates[1].isRecording = voiceInput1.isRecording;
+      return newStates;
+    });
+  }, [voiceInput0.isRecording, voiceInput1.isRecording]);
 
   const handleFormatChange = async (format: SummaryFormat) => {
     if (onFormatChange) {
@@ -427,40 +524,86 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             </div>
           )}
 
-          {prompts.map((prompt, index) => (
-            <div key={index} className="reflexa-overlay__reflection-item">
-              <label
-                htmlFor={`reflexa-reflection-${index}`}
-                className="reflexa-overlay__reflection-label"
-              >
-                {prompt}
-              </label>
-              <textarea
-                id={`reflexa-reflection-${index}`}
-                ref={index === 0 ? firstInputRef : undefined}
-                className="reflexa-overlay__reflection-input"
-                value={reflections[index]}
-                onChange={(e) => handleReflectionChange(index, e.target.value)}
-                placeholder="Share your thoughts..."
-                rows={3}
-                data-testid={`reflection-input-${index}`}
-              />
-              {(settings.enableProofreading || settings.proofreadEnabled) &&
-                proofreaderAvailable &&
-                reflections[index].trim() && (
-                  <button
-                    type="button"
-                    className="reflexa-overlay__proofread-button"
-                    onClick={() => handleProofread(index)}
-                    disabled={isProofreading[index]}
-                    aria-label={`Proofread reflection ${index + 1}`}
-                    data-testid={`proofread-button-${index}`}
-                  >
-                    {isProofreading[index] ? 'Proofreading...' : 'Proofread'}
-                  </button>
-                )}
-            </div>
-          ))}
+          {prompts.map((prompt, index) => {
+            const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
+            const handleVoiceToggle = async () => {
+              if (voiceInput.isRecording) {
+                voiceInput.stopRecording();
+              } else {
+                await voiceInput.startRecording();
+              }
+            };
+
+            return (
+              <div key={index} className="reflexa-overlay__reflection-item">
+                <label
+                  htmlFor={`reflexa-reflection-${index}`}
+                  className="reflexa-overlay__reflection-label"
+                >
+                  {prompt}
+                </label>
+                <div className="reflexa-overlay__reflection-input-wrapper">
+                  <textarea
+                    id={`reflexa-reflection-${index}`}
+                    ref={index === 0 ? firstInputRef : undefined}
+                    className={`reflexa-overlay__reflection-input ${
+                      voiceInput.isRecording
+                        ? 'reflexa-overlay__reflection-input--recording'
+                        : ''
+                    }`}
+                    value={
+                      voiceInputStates[index].interimText
+                        ? reflections[index]
+                          ? `${reflections[index]} ${voiceInputStates[index].interimText}`
+                          : voiceInputStates[index].interimText
+                        : reflections[index]
+                    }
+                    onChange={(e) =>
+                      handleReflectionChange(index, e.target.value)
+                    }
+                    placeholder="Share your thoughts..."
+                    rows={3}
+                    data-testid={`reflection-input-${index}`}
+                  />
+                  {voiceInputStates[index].interimText && (
+                    <span
+                      className="reflexa-overlay__interim-text"
+                      aria-live="polite"
+                      aria-label="Interim transcription"
+                    >
+                      {voiceInputStates[index].interimText}
+                    </span>
+                  )}
+                  {voiceInput.isSupported && (
+                    <VoiceToggleButton
+                      isRecording={voiceInput.isRecording}
+                      onToggle={handleVoiceToggle}
+                      disabled={false}
+                      language={
+                        settings.preferredTranslationLanguage ||
+                        navigator.language
+                      }
+                      reduceMotion={settings.reduceMotion}
+                    />
+                  )}
+                </div>
+                {(settings.enableProofreading || settings.proofreadEnabled) &&
+                  proofreaderAvailable &&
+                  reflections[index].trim() && (
+                    <button
+                      type="button"
+                      className="reflexa-overlay__proofread-button"
+                      onClick={() => handleProofread(index)}
+                      disabled={isProofreading[index]}
+                      aria-label={`Proofread reflection ${index + 1}`}
+                      data-testid={`proofread-button-${index}`}
+                    >
+                      {isProofreading[index] ? 'Proofreading...' : 'Proofread'}
+                    </button>
+                  )}
+              </div>
+            );
+          })}
 
           {/* Proofread Diff View */}
           {proofreadResult && (
@@ -498,6 +641,17 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             </span>
           </button>
         </div>
+
+        {/* Voice Input Error Notification */}
+        {voiceError && (
+          <Notification
+            title="Voice Input Error"
+            message={voiceError.message}
+            type="error"
+            duration={5000}
+            onClose={() => setVoiceError(null)}
+          />
+        )}
       </div>
     </div>
   );

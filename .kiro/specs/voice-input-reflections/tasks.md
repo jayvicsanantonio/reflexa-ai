@@ -59,29 +59,29 @@
     - Maintain 4.5:1 color contrast ratio
     - _Requirements: 2.7_
 
-- [ ] 4. Integrate voice input into ReflectModeOverlay
-  - [ ] 4.1 Add voice input state management to overlay
+- [x] 4. Integrate voice input into ReflectModeOverlay
+  - [x] 4.1 Add voice input state management to overlay
     - Create state for voice input per reflection field (isRecording, interimText)
     - Initialize useVoiceInput hook for each reflection input
     - Implement transcript callback handlers for interim and final results
     - Add error callback handlers with user notifications
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-  - [ ] 4.2 Render VoiceToggleButton for each reflection input
+  - [x] 4.2 Render VoiceToggleButton for each reflection input
     - Add VoiceToggleButton adjacent to each textarea
     - Pass recording state and toggle handlers
     - Conditionally render based on browser support
     - Pass language and reduce motion settings
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 4.3 Implement interim results display
+  - [x] 4.3 Implement interim results display
     - Display interim transcription in gray text within input field
     - Update input field value with interim + existing text
     - Clear interim text when final results arrive
     - Maintain cursor position during updates
     - _Requirements: 1.3_
 
-  - [ ] 4.4 Handle voice-to-text merging
+  - [x] 4.4 Handle voice-to-text merging
     - Append final transcription to existing reflection text
     - Add automatic spacing between segments
     - Preserve manually typed text during voice input
