@@ -23,15 +23,15 @@
     - Implement cursor position management during transcription
     - _Requirements: 1.3_
 
-- [ ] 2. Create VoiceToggleButton component
-  - [ ] 2.1 Build button component with recording state visualization
+- [x] 2. Create VoiceToggleButton component
+  - [x] 2.1 Build button component with recording state visualization
     - Create button with microphone icon for inactive state
     - Implement pulsing red indicator for active recording state
     - Add "Recording..." text label with proper styling
     - Implement state-based icon switching
     - _Requirements: 2.1, 2.2, 2.4_
 
-  - [ ] 2.2 Add accessibility features to voice button
+  - [x] 2.2 Add accessibility features to voice button
     - Implement keyboard navigation support (Enter and Space keys)
     - Add dynamic aria-label based on recording state
     - Create tooltip showing current recognition language
@@ -39,7 +39,7 @@
     - Add focus visible styles for keyboard navigation
     - _Requirements: 2.1, 2.3, 2.7_
 
-  - [ ] 2.3 Implement reduce motion support
+  - [x] 2.3 Implement reduce motion support
     - Add conditional rendering for pulsing animation based on settings
     - Create static color change alternative for reduce motion mode
     - Ensure all visual feedback works without animation

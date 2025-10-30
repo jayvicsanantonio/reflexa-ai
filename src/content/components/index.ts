@@ -13,3 +13,4 @@ export { ProofreadDiffView } from './ProofreadDiffView';
 export { LanguagePill } from './LanguagePill';
 export { TranslateDropdown } from './TranslateDropdown';
 export { StartReflectionButton } from './StartReflectionButton';
+export { VoiceToggleButton } from './VoiceToggleButton';
