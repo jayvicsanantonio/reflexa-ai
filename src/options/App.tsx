@@ -70,29 +70,35 @@ export const App: React.FC = () => {
     }
   };
 
-  const refreshCapabilities = async () => {
-    setCheckingCapabilities(true);
-    try {
-      const response: unknown = await chrome.runtime.sendMessage({
-        type: 'getCapabilities',
-        payload: { refresh: true, experimentalMode: settings.experimentalMode },
-      });
+  const refreshCapabilities = useCallback(
+    async (experimentalMode?: boolean) => {
+      setCheckingCapabilities(true);
+      try {
+        const response: unknown = await chrome.runtime.sendMessage({
+          type: 'getCapabilities',
+          payload: {
+            refresh: true,
+            experimentalMode: experimentalMode ?? settings.experimentalMode,
+          },
+        });
 
-      if (
-        response &&
-        typeof response === 'object' &&
-        'success' in response &&
-        response.success &&
-        'data' in response
-      ) {
-        setCapabilities(response.data as AICapabilities);
+        if (
+          response &&
+          typeof response === 'object' &&
+          'success' in response &&
+          response.success &&
+          'data' in response
+        ) {
+          setCapabilities(response.data as AICapabilities);
+        }
+      } catch (error) {
+        console.error('Failed to refresh capabilities:', error);
+      } finally {
+        setCheckingCapabilities(false);
       }
-    } catch (error) {
-      console.error('Failed to refresh capabilities:', error);
-    } finally {
-      setCheckingCapabilities(false);
-    }
-  };
+    },
+    [settings.experimentalMode]
+  );
 
   // Debounced auto-save function
   const debouncedSave = useCallback((updatedSettings: Settings) => {
@@ -410,7 +416,7 @@ export const App: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={refreshCapabilities}
+                  onClick={() => void refreshCapabilities()}
                   disabled={checkingCapabilities}
                   className="bg-accent-500 hover:bg-accent-600 focus:ring-accent-500 mt-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -460,7 +466,8 @@ export const App: React.FC = () => {
               onChange={async (checked) => {
                 updateSetting('experimentalMode', checked);
                 // Refresh AI capabilities when experimental mode is toggled
-                await refreshCapabilities();
+                // Pass the new experimental mode value to ensure immediate refresh
+                await refreshCapabilities(checked);
               }}
               description="Enable experimental AI features as they become available in Chrome"
             />

@@ -100,80 +100,83 @@ export const App: React.FC = () => {
   }, [reflections]);
 
   // Load AI capabilities and usage stats
-  const loadAIData = useCallback(() => {
-    try {
-      // Get capabilities
-      void chrome.runtime
-        .sendMessage({
-          type: 'getCapabilities',
-        })
-        .then((response: unknown) => {
-          if (
-            response &&
-            typeof response === 'object' &&
-            'success' in response &&
-            response.success &&
-            'data' in response
-          ) {
-            setAiCapabilities(response.data as AICapabilities);
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to get capabilities:', error);
-        });
-
-      // Get usage stats
-      void chrome.runtime
-        .sendMessage({
-          type: 'getUsageStats',
-        })
-        .then((response: unknown) => {
-          if (
-            response &&
-            typeof response === 'object' &&
-            'success' in response &&
-            response.success &&
-            'stats' in response
-          ) {
-            setUsageStats(response.stats as UsageStats);
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to get usage stats:', error);
-        });
-
-      // Get settings for experimental mode
-      void chrome.runtime
-        .sendMessage({
+  const loadAIData = useCallback(
+    async (refresh = false) => {
+      try {
+        // Get settings first to know experimental mode status
+        const settingsResponse: unknown = await chrome.runtime.sendMessage({
           type: 'getSettings',
-        })
-        .then((response: unknown) => {
-          if (
-            response &&
-            typeof response === 'object' &&
-            'success' in response &&
-            response.success &&
-            'data' in response &&
-            response.data &&
-            typeof response.data === 'object' &&
-            'experimentalMode' in response.data
-          ) {
-            setExperimentalMode(
-              (response.data.experimentalMode as boolean) ?? false
-            );
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to get settings:', error);
         });
-    } catch (error) {
-      console.error('Failed to load AI data:', error);
-    }
-  }, []);
+
+        let currentExperimentalMode = experimentalMode;
+
+        if (
+          settingsResponse &&
+          typeof settingsResponse === 'object' &&
+          'success' in settingsResponse &&
+          settingsResponse.success &&
+          'data' in settingsResponse &&
+          settingsResponse.data &&
+          typeof settingsResponse.data === 'object' &&
+          'experimentalMode' in settingsResponse.data
+        ) {
+          currentExperimentalMode =
+            (settingsResponse.data.experimentalMode as boolean) ?? false;
+          setExperimentalMode(currentExperimentalMode);
+        }
+
+        // Get capabilities (with optional refresh)
+        void chrome.runtime
+          .sendMessage({
+            type: 'getCapabilities',
+            payload: refresh
+              ? { refresh: true, experimentalMode: currentExperimentalMode }
+              : undefined,
+          })
+          .then((response: unknown) => {
+            if (
+              response &&
+              typeof response === 'object' &&
+              'success' in response &&
+              response.success &&
+              'data' in response
+            ) {
+              setAiCapabilities(response.data as AICapabilities);
+            }
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to get capabilities:', error);
+          });
+
+        // Get usage stats
+        void chrome.runtime
+          .sendMessage({
+            type: 'getUsageStats',
+          })
+          .then((response: unknown) => {
+            if (
+              response &&
+              typeof response === 'object' &&
+              'success' in response &&
+              response.success &&
+              'stats' in response
+            ) {
+              setUsageStats(response.stats as UsageStats);
+            }
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to get usage stats:', error);
+          });
+      } catch (error) {
+        console.error('Failed to load AI data:', error);
+      }
+    },
+    [experimentalMode]
+  );
 
   // Handle refresh capabilities
   const handleRefreshCapabilities = useCallback(() => {
-    loadAIData();
+    void loadAIData(true);
   }, [loadAIData]);
 
   // Load data from storage on mount
@@ -212,7 +215,7 @@ export const App: React.FC = () => {
         }
 
         // Load AI data
-        loadAIData();
+        void loadAIData();
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
       } finally {

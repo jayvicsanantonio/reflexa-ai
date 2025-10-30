@@ -380,7 +380,7 @@
   - Cache language detection result per page
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 25. Implement capability refresh mechanism
+- [x] 25. Implement capability refresh mechanism
   - Add method to refresh capabilities on demand
   - Trigger refresh when experimental mode is toggled
   - Trigger refresh when user clicks "Check Again" in AI Status

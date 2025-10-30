@@ -139,7 +139,7 @@ async function handleMessage(message: Message): Promise<AIResponse> {
       return handleCheckAllAI();
 
     case 'getCapabilities':
-      return handleGetCapabilities();
+      return handleGetCapabilities(message.payload);
 
     case 'summarize':
       return handleSummarize(message.payload);
@@ -243,13 +243,38 @@ async function handleCheckAllAI(): Promise<
 }
 
 /**
- * Handle get capabilities request (returns cached capabilities)
- * @returns Response with cached capabilities object
+ * Handle get capabilities request
+ * Supports optional refresh parameter to force fresh detection
+ * @returns Response with capabilities object
  */
-function handleGetCapabilities(): AIResponse<AICapabilities> {
+function handleGetCapabilities(payload?: unknown): AIResponse<AICapabilities> {
   const startTime = Date.now();
   try {
-    const capabilities = aiService.getCapabilities();
+    // Parse payload for refresh and experimentalMode flags
+    let refresh = false;
+    let experimentalMode = false;
+
+    if (payload && typeof payload === 'object') {
+      const payloadObj = payload as {
+        refresh?: boolean;
+        experimentalMode?: boolean;
+      };
+      refresh = payloadObj.refresh ?? false;
+      experimentalMode = payloadObj.experimentalMode ?? false;
+    }
+
+    let capabilities: AICapabilities;
+
+    if (refresh) {
+      console.log(
+        `[GetCapabilities] Refreshing capabilities (experimental: ${experimentalMode})`
+      );
+      capabilities = aiService.refreshCapabilities(experimentalMode);
+    } else {
+      console.log('[GetCapabilities] Using cached capabilities');
+      capabilities = aiService.getCapabilities();
+    }
+
     return createSuccessResponse(
       capabilities,
       'unified',
