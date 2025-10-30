@@ -57,6 +57,17 @@ let currentPrompts: string[] = [];
 let currentSummaryFormat: SummaryFormat = 'bullets';
 let isLoadingSummary = false;
 
+// Language detection state
+let currentLanguageDetection: import('../types').LanguageDetection | null =
+  null;
+let isTranslating = false;
+
+// Rewrite state
+const isRewritingArray: boolean[] = [false, false];
+
+// AI capabilities
+let aiCapabilities: import('../types').AICapabilities | null = null;
+
 // AI availability status
 let aiAvailable: boolean | null = null;
 
@@ -206,6 +217,25 @@ const initiateReflectionFlow = async () => {
       }
     }
 
+    // Get AI capabilities
+    if (aiCapabilities === null) {
+      const capabilitiesResponse = await sendMessageToBackground<
+        import('../types').AICapabilities
+      >({
+        type: 'getCapabilities',
+      });
+
+      if (capabilitiesResponse.success) {
+        aiCapabilities = capabilitiesResponse.data;
+        console.log('AI capabilities:', aiCapabilities);
+      } else {
+        console.error(
+          'Failed to get capabilities:',
+          capabilitiesResponse.error
+        );
+      }
+    }
+
     // Extract content from the page
     contentExtractor ??= new ContentExtractor();
 
@@ -307,6 +337,30 @@ const initiateReflectionFlow = async () => {
 
     currentSummary = summaryResponse.data;
     console.log('Summary received:', currentSummary);
+
+    // Detect language if auto-detect is enabled
+    if (currentSettings?.autoDetectLanguage) {
+      console.log('Detecting language...');
+      try {
+        const languageResponse = await sendMessageToBackground<
+          import('../types').LanguageDetection
+        >({
+          type: 'detectLanguage',
+          payload: {
+            text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
+          },
+        });
+
+        if (languageResponse.success) {
+          currentLanguageDetection = languageResponse.data;
+          console.log('Language detected:', currentLanguageDetection);
+        } else {
+          console.warn('Language detection failed:', languageResponse.error);
+        }
+      } catch (error) {
+        console.error('Error detecting language:', error);
+      }
+    }
 
     // Request AI reflection prompts
     console.log('Requesting reflection prompts...');
@@ -445,6 +499,13 @@ const showReflectModeOverlay = async () => {
       onFormatChange={handleFormatChange}
       currentFormat={currentSummaryFormat}
       isLoadingSummary={isLoadingSummary}
+      languageDetection={currentLanguageDetection ?? undefined}
+      onTranslateToEnglish={handleTranslateToEnglish}
+      onTranslate={handleTranslate}
+      isTranslating={isTranslating}
+      onRewrite={handleRewrite}
+      isRewriting={isRewritingArray}
+      proofreaderAvailable={aiCapabilities?.proofreader ?? false}
     />
   );
 
@@ -593,25 +654,274 @@ const handleCancelReflection = () => {
  * Handle proofread request
  * Sends text to background worker for AI proofreading
  */
-const handleProofread = async (text: string, index: number) => {
+const handleProofread = async (
+  text: string,
+  index: number
+): Promise<import('../types').ProofreadResult> => {
   console.log(`Proofreading reflection ${index}...`);
 
   try {
-    const proofreadResponse = await sendMessageToBackground<string>({
+    const proofreadResponse = await sendMessageToBackground<
+      import('../types').ProofreadResult
+    >({
       type: 'proofread',
       payload: text,
     });
 
     if (proofreadResponse.success) {
       console.log('Proofread completed');
-      // The overlay component will handle updating the UI
-      // For now, we just log success
-      // In a more complete implementation, we'd update the reflection text
+      return proofreadResponse.data;
     } else {
       console.error('Proofread failed:', proofreadResponse.error);
+      throw new Error(proofreadResponse.error);
     }
   } catch (error) {
     console.error('Error proofreading:', error);
+    throw error;
+  }
+};
+
+/**
+ * Handle translate request
+ * Translates summary and prompts to target language
+ */
+const handleTranslate = async (targetLanguage: string) => {
+  if (!currentLanguageDetection || !currentExtractedContent) {
+    return;
+  }
+
+  console.log(`Translating to ${targetLanguage}...`);
+  isTranslating = true;
+
+  // Re-render with loading state
+  if (overlayRoot && overlayContainer) {
+    overlayRoot.render(
+      <ReflectModeOverlay
+        summary={currentSummary}
+        prompts={currentPrompts}
+        onSave={handleSaveReflection}
+        onCancel={handleCancelReflection}
+        settings={currentSettings ?? getDefaultSettings()}
+        onProofread={handleProofread}
+        onFormatChange={handleFormatChange}
+        currentFormat={currentSummaryFormat}
+        isLoadingSummary={false}
+        languageDetection={currentLanguageDetection}
+        onTranslateToEnglish={handleTranslateToEnglish}
+        onTranslate={handleTranslate}
+        isTranslating={true}
+        onRewrite={handleRewrite}
+        isRewriting={isRewritingArray}
+        proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+      />
+    );
+  }
+
+  try {
+    // Translate summary
+    const translatedSummary: string[] = [];
+    for (const bullet of currentSummary) {
+      const translateResponse = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          options: {
+            sourceLanguage: currentLanguageDetection.detectedLanguage,
+            targetLanguage: targetLanguage,
+          },
+        },
+      });
+
+      if (translateResponse.success) {
+        translatedSummary.push(translateResponse.data);
+      } else {
+        console.error('Translation failed:', translateResponse.error);
+        translatedSummary.push(bullet); // Keep original on error
+      }
+    }
+
+    currentSummary = translatedSummary;
+
+    // Update language detection to target language
+    const languageNames: Record<string, string> = {
+      en: 'English',
+      es: 'Spanish',
+      fr: 'French',
+      de: 'German',
+      it: 'Italian',
+      pt: 'Portuguese',
+      zh: 'Chinese',
+      ja: 'Japanese',
+      ko: 'Korean',
+      ar: 'Arabic',
+    };
+
+    currentLanguageDetection = {
+      detectedLanguage: targetLanguage,
+      confidence: 1.0,
+      languageName: languageNames[targetLanguage] || targetLanguage,
+    };
+
+    showNotification(
+      'Translation Complete',
+      `Content translated to ${languageNames[targetLanguage] || targetLanguage}`,
+      'info'
+    );
+  } catch (error) {
+    console.error('Error translating:', error);
+    showNotification(
+      'Translation Failed',
+      'Could not translate content',
+      'error'
+    );
+  } finally {
+    isTranslating = false;
+
+    // Re-render overlay with translated content
+    if (overlayRoot && overlayContainer) {
+      overlayRoot.render(
+        <ReflectModeOverlay
+          summary={currentSummary}
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onProofread={handleProofread}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={false}
+          onRewrite={handleRewrite}
+          isRewriting={isRewritingArray}
+          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        />
+      );
+    }
+  }
+};
+
+/**
+ * Handle translate to English request
+ * Translates summary and prompts to English
+ */
+const handleTranslateToEnglish = async () => {
+  if (!currentLanguageDetection || !currentExtractedContent) {
+    return;
+  }
+
+  console.log('Translating to English...');
+
+  try {
+    // Translate summary
+    const translatedSummary: string[] = [];
+    for (const bullet of currentSummary) {
+      const translateResponse = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          options: {
+            sourceLanguage: currentLanguageDetection.detectedLanguage,
+            targetLanguage: 'en',
+          },
+        },
+      });
+
+      if (translateResponse.success) {
+        translatedSummary.push(translateResponse.data);
+      } else {
+        console.error('Translation failed:', translateResponse.error);
+        translatedSummary.push(bullet); // Keep original on error
+      }
+    }
+
+    currentSummary = translatedSummary;
+
+    // Update language detection to English
+    currentLanguageDetection = {
+      detectedLanguage: 'en',
+      confidence: 1.0,
+      languageName: 'English',
+    };
+
+    // Re-render overlay with translated content
+    if (overlayRoot && overlayContainer) {
+      overlayRoot.render(
+        <ReflectModeOverlay
+          summary={currentSummary}
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onProofread={handleProofread}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={isTranslating}
+          onRewrite={handleRewrite}
+          isRewriting={isRewritingArray}
+          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        />
+      );
+    }
+
+    showNotification(
+      'Translation Complete',
+      'Content translated to English',
+      'info'
+    );
+  } catch (error) {
+    console.error('Error translating to English:', error);
+    showNotification(
+      'Translation Failed',
+      'Could not translate content to English',
+      'error'
+    );
+  }
+};
+
+/**
+ * Handle rewrite request
+ * Rewrites text with selected tone preset
+ */
+const handleRewrite = async (
+  text: string,
+  tone: import('../types').TonePreset,
+  index: number
+): Promise<{ original: string; rewritten: string }> => {
+  console.log(`Rewriting reflection ${index} with tone: ${tone}...`);
+
+  isRewritingArray[index] = true;
+
+  try {
+    const rewriteResponse = await sendMessageToBackground<{
+      original: string;
+      rewritten: string;
+    }>({
+      type: 'rewrite',
+      payload: {
+        text,
+        tone,
+      },
+    });
+
+    if (rewriteResponse.success) {
+      console.log('Rewrite completed');
+      return rewriteResponse.data;
+    } else {
+      console.error('Rewrite failed:', rewriteResponse.error);
+      throw new Error(rewriteResponse.error);
+    }
+  } catch (error) {
+    console.error('Error rewriting:', error);
+    throw error;
+  } finally {
+    isRewritingArray[index] = false;
   }
 };
 
@@ -641,6 +951,13 @@ const handleFormatChange = async (format: SummaryFormat) => {
         onFormatChange={handleFormatChange}
         currentFormat={currentSummaryFormat}
         isLoadingSummary={true}
+        languageDetection={currentLanguageDetection ?? undefined}
+        onTranslateToEnglish={handleTranslateToEnglish}
+        onTranslate={handleTranslate}
+        isTranslating={isTranslating}
+        onRewrite={handleRewrite}
+        isRewriting={isRewritingArray}
+        proofreaderAvailable={aiCapabilities?.proofreader ?? false}
       />
     );
   }
@@ -690,6 +1007,13 @@ const handleFormatChange = async (format: SummaryFormat) => {
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
+          languageDetection={currentLanguageDetection ?? undefined}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={isTranslating}
+          onRewrite={handleRewrite}
+          isRewriting={isRewritingArray}
+          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
         />
       );
     }

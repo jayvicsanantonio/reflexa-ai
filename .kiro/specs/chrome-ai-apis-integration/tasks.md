@@ -257,33 +257,33 @@
   - Add success animation when draft is inserted
   - _Requirements: 3.1, 3.4, 3.5_
 
-- [ ] 18. Update Reflect Mode overlay with new AI features
-  - [ ] 18.1 Add Summary Format Dropdown to overlay header
+- [x] 18. Update Reflect Mode overlay with new AI features
+  - [x] 18.1 Add Summary Format Dropdown to overlay header
     - Position dropdown above summary display area
     - Wire up format changes to re-request summary
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 18.2 Add Language Pill to overlay header
+  - [x] 18.2 Add Language Pill to overlay header
     - Display detected language automatically
     - Show "Translate to English" button for non-English content
     - _Requirements: 6.3, 6.4, 6.5_
 
-  - [ ] 18.3 Add Translate Dropdown to overlay
+  - [x] 18.3 Add Translate Dropdown to overlay
     - Position near summary or reflection text
     - Enable translation of both summary and prompts
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 18.4 Add Start Reflection button below summary
+  - [x] 18.4 Add Start Reflection button below summary
     - Position between summary and reflection input
     - Generate draft using Writer API when clicked
     - _Requirements: 3.1, 3.4, 3.5_
 
-  - [ ] 18.5 Add Tone Preset Chips above reflection input
+  - [x] 18.5 Add Tone Preset Chips above reflection input
     - Position as horizontal row of chips
     - Show rewrite preview when tone is selected
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 18.6 Add Proofread button below reflection input
+  - [x] 18.6 Add Proofread button below reflection input
     - Show only when Proofreader API is available
     - Display diff view when clicked
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_

@@ -496,6 +496,7 @@ describe('Accessibility Tests', () => {
           <ReflectModeOverlay
             {...defaultProps}
             settings={settingsWithProofread}
+            proofreaderAvailable={true}
           />
         );
 

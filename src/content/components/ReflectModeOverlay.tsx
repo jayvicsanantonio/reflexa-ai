@@ -1,7 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BreathingOrb } from './BreathingOrb';
 import { SummaryFormatDropdown } from './SummaryFormatDropdown';
-import type { Settings, SummaryFormat } from '../../types';
+import { LanguagePill } from './LanguagePill';
+import { TranslateDropdown } from './TranslateDropdown';
+import { StartReflectionButton } from './StartReflectionButton';
+import { TonePresetChips } from './TonePresetChips';
+import { ProofreadDiffView } from './ProofreadDiffView';
+import type {
+  Settings,
+  SummaryFormat,
+  LanguageDetection,
+  TonePreset,
+  ProofreadResult,
+} from '../../types';
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
 import '../styles.css';
 
@@ -11,10 +22,21 @@ interface ReflectModeOverlayProps {
   onSave: (reflections: string[]) => void;
   onCancel: () => void;
   settings: Settings;
-  onProofread?: (text: string, index: number) => Promise<void>;
+  onProofread?: (text: string, index: number) => Promise<ProofreadResult>;
   onFormatChange?: (format: SummaryFormat) => Promise<void>;
   currentFormat?: SummaryFormat;
   isLoadingSummary?: boolean;
+  languageDetection?: LanguageDetection;
+  onTranslateToEnglish?: () => Promise<void>;
+  onTranslate?: (targetLanguage: string) => Promise<void>;
+  isTranslating?: boolean;
+  onRewrite?: (
+    text: string,
+    tone: TonePreset,
+    index: number
+  ) => Promise<{ original: string; rewritten: string }>;
+  isRewriting?: boolean[];
+  proofreaderAvailable?: boolean;
 }
 
 /**
@@ -61,12 +83,31 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   onFormatChange,
   currentFormat = 'bullets',
   isLoadingSummary = false,
+  languageDetection,
+  onTranslateToEnglish,
+  onTranslate,
+  isTranslating = false,
+  onRewrite,
+  isRewriting = [false, false],
+  proofreaderAvailable = false,
 }) => {
   const [reflections, setReflections] = useState<string[]>(['', '']);
   const [isProofreading, setIsProofreading] = useState<boolean[]>([
     false,
     false,
   ]);
+  const [selectedTone, setSelectedTone] = useState<TonePreset | undefined>(
+    undefined
+  );
+  const [rewritePreview, setRewritePreview] = useState<{
+    index: number;
+    original: string;
+    rewritten: string;
+  } | null>(null);
+  const [proofreadResult, setProofreadResult] = useState<{
+    index: number;
+    result: ProofreadResult;
+  } | null>(null);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -145,6 +186,55 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     setReflections(newReflections);
   };
 
+  const handleDraftGenerated = (draft: string) => {
+    // Insert draft into first reflection input
+    const newReflections = [...reflections];
+    newReflections[0] = draft;
+    setReflections(newReflections);
+
+    // Announce to screen reader
+    announceToScreenReader('Draft generated and inserted', 'polite');
+  };
+
+  const handleToneSelect = async (tone: TonePreset) => {
+    // Find first non-empty reflection
+    const index = reflections.findIndex((r) => r.trim() !== '');
+    if (index === -1 || !onRewrite) return;
+
+    setSelectedTone(tone);
+
+    try {
+      const result = await onRewrite(reflections[index], tone, index);
+      setRewritePreview({
+        index,
+        original: result.original,
+        rewritten: result.rewritten,
+      });
+    } catch (error) {
+      console.error('Rewrite failed:', error);
+      setSelectedTone(undefined);
+    }
+  };
+
+  const handleAcceptRewrite = () => {
+    if (!rewritePreview) return;
+
+    const newReflections = [...reflections];
+    newReflections[rewritePreview.index] = rewritePreview.rewritten;
+    setReflections(newReflections);
+    setRewritePreview(null);
+    setSelectedTone(undefined);
+
+    announceToScreenReader('Rewrite accepted', 'polite');
+  };
+
+  const handleDiscardRewrite = () => {
+    setRewritePreview(null);
+    setSelectedTone(undefined);
+
+    announceToScreenReader('Rewrite discarded', 'polite');
+  };
+
   const handleProofread = async (index: number) => {
     if (!onProofread || !reflections[index].trim()) return;
 
@@ -155,7 +245,8 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     });
 
     try {
-      await onProofread(reflections[index], index);
+      const result = await onProofread(reflections[index], index);
+      setProofreadResult({ index, result });
     } catch (error) {
       console.error('Proofread failed:', error);
     } finally {
@@ -165,6 +256,24 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
         return newState;
       });
     }
+  };
+
+  const handleAcceptProofread = () => {
+    if (!proofreadResult) return;
+
+    const newReflections = [...reflections];
+    newReflections[proofreadResult.index] =
+      proofreadResult.result.correctedText;
+    setReflections(newReflections);
+    setProofreadResult(null);
+
+    announceToScreenReader('Corrections accepted', 'polite');
+  };
+
+  const handleDiscardProofread = () => {
+    setProofreadResult(null);
+
+    announceToScreenReader('Corrections discarded', 'polite');
   };
 
   const summaryLabels = ['Insight', 'Surprise', 'Apply'];
@@ -193,6 +302,26 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           Reflect & Absorb
         </h1>
 
+        {/* Language Detection and Translation */}
+        {languageDetection && (
+          <div className="reflexa-overlay__language-section">
+            <LanguagePill languageDetection={languageDetection} />
+            {languageDetection.detectedLanguage !== 'en' &&
+              onTranslateToEnglish && (
+                <button
+                  type="button"
+                  className="reflexa-overlay__translate-button"
+                  onClick={onTranslateToEnglish}
+                  aria-label="Translate to English"
+                  data-testid="translate-to-english-button"
+                >
+                  <span className="reflexa-overlay__translate-icon">🌐</span>
+                  Translate to English
+                </button>
+              )}
+          </div>
+        )}
+
         {/* Summary Format Dropdown */}
         {onFormatChange && (
           <div className="reflexa-overlay__format-selector">
@@ -209,6 +338,18 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           className="reflexa-overlay__summary"
           aria-label="Article Summary"
         >
+          {/* Translation Dropdown */}
+          {settings.enableTranslation && languageDetection && onTranslate && (
+            <div className="reflexa-overlay__translate-section">
+              <TranslateDropdown
+                currentLanguage={languageDetection.detectedLanguage}
+                onTranslate={onTranslate}
+                loading={isTranslating}
+                disabled={isTranslating}
+              />
+            </div>
+          )}
+
           {summary.map((bullet, index) => (
             <div
               key={index}
@@ -223,11 +364,69 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           ))}
         </section>
 
+        {/* Start Reflection Button */}
+        {settings.experimentalMode && (
+          <div className="reflexa-overlay__start-reflection">
+            <StartReflectionButton
+              summary={summary}
+              onDraftGenerated={handleDraftGenerated}
+              disabled={false}
+            />
+          </div>
+        )}
+
         {/* Reflection Prompts */}
         <section
           className="reflexa-overlay__reflections"
           aria-label="Reflection Questions"
         >
+          {/* Tone Preset Chips */}
+          {settings.experimentalMode && onRewrite && (
+            <div className="reflexa-overlay__tone-section">
+              <TonePresetChips
+                selectedTone={selectedTone}
+                onToneSelect={handleToneSelect}
+                disabled={reflections.every((r) => r.trim() === '')}
+                isLoading={isRewriting.some((r) => r)}
+              />
+            </div>
+          )}
+
+          {/* Rewrite Preview */}
+          {rewritePreview && (
+            <div className="reflexa-overlay__rewrite-preview">
+              <div className="reflexa-overlay__rewrite-preview-header">
+                <span className="reflexa-overlay__rewrite-preview-label">
+                  Rewrite Preview
+                </span>
+                <div className="reflexa-overlay__rewrite-preview-actions">
+                  <button
+                    type="button"
+                    className="reflexa-overlay__rewrite-preview-button reflexa-overlay__rewrite-preview-button--accept"
+                    onClick={handleAcceptRewrite}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    className="reflexa-overlay__rewrite-preview-button reflexa-overlay__rewrite-preview-button--discard"
+                    onClick={handleDiscardRewrite}
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+              <div className="reflexa-overlay__rewrite-preview-content">
+                <div className="reflexa-overlay__rewrite-preview-text">
+                  <strong>Original:</strong> {rewritePreview.original}
+                </div>
+                <div className="reflexa-overlay__rewrite-preview-text">
+                  <strong>Rewritten:</strong> {rewritePreview.rewritten}
+                </div>
+              </div>
+            </div>
+          )}
+
           {prompts.map((prompt, index) => (
             <div key={index} className="reflexa-overlay__reflection-item">
               <label
@@ -246,19 +445,34 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                 rows={3}
                 data-testid={`reflection-input-${index}`}
               />
-              {settings.proofreadEnabled && reflections[index].trim() && (
-                <button
-                  type="button"
-                  className="reflexa-overlay__proofread-button"
-                  onClick={() => handleProofread(index)}
-                  disabled={isProofreading[index]}
-                  aria-label={`Proofread reflection ${index + 1}`}
-                >
-                  {isProofreading[index] ? 'Proofreading...' : 'Proofread'}
-                </button>
-              )}
+              {(settings.enableProofreading || settings.proofreadEnabled) &&
+                proofreaderAvailable &&
+                reflections[index].trim() && (
+                  <button
+                    type="button"
+                    className="reflexa-overlay__proofread-button"
+                    onClick={() => handleProofread(index)}
+                    disabled={isProofreading[index]}
+                    aria-label={`Proofread reflection ${index + 1}`}
+                    data-testid={`proofread-button-${index}`}
+                  >
+                    {isProofreading[index] ? 'Proofreading...' : 'Proofread'}
+                  </button>
+                )}
             </div>
           ))}
+
+          {/* Proofread Diff View */}
+          {proofreadResult && (
+            <div className="reflexa-overlay__proofread-section">
+              <ProofreadDiffView
+                original={reflections[proofreadResult.index]}
+                result={proofreadResult.result}
+                onAccept={handleAcceptProofread}
+                onDiscard={handleDiscardProofread}
+              />
+            </div>
+          )}
         </section>
 
         {/* Action Buttons */}
