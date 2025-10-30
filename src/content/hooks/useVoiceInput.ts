@@ -65,6 +65,7 @@ export interface UseVoiceInputOptions {
   onError?: (error: VoiceInputError) => void;
   onStatusChange?: (status: VoiceInputStatus) => void;
   autoStopDelay?: number; // default 3000ms
+  onTypingDetected?: () => void; // callback when typing is detected during recording
 }
 
 /**
@@ -76,8 +77,11 @@ export interface UseVoiceInputReturn {
   hasPermission: boolean | null;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
   error: VoiceInputError | null;
   status: VoiceInputStatus;
+  isPaused: boolean;
 }
 
 /**
@@ -93,10 +97,12 @@ export const useVoiceInput = (
     onError,
     onStatusChange,
     autoStopDelay = 3000,
+    onTypingDetected,
   } = options;
 
   // State management
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<VoiceInputError | null>(null);
   const [status, setStatus] = useState<VoiceInputStatus>('idle');
@@ -106,6 +112,7 @@ export const useVoiceInput = (
   const recognitionRef = useRef<any>(null);
   const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isStoppingRef = useRef(false);
+  const isPausedRef = useRef(false);
 
   // Check browser support for SpeechRecognition
   const isSupported = useMemo(() => {
@@ -207,6 +214,11 @@ export const useVoiceInput = (
       // Handle result event (interim and final results)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
+        // Skip processing if paused
+        if (isPausedRef.current) {
+          return;
+        }
+
         let interimTranscript = '';
         let finalTranscript = '';
 
@@ -381,12 +393,41 @@ export const useVoiceInput = (
       clearAutoStopTimer();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       recognitionRef.current.stop();
+      setIsPaused(false);
+      isPausedRef.current = false;
     } catch (err) {
       console.error('Failed to stop recording:', err);
       setIsRecording(false);
       updateStatus('idle');
+      setIsPaused(false);
+      isPausedRef.current = false;
     }
   }, [isRecording, updateStatus, clearAutoStopTimer]);
+
+  // Pause recording function (keeps session active but ignores results)
+  const pauseRecording = useCallback(() => {
+    if (!isRecording || isPausedRef.current) {
+      return;
+    }
+
+    setIsPaused(true);
+    isPausedRef.current = true;
+    clearAutoStopTimer();
+
+    if (onTypingDetected) {
+      onTypingDetected();
+    }
+  }, [isRecording, clearAutoStopTimer, onTypingDetected]);
+
+  // Resume recording function
+  const resumeRecording = useCallback(() => {
+    if (!isRecording || !isPausedRef.current) {
+      return;
+    }
+
+    setIsPaused(false);
+    isPausedRef.current = false;
+  }, [isRecording]);
 
   return {
     isRecording,
@@ -394,7 +435,10 @@ export const useVoiceInput = (
     hasPermission,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     error,
     status,
+    isPaused,
   };
 };

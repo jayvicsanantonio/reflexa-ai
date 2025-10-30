@@ -20,6 +20,15 @@ import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
 import '../styles.css';
 
+/**
+ * Text segment with timestamp for chronological merging
+ */
+interface TextSegment {
+  text: string;
+  timestamp: number;
+  type: 'typed' | 'transcribed';
+}
+
 interface ReflectModeOverlayProps {
   summary: string[];
   prompts: string[];
@@ -122,79 +131,138 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Voice input handlers for reflection field 0
-  const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
-      // Append final transcription to existing reflection text
-      setReflections((prev) => {
-        const newReflections = [...prev];
-        const existingText = newReflections[0].trim();
-        newReflections[0] = existingText ? `${existingText} ${text}` : text;
-        return newReflections;
-      });
-      // Clear interim text
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = '';
-        return newStates;
-      });
-    } else {
-      // Update interim text
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = text;
-        return newStates;
-      });
-    }
+  // Track text segments with timestamps for chronological merging
+  const textSegmentsRef = useRef<TextSegment[][]>([[], []]);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTextValueRef = useRef<string[]>(['', '']);
+
+  // Merge text segments chronologically
+  const mergeTextSegments = useCallback((segments: TextSegment[]): string => {
+    if (segments.length === 0) return '';
+
+    // Sort segments by timestamp
+    const sortedSegments = [...segments].sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
+
+    // Merge text with proper spacing
+    return sortedSegments
+      .map((segment) => segment.text.trim())
+      .filter((text) => text.length > 0)
+      .join(' ');
   }, []);
+
+  // Voice input handlers for reflection field 0
+  const handleTranscript0 = useCallback(
+    (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        // Add transcribed segment with timestamp
+        const segment: TextSegment = {
+          text: text.trim(),
+          timestamp: Date.now(),
+          type: 'transcribed',
+        };
+        textSegmentsRef.current[0].push(segment);
+
+        // Merge all segments chronologically
+        const mergedText = mergeTextSegments(textSegmentsRef.current[0]);
+
+        setReflections((prev) => {
+          const newReflections = [...prev];
+          newReflections[0] = mergedText;
+          lastTextValueRef.current[0] = mergedText;
+          return newReflections;
+        });
+
+        // Clear interim text
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[0].interimText = '';
+          return newStates;
+        });
+      } else {
+        // Update interim text
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[0].interimText = text;
+          return newStates;
+        });
+      }
+    },
+    [mergeTextSegments]
+  );
 
   const handleVoiceError0 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 0):', error);
     setVoiceError(error);
   }, []);
 
+  const handleTypingDetected0 = useCallback(() => {
+    console.log('Typing detected in field 0, pausing transcription');
+  }, []);
+
   const voiceInput0 = useVoiceInput({
     language: settings.preferredTranslationLanguage || navigator.language,
     onTranscript: handleTranscript0,
     onError: handleVoiceError0,
+    onTypingDetected: handleTypingDetected0,
     autoStopDelay: 3000,
   });
 
   // Voice input handlers for reflection field 1
-  const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
-      // Append final transcription to existing reflection text
-      setReflections((prev) => {
-        const newReflections = [...prev];
-        const existingText = newReflections[1].trim();
-        newReflections[1] = existingText ? `${existingText} ${text}` : text;
-        return newReflections;
-      });
-      // Clear interim text
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = '';
-        return newStates;
-      });
-    } else {
-      // Update interim text
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = text;
-        return newStates;
-      });
-    }
-  }, []);
+  const handleTranscript1 = useCallback(
+    (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        // Add transcribed segment with timestamp
+        const segment: TextSegment = {
+          text: text.trim(),
+          timestamp: Date.now(),
+          type: 'transcribed',
+        };
+        textSegmentsRef.current[1].push(segment);
+
+        // Merge all segments chronologically
+        const mergedText = mergeTextSegments(textSegmentsRef.current[1]);
+
+        setReflections((prev) => {
+          const newReflections = [...prev];
+          newReflections[1] = mergedText;
+          lastTextValueRef.current[1] = mergedText;
+          return newReflections;
+        });
+
+        // Clear interim text
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[1].interimText = '';
+          return newStates;
+        });
+      } else {
+        // Update interim text
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[1].interimText = text;
+          return newStates;
+        });
+      }
+    },
+    [mergeTextSegments]
+  );
 
   const handleVoiceError1 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 1):', error);
     setVoiceError(error);
   }, []);
 
+  const handleTypingDetected1 = useCallback(() => {
+    console.log('Typing detected in field 1, pausing transcription');
+  }, []);
+
   const voiceInput1 = useVoiceInput({
     language: settings.preferredTranslationLanguage || navigator.language,
     onTranscript: handleTranscript1,
     onError: handleVoiceError1,
+    onTypingDetected: handleTypingDetected1,
     autoStopDelay: 3000,
   });
 
@@ -244,6 +312,11 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     return () => {
       document.body.style.overflow = originalOverflow;
       document.body.style.position = originalPosition;
+
+      // Clean up typing timer
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
     };
   }, []);
 
@@ -277,11 +350,66 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     return cleanup;
   }, [onCancel]);
 
-  const handleReflectionChange = (index: number, value: string) => {
-    const newReflections = [...reflections];
-    newReflections[index] = value;
-    setReflections(newReflections);
-  };
+  const handleReflectionChange = useCallback(
+    (index: number, value: string) => {
+      const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
+      const lastValue = lastTextValueRef.current[index];
+
+      // Detect if user is typing (value changed from last known value)
+      const isTyping = value !== lastValue;
+
+      if (isTyping && voiceInput.isRecording && !voiceInput.isPaused) {
+        // User started typing during voice recording - pause transcription
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          voiceInput.pauseRecording();
+        } catch (err) {
+          console.error('Failed to pause recording:', err);
+        }
+
+        // Clear any existing typing timer
+        if (typingTimerRef.current) {
+          clearTimeout(typingTimerRef.current);
+          typingTimerRef.current = null;
+        }
+
+        // Set timer to resume transcription after 2 seconds of no typing
+        typingTimerRef.current = setTimeout(() => {
+          const currentVoiceInput = index === 0 ? voiceInput0 : voiceInput1;
+          if (currentVoiceInput.isRecording && currentVoiceInput.isPaused) {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+              currentVoiceInput.resumeRecording();
+            } catch (err) {
+              console.error('Failed to resume recording:', err);
+            }
+          }
+        }, 2000);
+      }
+
+      // If user typed new content (not just from voice), add it as a typed segment
+      if (isTyping && value.length > lastValue.length) {
+        const newText = value.substring(lastValue.length).trim();
+        if (newText.length > 0) {
+          const segment: TextSegment = {
+            text: newText,
+            timestamp: Date.now(),
+            type: 'typed',
+          };
+          textSegmentsRef.current[index].push(segment);
+        }
+      }
+
+      // Update reflections and last value
+      setReflections((prev) => {
+        const newReflections = [...prev];
+        newReflections[index] = value;
+        return newReflections;
+      });
+      lastTextValueRef.current[index] = value;
+    },
+    [voiceInput0, voiceInput1]
+  );
 
   const handleDraftGenerated = (draft: string) => {
     // Insert draft into first reflection input

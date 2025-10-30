@@ -88,15 +88,15 @@
     - Update reflection state with merged content
     - _Requirements: 1.3, 1.6_
 
-- [ ] 5. Implement typing and voice input switching
-  - [ ] 5.1 Add typing detection during voice recording
+- [x] 5. Implement typing and voice input switching
+  - [x] 5.1 Add typing detection during voice recording
     - Detect keyboard input events during active recording
     - Pause transcription when user starts typing
     - Resume transcription after 2 seconds of no typing
     - Preserve both typed and transcribed text
     - _Requirements: 1.6_
 
-  - [ ] 5.2 Implement chronological text merging
+  - [x] 5.2 Implement chronological text merging
     - Track timestamps for typed and transcribed segments
     - Merge text in chronological order
     - Maintain natural text flow between input modes
