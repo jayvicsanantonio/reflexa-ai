@@ -389,7 +389,7 @@
 
 ## Phase 4: Testing & Documentation (PENDING ⏳)
 
-- [ ]* 26. Write unit tests for AI managers
+- [x] 26. Write unit tests for AI managers
   - Test capability detection for each API
   - Test fallback logic when APIs are unavailable
   - Test timeout and retry behavior
