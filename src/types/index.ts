@@ -6,6 +6,16 @@
 export * from './errors';
 
 /**
+ * Voice input metadata for individual reflections
+ */
+export interface VoiceInputMetadata {
+  isVoiceTranscribed: boolean;
+  transcriptionLanguage?: string;
+  transcriptionTimestamp?: number;
+  wordCount?: number;
+}
+
+/**
  * Reflection data structure stored for each user reflection session
  */
 export interface Reflection {
@@ -26,6 +36,8 @@ export interface Reflection {
   toneUsed?: TonePreset;
   proofreadChanges?: TextChange[];
   aiMetadata?: AIMetadata;
+  // Voice input metadata for each reflection field
+  voiceMetadata?: VoiceInputMetadata[];
 }
 
 /**

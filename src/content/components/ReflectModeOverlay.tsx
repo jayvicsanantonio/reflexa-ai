@@ -14,6 +14,7 @@ import type {
   LanguageDetection,
   TonePreset,
   ProofreadResult,
+  VoiceInputMetadata,
 } from '../../types';
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -33,7 +34,11 @@ interface TextSegment {
 interface ReflectModeOverlayProps {
   summary: string[];
   prompts: string[];
-  onSave: (reflections: string[]) => void;
+  onSave: (
+    reflections: string[],
+    voiceMetadata?: VoiceInputMetadata[],
+    originalReflections?: (string | null)[]
+  ) => void;
   onCancel: () => void;
   settings: Settings;
   onProofread?: (text: string, index: number) => Promise<ProofreadResult>;
@@ -106,6 +111,9 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   proofreaderAvailable = false,
 }) => {
   const [reflections, setReflections] = useState<string[]>(['', '']);
+  const [originalReflections, setOriginalReflections] = useState<
+    (string | null)[]
+  >([null, null]);
   const [isProofreading, setIsProofreading] = useState<boolean[]>([
     false,
     false,
@@ -396,10 +404,52 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   }, []);
 
   const handleSave = useCallback(() => {
+    // Compute voice metadata for each reflection
+    const voiceMetadata: VoiceInputMetadata[] = textSegmentsRef.current.map(
+      (segments, index) => {
+        // Check if any segments are transcribed
+        const hasVoiceTranscription = segments.some(
+          (segment) => segment.type === 'transcribed'
+        );
+
+        if (!hasVoiceTranscription) {
+          return {
+            isVoiceTranscribed: false,
+          };
+        }
+
+        // Get the language from the voice input hook
+        const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
+        const transcribedSegments = segments.filter(
+          (segment) => segment.type === 'transcribed'
+        );
+        const firstTranscriptionTimestamp =
+          transcribedSegments.length > 0
+            ? transcribedSegments[0].timestamp
+            : undefined;
+
+        // Count words in transcribed segments
+        const transcribedText = transcribedSegments
+          .map((s) => s.text)
+          .join(' ');
+        const wordCount = transcribedText
+          .trim()
+          .split(/\s+/)
+          .filter((word) => word.length > 0).length;
+
+        return {
+          isVoiceTranscribed: true,
+          transcriptionLanguage: voiceInput.effectiveLanguage,
+          transcriptionTimestamp: firstTranscriptionTimestamp,
+          wordCount,
+        };
+      }
+    );
+
     // Announce save (cleanup handled automatically after 1s)
     announceToScreenReader('Reflection saved successfully', 'assertive');
-    onSave(reflections);
-  }, [reflections, onSave]);
+    onSave(reflections, voiceMetadata, originalReflections);
+  }, [reflections, onSave, voiceInput0, voiceInput1, originalReflections]);
 
   // Keyboard shortcuts: Escape to cancel, Cmd/Ctrl+Enter to save
   useEffect(() => {
@@ -559,6 +609,13 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
   const handleAcceptProofread = () => {
     if (!proofreadResult) return;
 
+    // Store original version before applying proofread
+    const newOriginalReflections = [...originalReflections];
+    newOriginalReflections[proofreadResult.index] =
+      reflections[proofreadResult.index];
+    setOriginalReflections(newOriginalReflections);
+
+    // Apply proofread version
     const newReflections = [...reflections];
     newReflections[proofreadResult.index] =
       proofreadResult.result.correctedText;

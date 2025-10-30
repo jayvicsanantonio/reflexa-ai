@@ -144,8 +144,8 @@
     - Preserve metadata when saving reflections
     - _Requirements: 1.10_
 
-- [ ] 9. Integrate with existing proofread feature
-  - [ ] 9.1 Enable proofreading for voice-transcribed text
+- [x] 9. Integrate with existing proofread feature
+  - [x] 9.1 Enable proofreading for voice-transcribed text
     - Display proofread button for voice-transcribed reflections
     - Pass voice-transcribed text to Gemini Nano
     - Handle proofread results identically to typed text

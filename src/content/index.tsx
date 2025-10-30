@@ -21,6 +21,7 @@ import type {
   AICapabilities,
   TonePreset,
   ProofreadResult,
+  VoiceInputMetadata,
 } from '../types';
 import { generateUUID } from '../utils';
 import { ERROR_MESSAGES } from '../constants';
@@ -557,7 +558,11 @@ const getDefaultSettings = (): Settings => ({
  * Handle save reflection action
  * Sends reflection data to background worker for storage
  */
-const handleSaveReflection = async (reflections: string[]) => {
+const handleSaveReflection = async (
+  reflections: string[],
+  voiceMetadata?: VoiceInputMetadata[],
+  originalReflections?: (string | null)[]
+) => {
   console.log('Saving reflection...');
 
   try {
@@ -566,6 +571,19 @@ const handleSaveReflection = async (reflections: string[]) => {
       audioManager.stopAmbientLoop();
     }
 
+    // Determine if any reflection was proofread
+    // If originalReflections has non-null values, it means proofreading was applied
+    const hasProofreadVersion = originalReflections?.some(
+      (orig) => orig !== null
+    );
+
+    // Build the final reflection array
+    // Use original versions where available, otherwise use current reflections
+    const finalReflections = reflections.map((reflection, index) => {
+      const original = originalReflections?.[index];
+      return original ?? reflection;
+    });
+
     // Create reflection object
     const reflection: Reflection = {
       id: generateUUID(),
@@ -573,7 +591,11 @@ const handleSaveReflection = async (reflections: string[]) => {
       title: currentExtractedContent?.title ?? document.title,
       createdAt: Date.now(),
       summary: currentSummary,
-      reflection: reflections,
+      reflection: finalReflections,
+      proofreadVersion: hasProofreadVersion
+        ? reflections.join('\n\n')
+        : undefined,
+      voiceMetadata,
     };
 
     // Send to background worker for storage
