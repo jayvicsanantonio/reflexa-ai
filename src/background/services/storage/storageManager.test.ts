@@ -335,4 +335,96 @@ describe('StorageManager', () => {
       expect(streak.current).toBe(0);
     });
   });
+
+  describe('AI metadata migration', () => {
+    it('should add default AI metadata to reflections without it', async () => {
+      // Manually insert a reflection without AI metadata (simulating old data)
+      const oldReflection: Reflection = {
+        id: 'old-id',
+        url: 'https://example.com',
+        title: 'Old Reflection',
+        createdAt: Date.now(),
+        summary: ['Old summary'],
+        reflection: ['Old reflection text'],
+      };
+
+      // Directly set in storage without going through saveReflection
+      mockStorage.set('reflections', [oldReflection]);
+
+      // Get reflections should trigger migration
+      const reflections = await storageManager.getReflections();
+
+      expect(reflections).toHaveLength(1);
+      expect(reflections[0].aiMetadata).toBeDefined();
+      expect(reflections[0].aiMetadata?.summarizerUsed).toBe(false);
+      expect(reflections[0].aiMetadata?.writerUsed).toBe(false);
+      expect(reflections[0].aiMetadata?.processingTime).toBe(0);
+      expect(reflections[0].summaryFormat).toBe('bullets');
+    });
+
+    it('should not modify reflections that already have AI metadata', async () => {
+      const newReflection: Reflection = {
+        id: 'new-id',
+        url: 'https://example.com',
+        title: 'New Reflection',
+        createdAt: Date.now(),
+        summary: ['New summary'],
+        reflection: ['New reflection text'],
+        summaryFormat: 'paragraph',
+        aiMetadata: {
+          summarizerUsed: true,
+          writerUsed: true,
+          rewriterUsed: false,
+          proofreaderUsed: false,
+          translatorUsed: false,
+          promptFallback: false,
+          processingTime: 1500,
+        },
+      };
+
+      await storageManager.saveReflection(newReflection);
+      const reflections = await storageManager.getReflections();
+
+      expect(reflections[0].summaryFormat).toBe('paragraph');
+      expect(reflections[0].aiMetadata?.summarizerUsed).toBe(true);
+      expect(reflections[0].aiMetadata?.writerUsed).toBe(true);
+      expect(reflections[0].aiMetadata?.processingTime).toBe(1500);
+    });
+
+    it('should include AI metadata in markdown export', async () => {
+      const reflection: Reflection = {
+        id: 'test-id',
+        url: 'https://example.com',
+        title: 'Test with AI',
+        createdAt: Date.now(),
+        summary: ['Summary text'],
+        reflection: ['Reflection text'],
+        summaryFormat: 'headline-bullets',
+        detectedLanguage: 'en',
+        toneUsed: 'academic',
+        aiMetadata: {
+          summarizerUsed: true,
+          writerUsed: true,
+          rewriterUsed: true,
+          proofreaderUsed: false,
+          translatorUsed: false,
+          promptFallback: false,
+          processingTime: 2500,
+        },
+      };
+
+      await storageManager.saveReflection(reflection);
+      const markdown = await storageManager.exportMarkdown();
+
+      expect(markdown).toContain('### AI Processing');
+      expect(markdown).toContain('**Detected Language:** en');
+      expect(markdown).toContain('**Summary Format:** headline-bullets');
+      expect(markdown).toContain('**Tone Applied:** academic');
+      expect(markdown).toContain(
+        '**AI APIs Used:** Summarizer, Writer, Rewriter'
+      );
+      expect(markdown).toContain('**Processing Time:** 2500ms');
+      expect(markdown).toContain('### Summary (headline-bullets)');
+    });
+  });
 });

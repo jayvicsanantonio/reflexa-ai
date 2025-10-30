@@ -335,7 +335,7 @@
     - Add "Check Again" button to refresh status
     - _Requirements: 11.4_
 
-- [ ] 21. Update storage models for AI metadata
+- [x] 21. Update storage models for AI metadata
   - Extend Reflection type with new AI-related fields (summaryFormat, detectedLanguage, toneUsed, proofreadVersion, aiMetadata)
   - Update storage manager to handle new fields
   - Implement migration for existing reflections to add default AI metadata
