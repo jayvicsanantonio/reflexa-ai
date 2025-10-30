@@ -306,30 +306,30 @@
     - Show tooltip explaining experimental features
     - _Requirements: 10.2, 10.5, 11.5_
 
-- [ ] 20. Update Settings page with new AI options
-  - [ ] 20.1 Add default summary format setting
+- [x] 20. Update Settings page with new AI options
+  - [x] 20.1 Add default summary format setting
     - Create dropdown for selecting default format (Bullets, Paragraph, Headline + Bullets)
     - Save preference to chrome.storage
     - _Requirements: 2.1_
 
-  - [ ] 20.2 Add proofreading toggle
+  - [x] 20.2 Add proofreading toggle
     - Create toggle switch for enabling/disabling proofread feature
     - Show/hide proofread button in overlay based on setting
     - _Requirements: 5.1_
 
-  - [ ] 20.3 Add translation settings
+  - [x] 20.3 Add translation settings
     - Create toggle for enabling/disabling translation features
     - Add dropdown for preferred translation language
     - Add toggle for auto-detect language
     - _Requirements: 7.1, 7.2_
 
-  - [ ] 20.4 Add experimental mode toggle
+  - [x] 20.4 Add experimental mode toggle
     - Create toggle switch with warning message
     - Display explanation of experimental features
     - Refresh capabilities when toggled
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 20.5 Add AI Status section
+  - [x] 20.5 Add AI Status section
     - Display current status of each Chrome AI API
     - Show green/gray indicators for availability
     - Add "Check Again" button to refresh status
