@@ -1046,26 +1046,15 @@ input[disabled] {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--color-calm-200);
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid rgba(226, 232, 240, 0.25);
+  border-radius: 999px;
+  color: #e2e8f0;
   font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.reflexa-more-tools__trigger:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-.reflexa-more-tools__trigger:active {
-  transform: translateY(0);
 }
 
 .reflexa-more-tools__trigger svg {
@@ -1076,9 +1065,8 @@ input[disabled] {
 .reflexa-more-tools__menu {
   position: absolute;
   bottom: calc(100% + 8px);
-  left: 0;
-  min-width: 320px;
-  max-width: 400px;
+  right: 0;
+  width: 320px;
   max-height: 70vh;
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.98);
@@ -1132,7 +1120,7 @@ input[disabled] {
 /* Grid Layout for Tiles */
 .reflexa-more-tools__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 

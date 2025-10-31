@@ -8,8 +8,8 @@ Redesigned the More Tools menu with improved layout, minimalist icons, and unive
 
 ### 1. New Grid Layout
 
-- Replaced vertical list with a responsive grid layout for better space utilization
-- Grid automatically adjusts to fit content with `grid-template-columns: repeat(auto-fit, minmax(90px, 1fr))`
+- Replaced vertical list with a 2-column grid layout for better space utilization
+- Fixed 2-column layout with `grid-template-columns: repeat(2, 1fr)` prevents overflow
 - Improved visual hierarchy with clearer section titles
 
 ### 2. Tile-Based Design
@@ -62,13 +62,15 @@ Now displayed in grid layout with existing icons:
 - Implemented custom scrollbar styling
 - Added `overflow-y: auto` for long content
 - Backdrop blur for better visual separation
+- Menu positioned to the right (`right: 0`) to prevent screen edge overflow
 
 ### 7. Enhanced Styling
 
-- Increased menu width to `320px` (min) / `400px` (max)
+- Fixed menu width to `320px` to prevent overflow
+- More button matches Back button style (transparent background, pill shape, no animations)
 - Better spacing between sections (16px padding)
 - Improved section title styling (smaller, bolder, more spacing)
-- Smoother animations and transitions
+- Cursor pointer only (no transform animations)
 - Better disabled state handling
 
 ## Component Updates
@@ -103,10 +105,10 @@ Now displayed in grid layout with existing icons:
 
 1. **Better UX**: Universal tools accessible from any screen
 2. **Cleaner Design**: Grid layout reduces visual clutter
-3. **No Overflow**: Proper scrolling for long content
+3. **No Overflow**: Fixed width and right-aligned positioning prevents overflow
 4. **Consistent Icons**: Minimalist emoji-based icons throughout
 5. **Improved Accessibility**: Clear labels and proper ARIA attributes
-6. **Responsive**: Grid adapts to content automatically
+6. **Consistent Button Style**: More button matches Back button for visual harmony
 
 ## Before vs After
 
