@@ -72,6 +72,9 @@ let originalDetectedLanguage: string | null = null;
 // Rewrite state
 const isRewritingArray: boolean[] = [false, false];
 
+// Ambient audio state
+let isAmbientMuted = false;
+
 // AI capabilities
 let aiCapabilities: AICapabilities | null = null;
 
@@ -513,15 +516,19 @@ const initiateReflectionFlow = async () => {
           onTranslate={translationEnabled ? handleTranslate : undefined}
           isTranslating={translationEnabled ? isTranslating : false}
           onProofread={handleProofread}
-          ambientMuted={
-            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-          }
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
           onToggleAmbient={
             soundEnabled
-              ? (mute) => {
+              ? async (mute) => {
                   if (!audioManager) return;
-                  if (mute) void audioManager.stopAmbientLoopGracefully(400);
-                  else void audioManager.playAmbientLoopGracefully(400);
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
                 }
               : undefined
           }
@@ -693,8 +700,10 @@ const renderOverlay = () => {
     if (!audioManager) return;
     if (mute) {
       await audioManager.stopAmbientLoopGracefully(400);
+      isAmbientMuted = true;
     } else {
       await audioManager.playAmbientLoopGracefully(400);
+      isAmbientMuted = false;
     }
     // Re-render overlay to update mute button state
     renderOverlay();
@@ -720,9 +729,7 @@ const renderOverlay = () => {
       onTranslate={translationEnabled ? handleTranslate : undefined}
       isTranslating={translationEnabled ? isTranslating : false}
       onProofread={handleProofread}
-      ambientMuted={
-        soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-      }
+      ambientMuted={soundEnabled ? isAmbientMuted : undefined}
       onToggleAmbient={soundEnabled ? handleToggleAmbient : undefined}
     />
   );
@@ -1063,15 +1070,19 @@ const handleTranslate = async (targetLanguage: string) => {
         onRewrite={handleRewrite}
         isRewriting={isRewritingArray}
         proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-        ambientMuted={
-          soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-        }
+        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
         onToggleAmbient={
           soundEnabled
             ? async (mute) => {
                 if (!audioManager) return;
-                if (mute) await audioManager.stopAmbientLoopGracefully(400);
-                else await audioManager.playAmbientLoopGracefully(400);
+                if (mute) {
+                  await audioManager.stopAmbientLoopGracefully(400);
+                  isAmbientMuted = true;
+                } else {
+                  await audioManager.playAmbientLoopGracefully(400);
+                  isAmbientMuted = false;
+                }
+                renderOverlay();
               }
             : undefined
         }
@@ -1155,15 +1166,19 @@ const handleTranslate = async (targetLanguage: string) => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-          ambientMuted={
-            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-          }
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
                   if (!audioManager) return;
-                  if (mute) await audioManager.stopAmbientLoopGracefully(400);
-                  else await audioManager.playAmbientLoopGracefully(400);
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
                 }
               : undefined
           }
@@ -1237,15 +1252,19 @@ const handleTranslateToEnglish = async () => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-          ambientMuted={
-            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-          }
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
                   if (!audioManager) return;
-                  if (mute) await audioManager.stopAmbientLoopGracefully(400);
-                  else await audioManager.playAmbientLoopGracefully(400);
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
                 }
               : undefined
           }
@@ -1375,15 +1394,19 @@ const handleFormatChange = async (format: SummaryFormat) => {
         onTranslate={translationEnabled ? handleTranslate : undefined}
         isTranslating={translationEnabled ? isTranslating : false}
         onProofread={handleProofread}
-        ambientMuted={
-          soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-        }
+        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
         onToggleAmbient={
           soundEnabled
-            ? (mute) => {
+            ? async (mute) => {
                 if (!audioManager) return;
-                if (mute) void audioManager.stopAmbientLoopGracefully(400);
-                else void audioManager.playAmbientLoopGracefully(400);
+                if (mute) {
+                  await audioManager.stopAmbientLoopGracefully(400);
+                  isAmbientMuted = true;
+                } else {
+                  await audioManager.playAmbientLoopGracefully(400);
+                  isAmbientMuted = false;
+                }
+                renderOverlay();
               }
             : undefined
         }
@@ -1464,15 +1487,19 @@ const handleFormatChange = async (format: SummaryFormat) => {
           onTranslate={translationEnabled ? handleTranslate : undefined}
           isTranslating={translationEnabled ? isTranslating : false}
           onProofread={handleProofread}
-          ambientMuted={
-            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
-          }
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
           onToggleAmbient={
             soundEnabled
-              ? (mute) => {
+              ? async (mute) => {
                   if (!audioManager) return;
-                  if (mute) void audioManager.stopAmbientLoopGracefully(400);
-                  else void audioManager.playAmbientLoopGracefully(400);
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
                 }
               : undefined
           }
