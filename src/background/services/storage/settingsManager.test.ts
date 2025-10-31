@@ -41,7 +41,7 @@ describe('SettingsManager', () => {
 
     it('should return stored settings', async () => {
       const customSettings: Settings = {
-        dwellThreshold: 120, // Valid value within range
+        dwellThreshold: 45, // Valid value within range (0-60)
         enableSound: false,
         reduceMotion: true,
         proofreadEnabled: true,
@@ -70,7 +70,7 @@ describe('SettingsManager', () => {
     it('should validate and fix invalid dwell threshold', async () => {
       const invalidSettings = {
         ...DEFAULT_SETTINGS,
-        dwellThreshold: 500, // Exceeds max of 300
+        dwellThreshold: 500, // Exceeds max of 60
       };
 
       mockStorage.set('settings', invalidSettings);
@@ -107,17 +107,17 @@ describe('SettingsManager', () => {
   describe('updateSettings', () => {
     it('should update settings with partial values', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 90,
+        dwellThreshold: 45,
       });
 
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(90);
+      expect(settings.dwellThreshold).toBe(45);
       expect(settings.enableSound).toBe(DEFAULT_SETTINGS.enableSound);
     });
 
     it('should validate updated settings', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 400, // Exceeds max
+        dwellThreshold: 400, // Exceeds max of 60
       });
 
       const settings = await settingsManager.getSettings();
@@ -126,13 +126,13 @@ describe('SettingsManager', () => {
 
     it('should update multiple settings at once', async () => {
       await settingsManager.updateSettings({
-        dwellThreshold: 3020, // Invalid, will be reset to default (30)
+        dwellThreshold: 3020, // Invalid, will be reset to default (10)
         enableSound: false,
         reduceMotion: true,
       });
 
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(30); // Reset to default due to invalid value
+      expect(settings.dwellThreshold).toBe(10); // Reset to default due to invalid value
       expect(settings.enableSound).toBe(false);
       expect(settings.reduceMotion).toBe(true);
     });
@@ -174,9 +174,9 @@ describe('SettingsManager', () => {
 
   describe('getDwellThreshold', () => {
     it('should return dwell threshold value', async () => {
-      await settingsManager.updateSettings({ dwellThreshold: 90 });
+      await settingsManager.updateSettings({ dwellThreshold: 45 });
       const threshold = await settingsManager.getDwellThreshold();
-      expect(threshold).toBe(90);
+      expect(threshold).toBe(45);
     });
   });
 
@@ -190,19 +190,19 @@ describe('SettingsManager', () => {
 
   describe('validation edge cases', () => {
     it('should accept minimum dwell threshold', async () => {
-      await settingsManager.updateSettings({ dwellThreshold: 30 });
+      await settingsManager.updateSettings({ dwellThreshold: 0 });
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(30);
+      expect(settings.dwellThreshold).toBe(0);
     });
 
     it('should accept maximum dwell threshold', async () => {
-      await settingsManager.updateSettings({ dwellThreshold: 300 });
+      await settingsManager.updateSettings({ dwellThreshold: 60 });
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(300);
+      expect(settings.dwellThreshold).toBe(60);
     });
 
     it('should reject dwell threshold below minimum', async () => {
-      await settingsManager.updateSettings({ dwellThreshold: 20 });
+      await settingsManager.updateSettings({ dwellThreshold: -5 });
       const settings = await settingsManager.getSettings();
       expect(settings.dwellThreshold).toBe(DEFAULT_SETTINGS.dwellThreshold);
     });

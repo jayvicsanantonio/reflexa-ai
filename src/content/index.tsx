@@ -75,6 +75,16 @@ let aiCapabilities: AICapabilities | null = null;
 // AI availability status
 let aiAvailable: boolean | null = null;
 
+// Help modal UI state
+let helpModalContainer: HTMLDivElement | null = null;
+let helpModalRoot: ReturnType<typeof createRoot> | null = null;
+let isHelpModalVisible = false;
+
+// Settings modal UI state
+let settingsModalContainer: HTMLDivElement | null = null;
+let settingsModalRoot: ReturnType<typeof createRoot> | null = null;
+let isSettingsModalVisible = false;
+
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
   /* Keyframe animations */
@@ -100,11 +110,35 @@ const LOTUS_NUDGE_STYLES = `
   }
 
   /* Base component styles */
-  .reflexa-lotus-nudge {
+  .reflexa-nudge-wrapper {
     position: fixed;
+    z-index: 999999;
+  }
+
+  .reflexa-nudge-wrapper--bottom-right { bottom: 32px; right: 32px; }
+  .reflexa-nudge-wrapper--bottom-left { bottom: 32px; left: 32px; }
+  .reflexa-nudge-wrapper--top-right { top: 32px; right: 32px; }
+  .reflexa-nudge-wrapper--top-left { top: 32px; left: 32px; }
+
+  /* Expand wrapper hit area to include the vertical quick-actions column */
+  .reflexa-nudge-wrapper--bottom-left,
+  .reflexa-nudge-wrapper--bottom-right {
+    padding-top: 160px; /* height to cover 3 x 44px + gaps */
+  }
+  .reflexa-nudge-wrapper--top-left,
+  .reflexa-nudge-wrapper--top-right {
+    padding-bottom: 160px;
+  }
+
+  .reflexa-lotus-nudge {
+    position: relative; /* positioned by wrapper */
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    background: linear-gradient(
+      135deg,
+      var(--color-zen-500, #0ea5e9) 0%,
+      var(--color-zen-600, #0284c7) 100%
+    );
     border: none;
     border-radius: 50%;
     cursor: pointer;
@@ -113,38 +147,121 @@ const LOTUS_NUDGE_STYLES = `
     justify-content: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     z-index: 999999;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, border-radius 0.2s ease;
+    padding: 0 16px;
     /* Apply animations */
     animation:
-      fadeIn 1s ease-in-out,
-      pulseGentle 2s ease-in-out infinite 1s;
+      fadeIn 0.1s ease-in-out,
+      pulseGentle 2s ease-in-out infinite;
   }
+
+  /* Quick circular actions (hidden by default) */
+  .reflexa-nudge-quick {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+
+  .reflexa-nudge-wrapper--bottom-left .reflexa-nudge-quick { left: 0; bottom: 80px; }
+  .reflexa-nudge-wrapper--bottom-right .reflexa-nudge-quick { right: 0; bottom: 80px; }
+  .reflexa-nudge-wrapper--top-left .reflexa-nudge-quick { left: 0; top: 80px; }
+  .reflexa-nudge-wrapper--top-right .reflexa-nudge-quick { right: 0; top: 80px; }
+
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-nudge-quick,
+  .reflexa-nudge-wrapper:hover .reflexa-nudge-quick,
+  .reflexa-nudge-wrapper:focus-within .reflexa-nudge-quick {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .reflexa-nudge-quick__btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: none;
+    background: var(--color-lotus-100, #eef2ff);
+    color: var(--color-lotus-600, #4f46e5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.18);
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .reflexa-nudge-quick__btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(79,70,229,.24); }
+  .reflexa-nudge-quick__btn:active { transform: none; }
+  .reflexa-nudge-quick__btn:focus-visible { outline: 3px solid rgba(79,70,229,.55); outline-offset: 3px; }
+
+  /* Tooltips for quick actions */
+  .reflexa-nudge-quick__btn {
+    position: relative;
+  }
+  .reflexa-nudge-quick__tooltip {
+    position: absolute;
+    left: 52px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--color-calm-900, #0f172a);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+  }
+  .reflexa-nudge-quick__btn:hover .reflexa-nudge-quick__tooltip,
+  .reflexa-nudge-quick__btn:focus .reflexa-nudge-quick__tooltip { opacity: 1; }
 
   /* Position variants */
-  .reflexa-lotus-nudge--bottom-right {
-    bottom: 32px;
-    right: 32px;
-  }
-
-  .reflexa-lotus-nudge--bottom-left {
-    bottom: 32px;
-    left: 32px;
-  }
-
-  .reflexa-lotus-nudge--top-right {
-    top: 32px;
-    right: 32px;
-  }
-
-  .reflexa-lotus-nudge--top-left {
-    top: 32px;
-    left: 32px;
-  }
+  .reflexa-lotus-nudge--bottom-right {}
+  .reflexa-lotus-nudge--bottom-left {}
+  .reflexa-lotus-nudge--top-right {}
+  .reflexa-lotus-nudge--top-left {}
 
   /* Hover state */
   .reflexa-lotus-nudge:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  }
+
+  /* Expand into pill when open (hover/focus) */
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-lotus-nudge,
+  .reflexa-nudge-wrapper:hover .reflexa-lotus-nudge,
+  .reflexa-nudge-wrapper:focus-within .reflexa-lotus-nudge {
+    width: 220px;
+    border-radius: 999px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .reflexa-lotus-nudge__label {
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .02em;
+    opacity: 0;
+    width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity .18s ease, width .18s ease, margin-left .18s ease;
+  }
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-lotus-nudge__label,
+  .reflexa-nudge-wrapper:hover .reflexa-lotus-nudge__label,
+  .reflexa-nudge-wrapper:focus-within .reflexa-lotus-nudge__label {
+    opacity: 1;
+    width: auto;
+    margin-left: 8px;
   }
 
   /* Active state */
@@ -187,6 +304,7 @@ const LOTUS_NUDGE_STYLES = `
     .reflexa-lotus-nudge {
       animation: fadeIn 0.3s ease-in-out;
     }
+    .reflexa-nudge-quick { transition: none; }
   }
 `;
 
@@ -1174,15 +1292,6 @@ const getSettings = async (): Promise<Settings> => {
 };
 
 /**
- * Handle when dwell threshold is reached
- * Shows the lotus nudge icon to invite reflection
- */
-const handleDwellThresholdReached = () => {
-  console.log('Dwell threshold reached!');
-  showLotusNudge();
-};
-
-/**
  * Set loading state for the lotus nudge
  * @param loading Whether the nudge is in loading state
  */
@@ -1209,12 +1318,28 @@ const setNudgeLoadingState = (loading: boolean) => {
 };
 
 /**
+ * Handle when dwell threshold is reached
+ * Shows the lotus nudge icon to invite reflection
+ */
+const handleDwellThresholdReached = () => {
+  console.log('Dwell threshold reached!');
+  showLotusNudge();
+};
+
+/**
  * Show the lotus nudge icon
  * Creates a shadow DOM container and renders the React component
  */
 const showLotusNudge = () => {
   if (isNudgeVisible) {
     console.log('Nudge already visible');
+    return;
+  }
+
+  // Ensure document.body is available
+  if (!document.body) {
+    console.error('document.body not available yet, retrying...');
+    setTimeout(showLotusNudge, 100);
     return;
   }
 
@@ -1241,7 +1366,13 @@ const showLotusNudge = () => {
     <LotusNudge
       visible={true}
       onClick={handleNudgeClick}
-      position="bottom-right"
+      position="bottom-left"
+      onHelp={() => {
+        void showHelpModal();
+      }}
+      onSettings={() => {
+        void showSettingsModal();
+      }}
       onAnimationComplete={() => {
         console.log('Lotus nudge fade-in animation completed');
       }}
@@ -1295,6 +1426,92 @@ const hideLotusNudge = () => {
 
   isNudgeVisible = false;
   console.log('Lotus nudge hidden');
+};
+
+/**
+ * Show Help modal (AI setup guide) in the center of the page
+ */
+const showHelpModal = async () => {
+  if (isHelpModalVisible) return;
+  helpModalContainer = document.createElement('div');
+  helpModalContainer.id = 'reflexa-help-container';
+  document.body.appendChild(helpModalContainer);
+
+  const shadowRoot = helpModalContainer.attachShadow({ mode: 'open' });
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  }
+
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  helpModalRoot = createRoot(rootElement);
+  const { HelpSetupModal } = await import('./components/HelpSetupModal');
+  helpModalRoot.render(<HelpSetupModal onClose={hideHelpModal} />);
+
+  isHelpModalVisible = true;
+};
+
+/** Hide Help modal */
+const hideHelpModal = () => {
+  if (!isHelpModalVisible) return;
+  if (helpModalRoot) {
+    helpModalRoot.unmount();
+    helpModalRoot = null;
+  }
+  if (helpModalContainer?.parentNode) {
+    helpModalContainer.parentNode.removeChild(helpModalContainer);
+    helpModalContainer = null;
+  }
+  isHelpModalVisible = false;
+};
+
+/**
+ * Show Quick Settings modal in the center of the page
+ */
+const showSettingsModal = async () => {
+  if (isSettingsModalVisible) return;
+  settingsModalContainer = document.createElement('div');
+  settingsModalContainer.id = 'reflexa-settings-container';
+  document.body.appendChild(settingsModalContainer);
+
+  const shadowRoot = settingsModalContainer.attachShadow({ mode: 'open' });
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  }
+
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  settingsModalRoot = createRoot(rootElement);
+  const { QuickSettingsModal } = await import(
+    './components/QuickSettingsModal'
+  );
+  settingsModalRoot.render(<QuickSettingsModal onClose={hideSettingsModal} />);
+
+  isSettingsModalVisible = true;
+};
+
+/** Hide Quick Settings modal */
+const hideSettingsModal = () => {
+  if (!isSettingsModalVisible) return;
+  if (settingsModalRoot) {
+    settingsModalRoot.unmount();
+    settingsModalRoot = null;
+  }
+  if (settingsModalContainer?.parentNode) {
+    settingsModalContainer.parentNode.removeChild(settingsModalContainer);
+    settingsModalContainer = null;
+  }
+  isSettingsModalVisible = false;
 };
 
 /**

@@ -3,7 +3,7 @@
  */
 
 import type { Settings } from '../../../types';
-import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../../../constants';
+import { DEFAULT_SETTINGS, STORAGE_KEYS, TIMING } from '../../../constants';
 
 export class SettingsManager {
   // Cache for settings to reduce storage reads
@@ -49,6 +49,33 @@ export class SettingsManager {
       ...partial,
     };
 
+    // Keep legacy/new flag pairs in sync to avoid drift
+    if (
+      Object.prototype.hasOwnProperty.call(partial, 'enableTranslation') ||
+      Object.prototype.hasOwnProperty.call(partial, 'translationEnabled')
+    ) {
+      const unified =
+        partial.enableTranslation ??
+        partial.translationEnabled ??
+        updatedSettings.enableTranslation ??
+        updatedSettings.translationEnabled;
+      updatedSettings.enableTranslation = Boolean(unified);
+      updatedSettings.translationEnabled = Boolean(unified);
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(partial, 'enableProofreading') ||
+      Object.prototype.hasOwnProperty.call(partial, 'proofreadEnabled')
+    ) {
+      const unified =
+        partial.enableProofreading ??
+        partial.proofreadEnabled ??
+        updatedSettings.enableProofreading ??
+        updatedSettings.proofreadEnabled;
+      updatedSettings.enableProofreading = Boolean(unified);
+      updatedSettings.proofreadEnabled = Boolean(unified);
+    }
+
     // Validate merged settings
     const validatedSettings = this.validateSettings(updatedSettings);
 
@@ -87,11 +114,11 @@ export class SettingsManager {
   private validateSettings(settings: Settings): Settings {
     const validated: Settings = { ...settings };
 
-    // Validate dwellThreshold (30-300 seconds)
+    // Validate dwellThreshold (0-60 seconds)
     if (
       typeof validated.dwellThreshold !== 'number' ||
-      validated.dwellThreshold < 30 ||
-      validated.dwellThreshold > 300
+      validated.dwellThreshold < TIMING.DWELL_MIN ||
+      validated.dwellThreshold > TIMING.DWELL_MAX
     ) {
       validated.dwellThreshold = DEFAULT_SETTINGS.dwellThreshold;
     }
@@ -109,6 +136,11 @@ export class SettingsManager {
     // Validate proofreadEnabled (boolean)
     if (typeof validated.proofreadEnabled !== 'boolean') {
       validated.proofreadEnabled = DEFAULT_SETTINGS.proofreadEnabled;
+    }
+
+    // Validate enableProofreading (boolean)
+    if (typeof validated.enableProofreading !== 'boolean') {
+      validated.enableProofreading = DEFAULT_SETTINGS.enableProofreading;
     }
 
     // Validate privacyMode ('local' or 'sync')
@@ -137,6 +169,18 @@ export class SettingsManager {
     ) {
       validated.voiceAutoStopDelay = DEFAULT_SETTINGS.voiceAutoStopDelay;
     }
+
+    // Validate translation flags
+    if (typeof validated.enableTranslation !== 'boolean') {
+      validated.enableTranslation = DEFAULT_SETTINGS.enableTranslation;
+    }
+    if (typeof validated.translationEnabled !== 'boolean') {
+      validated.translationEnabled = DEFAULT_SETTINGS.translationEnabled;
+    }
+
+    // Keep legacy/new flag pairs in sync
+    validated.translationEnabled = Boolean(validated.enableTranslation);
+    validated.proofreadEnabled = Boolean(validated.enableProofreading);
 
     return validated;
   }

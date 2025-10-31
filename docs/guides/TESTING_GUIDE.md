@@ -258,7 +258,7 @@ You should now see:
   - Behavior (Dwell Threshold slider)
   - Accessibility (Sound, Motion, Proofreading toggles)
   - Privacy (Storage mode radio buttons)
-- ✅ Slider moves smoothly (30-300 seconds)
+- ✅ Slider moves smoothly (0-60 seconds)
 - ✅ Toggles switch on/off
 - ✅ "Reset to Defaults" button is visible
 
@@ -1223,7 +1223,7 @@ Use this checklist to ensure comprehensive testing of all features including all
 
 - [ ] Settings page opens
 - [ ] All settings sections visible
-- [ ] Dwell threshold slider works (30-300s)
+- [ ] Dwell threshold slider works (0-60s)
 - [ ] Sound toggle works
 - [ ] Reduce motion toggle works
 - [ ] Proofreading toggle works

@@ -330,7 +330,7 @@ class SettingsManager {
 
 ```typescript
 type Settings = {
-  dwellThreshold: number; // 30-300 seconds
+  dwellThreshold: number; // 0-60 seconds (0 = instant)
   enableSound: boolean; // Audio playback
   reduceMotion: boolean; // Animation control
   proofreadEnabled: boolean; // Proofread feature
@@ -451,7 +451,7 @@ App.tsx
 
 **Validation**:
 
-- Dwell threshold: 30-300 seconds
+- Dwell threshold: 0-60 seconds (0 = instant)
 - Boolean toggles: true/false
 - Privacy mode: 'local' or 'sync'
 

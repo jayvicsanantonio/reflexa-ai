@@ -276,9 +276,9 @@ Access settings by clicking the gear icon in the dashboard.
 
 #### Dwell Threshold
 
-- **Range**: 30 to 300 seconds
-- **Default**: 60 seconds
-- **Purpose**: Controls when the lotus icon appears
+- **Range**: 0 to 60 seconds
+- **Default**: 10 seconds
+- **Purpose**: Controls when the lotus icon appears (0 = instant)
 - **Tip**: Shorter for quick articles, longer for deep reading
 
 **Recommended settings**:

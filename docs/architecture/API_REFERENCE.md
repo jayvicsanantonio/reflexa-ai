@@ -1087,7 +1087,7 @@ type Reflection = {
 
 ```typescript
 type Settings = {
-  dwellThreshold: number; // 30-300 seconds
+  dwellThreshold: number; // 0-60 seconds (0 = instant)
   enableSound: boolean; // Audio playback
   reduceMotion: boolean; // Animation control
   proofreadEnabled: boolean; // Proofread feature

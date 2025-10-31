@@ -344,7 +344,7 @@ describe('Integration Tests - User Flows', () => {
       const newSettingsManager = new SettingsManager();
       const loaded = await newSettingsManager.getSettings();
 
-      expect(loaded.dwellThreshold).toBe(30); // Reset to default due to invalid value
+      expect(loaded.dwellThreshold).toBe(10); // Reset to default due to invalid value
       expect(loaded.enableSound).toBe(false);
       expect(loaded.reduceMotion).toBe(true);
     });
@@ -352,8 +352,8 @@ describe('Integration Tests - User Flows', () => {
     it('should apply settings to dwell tracker', async () => {
       vi.useFakeTimers();
 
-      // Set custom dwell threshold
-      await settingsManager.updateSettings({ dwellThreshold: 90 });
+      // Set custom dwell threshold (max 60)
+      await settingsManager.updateSettings({ dwellThreshold: 60 });
 
       const settings = await settingsManager.getSettings();
       const dwellTracker = new DwellTracker(settings.dwellThreshold);
@@ -362,8 +362,8 @@ describe('Integration Tests - User Flows', () => {
       dwellTracker.onThresholdReached(callback);
       dwellTracker.startTracking();
 
-      // Advance to 90 seconds
-      for (let i = 0; i < 9; i++) {
+      // Advance to 60 seconds
+      for (let i = 0; i < 6; i++) {
         document.dispatchEvent(new Event('mousemove'));
         vi.advanceTimersByTime(10000);
       }
@@ -385,7 +385,7 @@ describe('Integration Tests - User Flows', () => {
       await settingsManager.resetToDefaults();
 
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(30);
+      expect(settings.dwellThreshold).toBe(10);
       expect(settings.enableSound).toBe(true);
     });
   });
@@ -587,7 +587,7 @@ describe('Integration Tests - User Flows', () => {
 
       // 1. Load settings
       const settings = await settingsManager.getSettings();
-      expect(settings.dwellThreshold).toBe(30);
+      expect(settings.dwellThreshold).toBe(10);
 
       // 2. Initialize dwell tracker with settings
       const dwellTracker = new DwellTracker(settings.dwellThreshold);
