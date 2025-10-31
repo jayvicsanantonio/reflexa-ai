@@ -1313,6 +1313,20 @@ const handleRewrite = async (
   isRewritingArray[index] = true;
 
   try {
+    // Build context from summary and reflection prompt
+    const contextParts: string[] = [];
+
+    if (currentSummary?.length > 0) {
+      contextParts.push(`Summary: ${currentSummary.join(' ')}`);
+    }
+
+    if (currentPrompts?.[index]) {
+      contextParts.push(`Reflection prompt: ${currentPrompts[index]}`);
+    }
+
+    const context =
+      contextParts.length > 0 ? contextParts.join('\n\n') : undefined;
+
     const rewriteResponse = await sendMessageToBackground<{
       original: string;
       rewritten: string;
@@ -1321,6 +1335,7 @@ const handleRewrite = async (
       payload: {
         text,
         tone,
+        context,
       },
     });
 
