@@ -5,7 +5,8 @@ interface BreathingOrbProps {
   enabled?: boolean;
   duration?: number;
   size?: number;
-  mode?: 'box' | 'smooth';
+  mode?: 'pulse' | 'box' | 'smooth';
+  iterations?: number;
 }
 
 /**
@@ -15,7 +16,13 @@ interface BreathingOrbProps {
  * Memoized to prevent unnecessary re-renders
  */
 export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
-  ({ enabled = true, duration = 7, size = 120, mode = 'box' }) => {
+  ({
+    enabled = true,
+    duration = 7,
+    size = 120,
+    mode = 'pulse',
+    iterations,
+  }) => {
     return (
       <div
         className="reflexa-breathing-orb-container"
@@ -28,13 +35,17 @@ export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
             enabled
               ? mode === 'box'
                 ? 'reflexa-breathing-orb--box'
-                : 'reflexa-breathing-orb--animated'
+                : mode === 'pulse'
+                  ? 'reflexa-breathing-orb--pulse'
+                  : 'reflexa-breathing-orb--animated'
               : ''
           }`}
           style={{
             width: `${size}px`,
             height: `${size}px`,
             animationDuration: enabled ? `${duration}s` : undefined,
+            animationIterationCount:
+              enabled && iterations ? String(iterations) : undefined,
           }}
         />
       </div>

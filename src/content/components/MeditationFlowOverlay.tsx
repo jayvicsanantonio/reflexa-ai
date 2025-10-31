@@ -122,30 +122,23 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   useEffect(() => {
     if (step !== 0) return;
     if (settings?.reduceMotion) return; // don't auto-advance when reduced motion
-    const durationMs = 16000; // box breathing cycle: 16s (4-4-4-4)
+    const durationMs = 16000; // two cycles of 4s inhale + 4s exhale
     const id = window.setTimeout(() => setStep(1), Math.min(16000, durationMs));
     return () => window.clearTimeout(id);
   }, [step, settings?.reduceMotion]);
 
-  // Guided breath cues synced to box breathing (4 inhale, 4 hold, 4 exhale, 4 hold)
+  // Guided breath cues: 4s inhale → 4s exhale, twice (no holds)
   useEffect(() => {
     if (step !== 0 || settings?.reduceMotion) return;
-    const phase = 4000; // ms per segment
-    setBreathCue('inhale');
-    const t1 = window.setTimeout(() => setBreathCue('hold'), phase);
-    const t2 = window.setTimeout(() => setBreathCue('exhale'), phase * 2);
-    const t3 = window.setTimeout(() => setBreathCue('hold'), phase * 3);
-    const cycle = window.setInterval(() => {
-      setBreathCue('inhale');
-      window.setTimeout(() => setBreathCue('hold'), phase);
-      window.setTimeout(() => setBreathCue('exhale'), phase * 2);
-      window.setTimeout(() => setBreathCue('hold'), phase * 3);
-    }, phase * 4);
+    const phase = 4000; // 4s per inhale/exhale
+    setBreathCue('inhale'); // 0-4s
+    const t1 = window.setTimeout(() => setBreathCue('exhale'), phase); // 4-8s
+    const t2 = window.setTimeout(() => setBreathCue('inhale'), phase * 2); // 8-12s
+    const t3 = window.setTimeout(() => setBreathCue('exhale'), phase * 3); // 12-16s
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
-      window.clearInterval(cycle);
     };
   }, [step, settings?.reduceMotion]);
 
@@ -400,9 +393,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               <div style={{ marginBottom: 8 }}>
                 <BreathingOrb
                   enabled={!settings?.reduceMotion}
-                  duration={16}
+                  duration={8}
+                  iterations={2}
                   size={140}
-                  mode="box"
+                  mode="pulse"
                 />
               </div>
               <h1 style={{ fontSize: 28, margin: 0, fontWeight: 800 }}>
@@ -416,7 +410,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 }}
               >
                 {breathCue === 'inhale' && 'Inhale…'}
-                {breathCue === 'hold' && 'Hold…'}
                 {breathCue === 'exhale' && 'Exhale…'}
               </p>
             </div>
