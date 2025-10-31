@@ -14,7 +14,7 @@ body,
 #root {
   /* Compact popup to complement the pill size */
   width: 520px;
-  height: 200px;
+  height: 180px;
   margin: 0;
 }
 

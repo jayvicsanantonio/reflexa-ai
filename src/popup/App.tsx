@@ -329,7 +329,7 @@ export const App: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 16,
+          padding: 12,
         }}
       >
         {/* Backdrop keyword removed for a lighter look */}
