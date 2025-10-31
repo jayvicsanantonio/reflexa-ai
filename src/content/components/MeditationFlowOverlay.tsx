@@ -76,6 +76,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   const [breathCue, setBreathCue] = useState<'inhale' | 'hold' | 'exhale'>(
     'inhale'
   );
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState<number>(0);
   const [resumePromptOpen, setResumePromptOpen] = useState<boolean>(
     typeof initialStep === 'number' ||
       (Array.isArray(initialAnswers) &&
@@ -83,6 +84,30 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       ? true
       : false
   );
+
+  // Meditative phrases that rotate during loading
+  const meditativePhrases = [
+    'Crafting your insights...',
+    'Take a deep breath...',
+    'Let your mind settle...',
+    'Finding clarity in the moment...',
+    'Gathering your thoughts...',
+    'Embracing the present...',
+    'Breathing in calm...',
+    'Releasing tension...',
+    'Centering your awareness...',
+    'Cultivating stillness...',
+    'Honoring this pause...',
+    'Welcoming tranquility...',
+    'Grounding in the now...',
+    'Softening into ease...',
+    'Discovering inner peace...',
+    'Nurturing mindfulness...',
+    'Flowing with patience...',
+    'Resting in awareness...',
+    'Opening to insight...',
+    'Trusting the process...',
+  ];
 
   // Keyboard navigation (arrows, esc, enter)
   const onKeyDown = useCallback(
@@ -125,35 +150,66 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   };
 
   // Track previous loading state to detect when loading completes
-  const prevLoadingRef = useRef(isLoadingSummary);
-
-  useEffect(() => {
-    prevLoadingRef.current = isLoadingSummary;
-  });
+  const prevLoadingRef = useRef<boolean | null>(null);
 
   // Auto-advance to summary screen once loading completes
   useEffect(() => {
-    if (step !== 0) return;
-    // If we were loading and now we're done, advance to summary
-    if (prevLoadingRef.current && !isLoadingSummary) {
+    console.log('[MeditationFlow] Auto-advance check:', {
+      step,
+      isLoadingSummary,
+      prevLoading: prevLoadingRef.current,
+    });
+
+    // Check if we transitioned from loading to not loading
+    if (
+      step === 0 &&
+      prevLoadingRef.current === true &&
+      isLoadingSummary === false
+    ) {
+      console.log(
+        '[MeditationFlow] Loading complete, auto-advancing to summary'
+      );
       setStep(1);
     }
+
+    // Update the ref for next render
+    prevLoadingRef.current = isLoadingSummary;
   }, [step, isLoadingSummary]);
 
-  // Guided breath cues: 4s inhale → 4s exhale, twice (no holds)
+  // Rotate meditative phrases every 4 seconds during loading
+  useEffect(() => {
+    if (step !== 0 || !isLoadingSummary) return;
+    const interval = setInterval(() => {
+      setCurrentPhraseIndex((prev) => (prev + 1) % meditativePhrases.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [step, isLoadingSummary, meditativePhrases.length]);
+
+  // Guided breath cues: 4s inhale → 4s exhale (continuous during loading, or twice when not loading)
   useEffect(() => {
     if (step !== 0 || settings?.reduceMotion) return;
+
     const phase = 4000; // 4s per inhale/exhale
-    setBreathCue('inhale'); // 0-4s
-    const t1 = window.setTimeout(() => setBreathCue('exhale'), phase); // 4-8s
-    const t2 = window.setTimeout(() => setBreathCue('inhale'), phase * 2); // 8-12s
-    const t3 = window.setTimeout(() => setBreathCue('exhale'), phase * 3); // 12-16s
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-    };
-  }, [step, settings?.reduceMotion]);
+    setBreathCue('inhale');
+
+    if (isLoadingSummary) {
+      // Continuous breathing cycle during loading
+      const interval = setInterval(() => {
+        setBreathCue((prev) => (prev === 'inhale' ? 'exhale' : 'inhale'));
+      }, phase);
+      return () => clearInterval(interval);
+    } else {
+      // Two cycles when not loading
+      const t1 = window.setTimeout(() => setBreathCue('exhale'), phase); // 4-8s
+      const t2 = window.setTimeout(() => setBreathCue('inhale'), phase * 2); // 8-12s
+      const t3 = window.setTimeout(() => setBreathCue('exhale'), phase * 3); // 12-16s
+      return () => {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+        window.clearTimeout(t3);
+      };
+    }
+  }, [step, settings?.reduceMotion, isLoadingSummary]);
 
   // Auto-save answers draft on step/answers change
   useEffect(() => {
@@ -412,7 +468,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         >
           {step === 0 && (
             <div className="reflexa-meditation-fade">
-              <div style={{ marginBottom: 8 }}>
+              <div style={{ marginBottom: 32 }}>
                 <BreathingOrb
                   enabled={!settings?.reduceMotion}
                   duration={8}
@@ -421,41 +477,30 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   mode="pulse"
                 />
               </div>
-              <h1 style={{ fontSize: 28, margin: 0, fontWeight: 800 }}>
-                {isLoadingSummary
-                  ? 'Crafting your insights...'
-                  : 'Find your breath'}
-              </h1>
-              <p
+              <h1
                 style={{
-                  marginTop: 8,
-                  color: '#cbd5e1',
-                  fontSize: 14,
+                  fontSize: 28,
+                  margin: 0,
+                  fontWeight: 800,
+                  transition: 'opacity 0.5s ease-in-out',
                 }}
               >
-                {isLoadingSummary ? (
-                  <>
-                    {breathCue === 'inhale' && 'Inhale…'}
-                    {breathCue === 'exhale' && 'Exhale…'}
-                    <br />
-                    <span
-                      style={{
-                        fontSize: 12,
-                        opacity: 0.7,
-                        marginTop: 4,
-                        display: 'block',
-                      }}
-                    >
-                      Stay present. Your summary will appear shortly.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {breathCue === 'inhale' && 'Inhale…'}
-                    {breathCue === 'exhale' && 'Exhale…'}
-                  </>
-                )}
-              </p>
+                {isLoadingSummary
+                  ? meditativePhrases[currentPhraseIndex]
+                  : 'Find your breath'}
+              </h1>
+              {!isLoadingSummary && (
+                <p
+                  style={{
+                    marginTop: 12,
+                    color: '#cbd5e1',
+                    fontSize: 16,
+                  }}
+                >
+                  {breathCue === 'inhale' && 'Inhale…'}
+                  {breathCue === 'exhale' && 'Exhale…'}
+                </p>
+              )}
             </div>
           )}
 

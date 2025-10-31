@@ -40,6 +40,8 @@ export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
                   : 'reflexa-breathing-orb--animated'
               : ''
           }`;
+          const iterationValue =
+            iterations === Infinity ? 'infinite' : String(iterations ?? 2);
           const styleVars: React.CSSProperties & {
             ['--orbDur']?: string;
             ['--orbIter']?: string;
@@ -48,9 +50,9 @@ export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
             height: `${size}px`,
             animationDuration: enabled ? `${duration}s` : undefined,
             animationIterationCount:
-              enabled && iterations ? String(iterations) : undefined,
+              enabled && iterations ? iterationValue : undefined,
             '--orbDur': enabled ? `${duration}s` : undefined,
-            '--orbIter': enabled ? String(iterations ?? 2) : undefined,
+            '--orbIter': enabled ? iterationValue : undefined,
           };
           return <div className={cls} style={styleVars} />;
         })()}

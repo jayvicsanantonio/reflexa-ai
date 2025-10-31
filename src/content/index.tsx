@@ -453,6 +453,35 @@ const initiateReflectionFlow = async () => {
     console.log('Summary received:', currentSummary);
     isLoadingSummary = false;
 
+    // Re-render overlay with summary loaded
+    if (overlayRoot && overlayContainer) {
+      overlayRoot.render(
+        <MeditationFlowOverlay
+          summary={currentSummary}
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection ?? undefined}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={isTranslating}
+          onProofread={handleProofread}
+          ambientMuted={
+            audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+          }
+          onToggleAmbient={(mute) => {
+            if (!audioManager) return;
+            if (mute) void audioManager.stopAmbientLoopGracefully(400);
+            else void audioManager.playAmbientLoopGracefully(400);
+          }}
+        />
+      );
+    }
+
     // Detect language when content is extracted
     // Pass page URL for per-page caching
     console.log('Detecting language...');
