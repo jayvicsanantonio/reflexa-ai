@@ -26,14 +26,14 @@ export interface ProofreadResult {
 }
 
 /**
- * Timeout duration for proofreader operations (5 seconds)
+ * Timeout duration for proofreader operations (30 seconds)
  */
-const PROOFREADER_TIMEOUT = 5000;
+const PROOFREADER_TIMEOUT = 30000;
 
 /**
- * Extended timeout for retry attempts (8 seconds)
+ * Extended timeout for retry attempts (60 seconds)
  */
-const RETRY_TIMEOUT = 8000;
+const RETRY_TIMEOUT = 60000;
 
 /**
  * ProofreaderManager class

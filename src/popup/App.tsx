@@ -303,19 +303,18 @@ export const App: React.FC = () => {
     // Match pulsing lotus gradient (zen palette)
     const bgGradient =
       'linear-gradient(135deg, var(--color-zen-500, #0ea5e9) 0%, var(--color-zen-600, #0284c7) 100%)';
-    const handleReflectClick = async () => {
-      try {
-        const resp: unknown = await chrome.runtime.sendMessage({
+    const handleReflectClick = () => {
+      // Close popup immediately for better UX
+      window.close();
+
+      // Send message to start reflection (fire and forget)
+      chrome.runtime
+        .sendMessage({
           type: 'startReflectInActiveTab',
+        })
+        .catch(() => {
+          // Popup is already closed, nothing to do
         });
-        const ok =
-          resp && typeof resp === 'object' && 'success' in resp
-            ? Boolean((resp as { success?: boolean }).success)
-            : false;
-        if (ok) window.close();
-      } catch {
-        // keep popup open
-      }
     };
     return (
       <div

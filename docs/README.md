@@ -46,6 +46,11 @@ All development documentation is now organized in the **[development/](./develop
 - **[Error Handling Example](./examples/ERROR_HANDLING.md)** - Error handling patterns
 - **[Direct API Access](./examples/DIRECT_API_ACCESS.md)** - Direct API usage examples
 
+### Translation & Language Detection
+
+- **[Translation Meditation Alignment](./TRANSLATION_MEDITATION_ALIGNMENT.md)** - How translation fits the zen flow
+- **[Translation Implementation Guide](./TRANSLATION_MEDITATION_IMPLEMENTATION.md)** - Practical integration for meditation flow
+
 ### Reference Documents
 
 #### Business & Market
