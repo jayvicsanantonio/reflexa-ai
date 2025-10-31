@@ -128,3 +128,35 @@ const renderOverlay = () => {
   );
 };
 ```
+
+## Completion Bell Implementation
+
+### Changes Made
+
+1. **Fixed Audio File Path** (`src/utils/audioManager.ts`)
+   - Changed `COMPLETION_BELL` from `/audio/completion-bell.mp3` to `/audio/completion-bell.wav`
+   - The actual file in the repository is `.wav`, not `.mp3`
+
+2. **Added Timing Delay** (`src/content/index.tsx`)
+   - Added 100ms delay after playing completion bell before hiding overlay
+   - This ensures the bell starts playing before the overlay closes
+   - The bell continues playing even after the overlay is hidden
+
+### Audio Flow on Save
+
+1. User clicks "Save" button
+2. Reflection data is sent to background for storage
+3. If save succeeds:
+   - Ambient loop stops
+   - Completion bell plays
+   - Wait 100ms for bell to start
+   - Overlay closes
+   - Bell continues playing
+
+### File Details
+
+- **File**: `public/audio/completion-bell.wav`
+- **Size**: ~138 KB
+- **Format**: WAV (uncompressed)
+- **Duration**: Short celebratory chime
+- **Volume**: 30% (same as other audio)

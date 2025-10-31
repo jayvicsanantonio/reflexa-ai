@@ -492,6 +492,10 @@ const initiateReflectionFlow = async () => {
 
     // Re-render overlay with summary loaded
     if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      const translationEnabled = Boolean(currentSettings?.enableTranslation);
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -503,18 +507,24 @@ const initiateReflectionFlow = async () => {
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
           languageDetection={currentLanguageDetection ?? undefined}
-          onTranslateToEnglish={handleTranslateToEnglish}
-          onTranslate={handleTranslate}
-          isTranslating={isTranslating}
+          onTranslateToEnglish={
+            translationEnabled ? handleTranslateToEnglish : undefined
+          }
+          onTranslate={translationEnabled ? handleTranslate : undefined}
+          isTranslating={translationEnabled ? isTranslating : false}
           onProofread={handleProofread}
           ambientMuted={
-            audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
           }
-          onToggleAmbient={(mute) => {
-            if (!audioManager) return;
-            if (mute) void audioManager.stopAmbientLoopGracefully(400);
-            else void audioManager.playAmbientLoopGracefully(400);
-          }}
+          onToggleAmbient={
+            soundEnabled
+              ? (mute) => {
+                  if (!audioManager) return;
+                  if (mute) void audioManager.stopAmbientLoopGracefully(400);
+                  else void audioManager.playAmbientLoopGracefully(400);
+                }
+              : undefined
+          }
         />
       );
     }
@@ -690,6 +700,9 @@ const renderOverlay = () => {
     renderOverlay();
   };
 
+  const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+  const translationEnabled = Boolean(currentSettings?.enableTranslation);
+
   overlayRoot.render(
     <MeditationFlowOverlay
       summary={currentSummary}
@@ -701,14 +714,16 @@ const renderOverlay = () => {
       currentFormat={currentSummaryFormat}
       isLoadingSummary={isLoadingSummary}
       languageDetection={currentLanguageDetection ?? undefined}
-      onTranslateToEnglish={handleTranslateToEnglish}
-      onTranslate={handleTranslate}
-      isTranslating={isTranslating}
+      onTranslateToEnglish={
+        translationEnabled ? handleTranslateToEnglish : undefined
+      }
+      onTranslate={translationEnabled ? handleTranslate : undefined}
+      isTranslating={translationEnabled ? isTranslating : false}
       onProofread={handleProofread}
       ambientMuted={
-        audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+        soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
       }
-      onToggleAmbient={handleToggleAmbient}
+      onToggleAmbient={soundEnabled ? handleToggleAmbient : undefined}
     />
   );
 };
@@ -903,11 +918,15 @@ const handleSaveReflection = async (
     } else {
       console.log('Reflection saved successfully');
 
-      // Play completion bell if enabled
+      // Play completion bell if enabled (before hiding overlay)
       if (currentSettings?.enableSound && audioManager) {
         void audioManager.playCompletionBell();
       }
     }
+
+    // Wait a brief moment for the completion bell to start playing
+    // before hiding the overlay (bell continues playing after overlay closes)
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Clean up and hide overlay
     hideReflectModeOverlay();
@@ -1025,6 +1044,7 @@ const handleTranslate = async (targetLanguage: string) => {
 
   // Re-render with loading state
   if (overlayRoot && overlayContainer) {
+    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
     overlayRoot.render(
       <MeditationFlowOverlay
         summary={currentSummary}
@@ -1043,6 +1063,18 @@ const handleTranslate = async (targetLanguage: string) => {
         onRewrite={handleRewrite}
         isRewriting={isRewritingArray}
         proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        ambientMuted={
+          soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
+        }
+        onToggleAmbient={
+          soundEnabled
+            ? async (mute) => {
+                if (!audioManager) return;
+                if (mute) await audioManager.stopAmbientLoopGracefully(400);
+                else await audioManager.playAmbientLoopGracefully(400);
+              }
+            : undefined
+        }
       />
     );
   }
@@ -1102,6 +1134,9 @@ const handleTranslate = async (targetLanguage: string) => {
 
     // Re-render overlay with translated content
     if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -1120,6 +1155,18 @@ const handleTranslate = async (targetLanguage: string) => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          ambientMuted={
+            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
+          }
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) await audioManager.stopAmbientLoopGracefully(400);
+                  else await audioManager.playAmbientLoopGracefully(400);
+                }
+              : undefined
+          }
         />
       );
     }
@@ -1169,6 +1216,9 @@ const handleTranslateToEnglish = async () => {
 
     // Re-render overlay with translated content
     if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -1187,6 +1237,18 @@ const handleTranslateToEnglish = async () => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          ambientMuted={
+            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
+          }
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) await audioManager.stopAmbientLoopGracefully(400);
+                  else await audioManager.playAmbientLoopGracefully(400);
+                }
+              : undefined
+          }
         />
       );
     }
@@ -1294,6 +1356,8 @@ const handleFormatChange = async (format: SummaryFormat) => {
 
   // Re-render overlay with loading state
   if (overlayRoot && overlayContainer) {
+    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+    const translationEnabled = Boolean(currentSettings?.enableTranslation);
     overlayRoot.render(
       <MeditationFlowOverlay
         summary={currentSummary}
@@ -1305,18 +1369,24 @@ const handleFormatChange = async (format: SummaryFormat) => {
         currentFormat={currentSummaryFormat}
         isLoadingSummary={true}
         languageDetection={currentLanguageDetection ?? undefined}
-        onTranslateToEnglish={handleTranslateToEnglish}
-        onTranslate={handleTranslate}
-        isTranslating={isTranslating}
+        onTranslateToEnglish={
+          translationEnabled ? handleTranslateToEnglish : undefined
+        }
+        onTranslate={translationEnabled ? handleTranslate : undefined}
+        isTranslating={translationEnabled ? isTranslating : false}
         onProofread={handleProofread}
         ambientMuted={
-          audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+          soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
         }
-        onToggleAmbient={(mute) => {
-          if (!audioManager) return;
-          if (mute) void audioManager.stopAmbientLoopGracefully(400);
-          else void audioManager.playAmbientLoopGracefully(400);
-        }}
+        onToggleAmbient={
+          soundEnabled
+            ? (mute) => {
+                if (!audioManager) return;
+                if (mute) void audioManager.stopAmbientLoopGracefully(400);
+                else void audioManager.playAmbientLoopGracefully(400);
+              }
+            : undefined
+        }
       />
     );
   }
@@ -1373,6 +1443,10 @@ const handleFormatChange = async (format: SummaryFormat) => {
 
     // Re-render overlay with updated summary
     if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      const translationEnabled = Boolean(currentSettings?.enableTranslation);
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -1384,18 +1458,24 @@ const handleFormatChange = async (format: SummaryFormat) => {
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
           languageDetection={currentLanguageDetection ?? undefined}
-          onTranslateToEnglish={handleTranslateToEnglish}
-          onTranslate={handleTranslate}
-          isTranslating={isTranslating}
+          onTranslateToEnglish={
+            translationEnabled ? handleTranslateToEnglish : undefined
+          }
+          onTranslate={translationEnabled ? handleTranslate : undefined}
+          isTranslating={translationEnabled ? isTranslating : false}
           onProofread={handleProofread}
           ambientMuted={
-            audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+            soundEnabled ? !audioManager!.isAmbientLoopPlayingNow() : undefined
           }
-          onToggleAmbient={(mute) => {
-            if (!audioManager) return;
-            if (mute) void audioManager.stopAmbientLoopGracefully(400);
-            else void audioManager.playAmbientLoopGracefully(400);
-          }}
+          onToggleAmbient={
+            soundEnabled
+              ? (mute) => {
+                  if (!audioManager) return;
+                  if (mute) void audioManager.stopAmbientLoopGracefully(400);
+                  else void audioManager.playAmbientLoopGracefully(400);
+                }
+              : undefined
+          }
         />
       );
     }
@@ -1802,20 +1882,9 @@ const setupMessageListener = () => {
                 }
               }
 
-              // If overlay is mounted, re-render with updated settings to reflect toggles immediately
+              // If overlay is mounted, re-render via unified renderer to reflect toggles consistently
               if (isOverlayVisible && overlayRoot && overlayContainer) {
-                overlayRoot.render(
-                  <MeditationFlowOverlay
-                    summary={currentSummary}
-                    prompts={currentPrompts}
-                    onSave={handleSaveReflection}
-                    onCancel={handleCancelReflection}
-                    settings={currentSettings ?? getDefaultSettings()}
-                    onFormatChange={handleFormatChange}
-                    currentFormat={currentSummaryFormat}
-                    isLoadingSummary={isLoadingSummary}
-                  />
-                );
+                renderOverlay();
               }
             }
           } else if (type === 'openDashboard') {

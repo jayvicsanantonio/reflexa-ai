@@ -763,12 +763,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             isProofreading={isProofreading[step - 2]}
             proofreaderAvailable={proofreaderAvailable}
             activeReflectionIndex={step - 2}
-            ambientMuted={_ambientMuted}
-            onToggleAmbient={_onToggleAmbient}
-            onTranslateSummary={_onTranslate}
-            isTranslating={_isTranslating}
+            ambientMuted={settings.enableSound ? _ambientMuted : undefined}
+            onToggleAmbient={
+              settings.enableSound ? _onToggleAmbient : undefined
+            }
+            onTranslateSummary={
+              settings.enableTranslation ? _onTranslate : undefined
+            }
+            isTranslating={settings.enableTranslation ? _isTranslating : false}
             currentLanguage={languageDetection?.detectedLanguage}
             unsupportedLanguages={[]}
+            defaultTargetLanguage={settings.preferredTranslationLanguage}
           />
           <button
             type="button"
@@ -858,12 +863,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             isProofreading={isProofreading[1]}
             proofreaderAvailable={proofreaderAvailable}
             activeReflectionIndex={1}
-            ambientMuted={_ambientMuted}
-            onToggleAmbient={_onToggleAmbient}
-            onTranslateSummary={_onTranslate}
-            isTranslating={_isTranslating}
+            ambientMuted={settings.enableSound ? _ambientMuted : undefined}
+            onToggleAmbient={
+              settings.enableSound ? _onToggleAmbient : undefined
+            }
+            onTranslateSummary={
+              settings.enableTranslation ? _onTranslate : undefined
+            }
+            isTranslating={settings.enableTranslation ? _isTranslating : false}
             currentLanguage={languageDetection?.detectedLanguage}
             unsupportedLanguages={[]}
+            defaultTargetLanguage={settings.preferredTranslationLanguage}
           />
           <button
             type="button"

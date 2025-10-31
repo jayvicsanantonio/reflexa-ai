@@ -271,6 +271,8 @@ interface MoreToolsMenuProps {
   isTranslating?: boolean;
   currentLanguage?: string;
   unsupportedLanguages?: string[];
+  // Preferred target language for translation selector default
+  defaultTargetLanguage?: string;
 }
 
 interface FormatOption {
@@ -359,12 +361,24 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   isTranslating = false,
   currentLanguage: _currentLanguage,
   unsupportedLanguages = [],
+  defaultTargetLanguage,
 }) => {
-  // Default to English regardless of detected language
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  // Default selection uses provided preferred language or English
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    defaultTargetLanguage ?? 'en'
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Keep internal selection in sync if parent preference changes
+  useEffect(() => {
+    if (defaultTargetLanguage && defaultTargetLanguage !== selectedLanguage) {
+      setSelectedLanguage(defaultTargetLanguage);
+    }
+    // We intentionally omit selectedLanguage from deps to avoid loops when user changes it locally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultTargetLanguage]);
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev);
