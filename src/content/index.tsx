@@ -75,7 +75,7 @@ let aiCapabilities: AICapabilities | null = null;
 // AI availability status
 let aiAvailable: boolean | null = null;
 
-// Help modal UI state
+// AI Status modal UI state (replaces Help)
 let helpModalContainer: HTMLDivElement | null = null;
 let helpModalRoot: ReturnType<typeof createRoot> | null = null;
 let isHelpModalVisible = false;
@@ -655,7 +655,7 @@ const showReflectModeOverlay = async () => {
  * @returns Default Settings object
  */
 const getDefaultSettings = (): Settings => ({
-  dwellThreshold: 30,
+  dwellThreshold: 10,
   enableSound: true,
   reduceMotion: false,
   proofreadEnabled: false,
@@ -670,6 +670,7 @@ const getDefaultSettings = (): Settings => ({
   preferredTranslationLanguage: 'en',
   experimentalMode: false,
   autoDetectLanguage: true,
+  voiceAutoStopDelay: 10000,
 });
 
 /**
@@ -1428,13 +1429,11 @@ const hideLotusNudge = () => {
   console.log('Lotus nudge hidden');
 };
 
-/**
- * Show Help modal (AI setup guide) in the center of the page
- */
+/** Show AI Status modal in the center of the page */
 const showHelpModal = async () => {
   if (isHelpModalVisible) return;
   helpModalContainer = document.createElement('div');
-  helpModalContainer.id = 'reflexa-help-container';
+  helpModalContainer.id = 'reflexa-ai-status-container';
   document.body.appendChild(helpModalContainer);
 
   const shadowRoot = helpModalContainer.attachShadow({ mode: 'open' });
@@ -1450,13 +1449,13 @@ const showHelpModal = async () => {
   shadowRoot.appendChild(rootElement);
 
   helpModalRoot = createRoot(rootElement);
-  const { HelpSetupModal } = await import('./components/HelpSetupModal');
-  helpModalRoot.render(<HelpSetupModal onClose={hideHelpModal} />);
+  const { AIStatusModal } = await import('./components/AIStatusModal');
+  helpModalRoot.render(<AIStatusModal onClose={hideHelpModal} />);
 
   isHelpModalVisible = true;
 };
 
-/** Hide Help modal */
+/** Hide AI Status modal */
 const hideHelpModal = () => {
   if (!isHelpModalVisible) return;
   if (helpModalRoot) {
@@ -1531,6 +1530,12 @@ const setupMessageListener = () => {
             if (updated) {
               console.log('Applying live settings update:', updated);
               currentSettings = updated;
+              // Toast for user feedback
+              try {
+                showNotification('Settings updated', '', 'info');
+              } catch {
+                // no-op
+              }
               // Live-update dwell tracker so changes take effect immediately
               if (dwellTracker) {
                 dwellTracker.setDwellThreshold(updated.dwellThreshold);

@@ -33,7 +33,7 @@
 
 **Action:**
 
-1. Read article for 60 seconds
+1. Read article for 10 seconds
 2. Lotus icon appears (floating animation)
 3. Click the lotus icon
 
@@ -156,7 +156,7 @@
 - ✅ Clear browser history and reflections
 - ✅ Test all Chrome AI flags are enabled
 - ✅ Prepare sample article (Medium, NY Times, etc.)
-- ✅ Set dwell threshold to 30s for faster demo
+- ✅ Set dwell threshold to 10s for faster demo
 - ✅ Test audio works (optional)
 - ✅ Have backup video ready
 
@@ -209,7 +209,7 @@ npm run build
 ### Settings Configuration
 
 1. Open extension options
-2. Set dwell threshold to 30 seconds (for faster demo)
+2. Set dwell threshold to 10 seconds (for faster demo)
 3. Enable ambient audio (optional)
 4. Enable all AI features
 5. Test each feature works

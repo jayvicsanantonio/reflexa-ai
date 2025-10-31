@@ -260,19 +260,19 @@ describe('SettingsManager', () => {
     });
 
     it('should accept minimum voiceAutoStopDelay', async () => {
-      await settingsManager.updateSettings({ voiceAutoStopDelay: 1000 });
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 0 });
       const settings = await settingsManager.getSettings();
-      expect(settings.voiceAutoStopDelay).toBe(1000);
+      expect(settings.voiceAutoStopDelay).toBe(0);
     });
 
     it('should accept maximum voiceAutoStopDelay', async () => {
-      await settingsManager.updateSettings({ voiceAutoStopDelay: 10000 });
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 60000 });
       const settings = await settingsManager.getSettings();
-      expect(settings.voiceAutoStopDelay).toBe(10000);
+      expect(settings.voiceAutoStopDelay).toBe(60000);
     });
 
     it('should reject voiceAutoStopDelay below minimum', async () => {
-      await settingsManager.updateSettings({ voiceAutoStopDelay: 500 });
+      await settingsManager.updateSettings({ voiceAutoStopDelay: -100 });
       const settings = await settingsManager.getSettings();
       expect(settings.voiceAutoStopDelay).toBe(
         DEFAULT_SETTINGS.voiceAutoStopDelay
@@ -280,7 +280,7 @@ describe('SettingsManager', () => {
     });
 
     it('should reject voiceAutoStopDelay above maximum', async () => {
-      await settingsManager.updateSettings({ voiceAutoStopDelay: 15000 });
+      await settingsManager.updateSettings({ voiceAutoStopDelay: 70000 });
       const settings = await settingsManager.getSettings();
       expect(settings.voiceAutoStopDelay).toBe(
         DEFAULT_SETTINGS.voiceAutoStopDelay

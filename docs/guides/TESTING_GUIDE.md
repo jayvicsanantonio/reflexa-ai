@@ -309,11 +309,11 @@ You should now see:
 2. Start reading and scrolling
 3. Keep the tab active and visible
 4. Move your mouse occasionally
-5. Wait for 60 seconds (default threshold)
+5. Wait for 10 seconds (default threshold)
 
 **Expected Results**:
 
-- ✅ After ~60 seconds, a **lotus icon** appears in the bottom-right corner
+- ✅ After ~10 seconds, a **lotus icon** appears in the bottom-right corner
 - ✅ The lotus icon has a gentle pulse animation
 - ✅ Icon is positioned above the page content (high z-index)
 
@@ -1033,7 +1033,7 @@ DwellTracker: Threshold reached
 
 ### Issue 1: Lotus Icon Not Appearing
 
-**Symptoms**: Reading for 60+ seconds but no lotus icon shows.
+**Symptoms**: Reading for 10+ seconds but no lotus icon shows.
 
 **Possible Causes**:
 

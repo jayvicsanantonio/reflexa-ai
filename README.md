@@ -72,7 +72,7 @@ Reflexa AI helps you absorb more, stress less, and remember what matters by:
 
 3. **Start reading**:
    - Browse to any article
-   - Read for 60 seconds (default threshold)
+   - Read for 10 seconds (default threshold)
    - Click the lotus icon when it appears
    - Enjoy your AI-powered reflection session!
 
@@ -318,7 +318,7 @@ The content script monitors your reading behavior using:
 
 - **Page Visibility API** - Pauses timer when tab is hidden
 - **User interaction events** - Detects scroll, mouse movement, keyboard activity
-- **Configurable threshold** - Default 60 seconds, customizable from 30-300 seconds
+- **Configurable threshold** - Default 10 seconds, customizable from 0-60 seconds
 
 ### 2. Content Extraction
 
@@ -581,7 +581,7 @@ Your privacy is our top priority:
 
 ### Extension not detecting reading
 
-- Check dwell threshold in settings (default 60 seconds)
+- Check dwell threshold in settings (default 10 seconds)
 - Ensure you're actively interacting with the page (scroll, mouse movement)
 - Verify the page has extractable content (not a video or image-heavy page)
 

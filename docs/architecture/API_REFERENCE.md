@@ -638,7 +638,7 @@ const dwellTracker = new DwellTracker(dwellThreshold?: number);
 
 **Parameters**:
 
-- `dwellThreshold` (number, optional): Threshold in seconds (default: 60)
+- `dwellThreshold` (number, optional): Threshold in seconds (default: 10)
 
 ### Methods
 

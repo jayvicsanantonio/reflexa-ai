@@ -89,7 +89,7 @@ Welcome to Reflexa AI! This guide will help you get the most out of your reflect
 
 #### Step 2: Dwell Detection
 
-- After reading for 60 seconds (default), a **lotus icon** appears
+- After reading for 10 seconds (default), a **lotus icon** appears
 - The icon gently pulses to catch your attention
 - You can continue reading or click the icon when ready
 
@@ -258,7 +258,7 @@ Monitor which Chrome AI APIs are available and active:
 - **API Availability**: Green checkmarks for available APIs, gray X for unavailable
 - **Usage Statistics**: Counters for summarizations, drafts, rewrites, proofreads, translations
 - **Session Info**: Current session start time and total operations
-- **Experimental Mode Badge**: Shows when experimental features are enabled
+- **Experimental Mode Badge**: Shows when experimental features are enabled (enabled by default)
 - **Refresh Button**: Re-check API availability on demand
 
 ### Export Button
@@ -283,10 +283,10 @@ Access settings by clicking the gear icon in the dashboard.
 
 **Recommended settings**:
 
-- Quick news: 30-45 seconds
-- Blog posts: 60-90 seconds
-- Long-form articles: 120-180 seconds
-- Academic papers: 180-300 seconds
+- Quick news: 10-20 seconds
+- Blog posts: 20-40 seconds
+- Long-form articles: 40-60 seconds
+- Academic papers: 60+ seconds (consider leaving at 60 and pausing nudges if needed)
 
 ### Accessibility Settings
 
@@ -658,3 +658,8 @@ We'd love to hear from you!
 - 📧 **General feedback**: Email feedback@reflexa-ai.com
 
 Thank you for using Reflexa AI! Happy reflecting! 🌸
+#### Voice Input
+
+- Enable voice input to dictate reflections instead of typing.
+- Voice language selects the speech recognition language (Auto by default).
+- Auto-stop delay controls how long Reflexa waits after silence before stopping (0–60 seconds, default 10s).

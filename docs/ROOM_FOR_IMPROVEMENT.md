@@ -69,7 +69,7 @@ A) First‑run checklist modal (privacy → AI setup → preferences → demo)
 - Proposed:
   - Step 1: Privacy notice acknowledgement (existing copy).
   - Step 2: “Enable Chrome AI” guidance (reuse content from `AIStatusPanel` setup modal).
-  - Step 3: Set dwell threshold and reduce motion.
+- Step 3: Set dwell threshold (default 10s) and reduce motion.
   - Step 4: Try a sample reflection demo (uses static text in overlay).
 - Location: `src/popup/App.tsx:203` (after `FIRST_LAUNCH`); extract a shared Onboarding component.
 - Acceptance Criteria:
@@ -257,4 +257,3 @@ A) Translation flags
 - Options: `src/options/App.tsx` and `components/*`
 - Theme & a11y: `src/styles/theme.css`, `src/styles/accessibility.css`, `src/content/styles.css`
 - Performance: `src/utils/performanceMonitor.ts`
-

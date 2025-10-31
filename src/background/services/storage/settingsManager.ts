@@ -161,11 +161,11 @@ export class SettingsManager {
       validated.voiceLanguage = DEFAULT_SETTINGS.voiceLanguage;
     }
 
-    // Validate voiceAutoStopDelay (number, 1000-10000ms)
+    // Validate voiceAutoStopDelay (number, 0-60000ms)
     if (
       typeof validated.voiceAutoStopDelay !== 'number' ||
-      validated.voiceAutoStopDelay < 1000 ||
-      validated.voiceAutoStopDelay > 10000
+      validated.voiceAutoStopDelay < 0 ||
+      validated.voiceAutoStopDelay > 60000
     ) {
       validated.voiceAutoStopDelay = DEFAULT_SETTINGS.voiceAutoStopDelay;
     }

@@ -93,7 +93,7 @@ describe('QuickSettingsModal accessibility and interactions', () => {
     // Wait for content
     await screen.findByText('Settings');
 
-    const content = container.querySelector('.reflexa-modal');
+    const content = container.querySelector('.reflexa-modal-animate');
     expect(content).toBeTruthy();
     if (content) {
       fireEvent.keyDown(content, { key: 'Escape' });

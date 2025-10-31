@@ -23,12 +23,12 @@ export const DEFAULT_SETTINGS: Settings = {
   enableProofreading: false,
   enableTranslation: false,
   preferredTranslationLanguage: 'en',
-  experimentalMode: false,
+  experimentalMode: true,
   autoDetectLanguage: true,
   // Voice input settings
   voiceInputEnabled: true,
   voiceLanguage: undefined, // Will default to browser language
-  voiceAutoStopDelay: 3000,
+  voiceAutoStopDelay: 10000, // 10 seconds
 };
 
 /**

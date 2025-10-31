@@ -167,7 +167,7 @@
 .reflexa-modal {
   position: relative;
   max-height: min(80vh, 720px);
-  background: rgba(17, 24, 39, 0.96);
+  background: var(--color-calm-900, #0f172a);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 24px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
@@ -189,7 +189,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: rgba(31, 41, 55, 0.9);
+  background: var(--color-calm-800, #1f2937);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -230,7 +230,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(17, 24, 39, 0.96);
+  background: var(--color-calm-900, #0f172a);
 }
 
 /* Buttons */
@@ -335,6 +335,60 @@
 }
 .reflexa-switch[aria-checked='true'] .reflexa-switch__thumb {
   left: 22px;
+}
+
+/* Disabled states */
+.reflexa-switch[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select[disabled],
+input[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Info hint tooltip */
+.reflexa-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.reflexa-info__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-calm-200);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: help;
+}
+
+.reflexa-info__tooltip {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-calm-900, #0f172a);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.reflexa-info__icon:hover .reflexa-info__tooltip,
+.reflexa-info__icon:focus .reflexa-info__tooltip {
+  opacity: 1;
 }
 
 /* ===== ACCESSIBILITY STYLES ===== */
@@ -943,9 +997,9 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .reflexa-error-modal__content {
@@ -1093,7 +1147,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  z-index: 2147483645;
+  z-index: 2147483647;
   display: flex;
   align-items: flex-start;
   gap: 12px;
