@@ -1134,7 +1134,7 @@ input[disabled] {
   padding: 14px 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   color: var(--color-calm-200);
   font-family: var(--font-sans);
   font-size: 12px;
@@ -1168,8 +1168,17 @@ input[disabled] {
 }
 
 .reflexa-more-tools__tile-icon {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   line-height: 1;
+}
+
+.reflexa-more-tools__tile-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .reflexa-more-tools__tile-label {
@@ -1181,7 +1190,16 @@ input[disabled] {
   position: absolute;
   top: 8px;
   right: 8px;
-  font-size: 12px;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reflexa-more-tools__tile-spinner svg {
+  width: 12px;
+  height: 12px;
   animation: spin 1s linear infinite;
 }
 
@@ -1191,9 +1209,9 @@ input[disabled] {
   justify-content: space-between;
   width: 100%;
   padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   color: var(--color-calm-200);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -1225,8 +1243,17 @@ input[disabled] {
 }
 
 .reflexa-more-tools__option-icon {
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   line-height: 1;
+}
+
+.reflexa-more-tools__option-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .reflexa-more-tools__option-label {
@@ -1248,7 +1275,20 @@ input[disabled] {
 }
 
 .reflexa-more-tools__option-spinner {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.reflexa-more-tools__option-spinner svg {
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+}
+
+.reflexa-more-tools__spinner {
   animation: spin 1s linear infinite;
 }
 

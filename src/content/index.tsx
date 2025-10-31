@@ -992,10 +992,8 @@ const handleTranslate = async (targetLanguage: string) => {
         type: 'translate',
         payload: {
           text: bullet,
-          options: {
-            sourceLanguage: currentLanguageDetection.detectedLanguage,
-            targetLanguage: targetLanguage,
-          },
+          source: currentLanguageDetection.detectedLanguage,
+          target: targetLanguage,
         },
       });
 
@@ -1089,10 +1087,8 @@ const handleTranslateToEnglish = async () => {
         type: 'translate',
         payload: {
           text: bullet,
-          options: {
-            sourceLanguage: currentLanguageDetection.detectedLanguage,
-            targetLanguage: 'en',
-          },
+          source: currentLanguageDetection.detectedLanguage,
+          target: 'en',
         },
       });
 
