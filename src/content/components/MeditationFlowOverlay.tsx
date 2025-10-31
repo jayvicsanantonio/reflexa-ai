@@ -10,7 +10,6 @@ import type {
 import { trapFocus } from '../../utils/accessibility';
 import { COMMON_LANGUAGES } from '../../constants';
 import { BreathingOrb } from './BreathingOrb';
-import { VoiceToggleButton } from './VoiceToggleButton';
 import { Notification } from './Notification';
 import { TonePresetChips } from './TonePresetChips';
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -119,6 +118,14 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     show: boolean;
     index: number;
   }>({ show: false, index: 0 });
+  const [isProofreading, setIsProofreading] = useState<boolean[]>([
+    false,
+    false,
+  ]);
+  const [proofreadResult, setProofreadResult] = useState<{
+    index: number;
+    result: ProofreadResult;
+  } | null>(null);
   const [languageFallbackNotification, setLanguageFallbackNotification] =
     useState<{ show: boolean; languageName: string }>({
       show: false,
@@ -949,9 +956,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               </p>
               <div
                 style={{
-                  position: 'relative',
                   maxWidth: 720,
                   margin: '0 auto',
+                  width: '100%',
                 }}
               >
                 <textarea
@@ -1003,13 +1010,30 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     padding: 12,
                     fontSize: 14,
                     transition: 'background 0.3s ease, border 0.3s ease',
+                    boxSizing: 'border-box',
                   }}
                 />
+              </div>
+
+              {/* Unified Toolbar */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  marginTop: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  maxWidth: 720,
+                  margin: '12px auto 0',
+                }}
+              >
+                {/* Voice Input Button */}
                 {voiceInput0.isSupported && (
-                  <div style={{ position: 'absolute', top: 8, right: 8 }}>
-                    <VoiceToggleButton
-                      isRecording={voiceInput0.isRecording}
-                      onToggle={async () => {
+                  <>
+                    <button
+                      type="button"
+                      onClick={async () => {
                         if (voiceInput0.isRecording) {
                           voiceInput0.stopRecording();
                           if (settings.enableSound && audioManagerRef.current) {
@@ -1027,45 +1051,184 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         }
                       }}
                       disabled={false}
-                      language={voiceInput0.effectiveLanguage}
-                      languageName={voiceInput0.languageName}
-                      isLanguageFallback={voiceInput0.isLanguageFallback}
-                      reduceMotion={settings.reduceMotion}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Unified Toolbar */}
-              {(writerAvailable || rewriterAvailable) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    marginTop: 12,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {writerAvailable && !answers[0] && (
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateDraft(0)}
-                      disabled={isDraftGenerating[0]}
+                      title={
+                        voiceInput0.isRecording
+                          ? 'Stop recording'
+                          : `Voice input (${voiceInput0.languageName})`
+                      }
                       style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(96,165,250,0.3)',
-                        color: '#60a5fa',
+                        background: voiceInput0.isRecording
+                          ? 'rgba(239,68,68,0.12)'
+                          : 'transparent',
+                        border: voiceInput0.isRecording
+                          ? '1px solid rgba(239,68,68,0.4)'
+                          : '1px solid rgba(226,232,240,0.2)',
+                        color: voiceInput0.isRecording
+                          ? '#ef4444'
+                          : 'rgba(226,232,240,0.7)',
                         borderRadius: 8,
                         padding: '7px 12px',
                         fontSize: 12,
                         fontWeight: 500,
-                        cursor: isDraftGenerating[0] ? 'wait' : 'pointer',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        opacity: isDraftGenerating[0] ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                        position: 'relative',
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="22" />
+                      </svg>
+                      <span>
+                        {voiceInput0.isRecording ? 'Recording' : 'Voice'}
+                      </span>
+                      {voiceInput0.isRecording && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            width: 6,
+                            height: 6,
+                            background: '#ef4444',
+                            borderRadius: '50%',
+                            animation: 'pulse 1.5s ease-in-out infinite',
+                          }}
+                        />
+                      )}
+                    </button>
+                    <div
+                      style={{
+                        width: 1,
+                        height: 20,
+                        background: 'rgba(226,232,240,0.15)',
+                      }}
+                    />
+                  </>
+                )}
+
+                {/* Generate Draft Button */}
+                {writerAvailable && !answers[0] && (
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateDraft(0)}
+                    disabled={isDraftGenerating[0]}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(96,165,250,0.3)',
+                      color: '#60a5fa',
+                      borderRadius: 8,
+                      padding: '7px 12px',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: isDraftGenerating[0] ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      opacity: isDraftGenerating[0] ? 0.6 : 1,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    <span>
+                      {isDraftGenerating[0] ? 'Generating...' : 'Generate'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Tone Chips */}
+                {rewriterAvailable &&
+                  answers[0] &&
+                  answers[0].trim().length > 20 && (
+                    <>
+                      {(writerAvailable && !answers[0]) ||
+                      voiceInput0.isSupported ? (
+                        <div
+                          style={{
+                            width: 1,
+                            height: 20,
+                            background: 'rgba(226,232,240,0.15)',
+                          }}
+                        />
+                      ) : null}
+                      <TonePresetChips
+                        selectedTone={selectedTone}
+                        onToneSelect={handleToneSelect}
+                        disabled={isRewriting[0]}
+                        isLoading={isRewriting[0]}
+                      />
+                    </>
+                  )}
+
+                {/* Proofread Button */}
+                {onProofread && answers[0] && answers[0].trim().length > 20 && (
+                  <>
+                    <div
+                      style={{
+                        width: 1,
+                        height: 20,
+                        background: 'rgba(226,232,240,0.15)',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsProofreading((prev) => {
+                          const next = [...prev];
+                          next[0] = true;
+                          return next;
+                        });
+                        try {
+                          const result = await onProofread(answers[0], 0);
+                          setProofreadResult({ index: 0, result });
+                        } catch (error) {
+                          console.error('Proofread failed:', error);
+                        } finally {
+                          setIsProofreading((prev) => {
+                            const next = [...prev];
+                            next[0] = false;
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={isProofreading[0]}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.2)',
+                        color: 'rgba(226,232,240,0.7)',
+                        borderRadius: 8,
+                        padding: '7px 12px',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: isProofreading[0] ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        opacity: isProofreading[0] ? 0.6 : 1,
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -1079,35 +1242,16 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <path d="M12 5v14M5 12h14" />
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                       </svg>
                       <span>
-                        {isDraftGenerating[0] ? 'Generating...' : 'Generate'}
+                        {isProofreading[0] ? 'Checking...' : 'Proofread'}
                       </span>
                     </button>
-                  )}
-
-                  {rewriterAvailable &&
-                    answers[0] &&
-                    answers[0].trim().length > 20 && (
-                      <>
-                        <div
-                          style={{
-                            width: 1,
-                            height: 20,
-                            background: 'rgba(226,232,240,0.15)',
-                          }}
-                        />
-                        <TonePresetChips
-                          selectedTone={selectedTone}
-                          onToneSelect={handleToneSelect}
-                          disabled={isRewriting[0]}
-                          isLoading={isRewriting[0]}
-                        />
-                      </>
-                    )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
 
               {/* Rewrite Preview */}
               {rewritePreview?.index === 0 && (
@@ -1119,7 +1263,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     border: '1px solid rgba(59,130,246,0.25)',
                     borderRadius: 12,
                     maxWidth: 720,
+                    width: '100%',
                     margin: '16px auto 0',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <div
@@ -1173,6 +1319,85 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Proofread Result */}
+              {proofreadResult?.index === 0 && (
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: 14,
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1px solid rgba(34,197,94,0.25)',
+                    borderRadius: 12,
+                    maxWidth: 720,
+                    width: '100%',
+                    margin: '16px auto 0',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#4ade80',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Proofread Suggestions
+                  </div>
+                  <div
+                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
+                  >
+                    {proofreadResult.result.correctedText}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (proofreadResult) {
+                          setAnswers((prev) => {
+                            const next = [...prev];
+                            next[proofreadResult.index] =
+                              proofreadResult.result.correctedText;
+                            lastTextValueRef.current[proofreadResult.index] =
+                              proofreadResult.result.correctedText;
+                            return next;
+                          });
+                          setProofreadResult(null);
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(34,197,94,0.15)',
+                        border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#4ade80',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProofreadResult(null)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.25)',
+                        color: '#cbd5e1',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      × Discard
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1186,9 +1411,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               </p>
               <div
                 style={{
-                  position: 'relative',
                   maxWidth: 720,
                   margin: '0 auto',
+                  width: '100%',
                 }}
               >
                 <textarea
@@ -1240,13 +1465,30 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     padding: 12,
                     fontSize: 14,
                     transition: 'background 0.3s ease, border 0.3s ease',
+                    boxSizing: 'border-box',
                   }}
                 />
+              </div>
+
+              {/* Unified Toolbar */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  marginTop: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  maxWidth: 720,
+                  margin: '12px auto 0',
+                }}
+              >
+                {/* Voice Input Button */}
                 {voiceInput1.isSupported && (
-                  <div style={{ position: 'absolute', top: 8, right: 8 }}>
-                    <VoiceToggleButton
-                      isRecording={voiceInput1.isRecording}
-                      onToggle={async () => {
+                  <>
+                    <button
+                      type="button"
+                      onClick={async () => {
                         if (voiceInput1.isRecording) {
                           voiceInput1.stopRecording();
                           if (settings.enableSound && audioManagerRef.current) {
@@ -1264,45 +1506,184 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         }
                       }}
                       disabled={false}
-                      language={voiceInput1.effectiveLanguage}
-                      languageName={voiceInput1.languageName}
-                      isLanguageFallback={voiceInput1.isLanguageFallback}
-                      reduceMotion={settings.reduceMotion}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Unified Toolbar */}
-              {(writerAvailable || rewriterAvailable) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    marginTop: 12,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {writerAvailable && !answers[1] && (
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateDraft(1)}
-                      disabled={isDraftGenerating[1]}
+                      title={
+                        voiceInput1.isRecording
+                          ? 'Stop recording'
+                          : `Voice input (${voiceInput1.languageName})`
+                      }
                       style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(96,165,250,0.3)',
-                        color: '#60a5fa',
+                        background: voiceInput1.isRecording
+                          ? 'rgba(239,68,68,0.12)'
+                          : 'transparent',
+                        border: voiceInput1.isRecording
+                          ? '1px solid rgba(239,68,68,0.4)'
+                          : '1px solid rgba(226,232,240,0.2)',
+                        color: voiceInput1.isRecording
+                          ? '#ef4444'
+                          : 'rgba(226,232,240,0.7)',
                         borderRadius: 8,
                         padding: '7px 12px',
                         fontSize: 12,
                         fontWeight: 500,
-                        cursor: isDraftGenerating[1] ? 'wait' : 'pointer',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        opacity: isDraftGenerating[1] ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                        position: 'relative',
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="22" />
+                      </svg>
+                      <span>
+                        {voiceInput1.isRecording ? 'Recording' : 'Voice'}
+                      </span>
+                      {voiceInput1.isRecording && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            width: 6,
+                            height: 6,
+                            background: '#ef4444',
+                            borderRadius: '50%',
+                            animation: 'pulse 1.5s ease-in-out infinite',
+                          }}
+                        />
+                      )}
+                    </button>
+                    <div
+                      style={{
+                        width: 1,
+                        height: 20,
+                        background: 'rgba(226,232,240,0.15)',
+                      }}
+                    />
+                  </>
+                )}
+
+                {/* Generate Draft Button */}
+                {writerAvailable && !answers[1] && (
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateDraft(1)}
+                    disabled={isDraftGenerating[1]}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(96,165,250,0.3)',
+                      color: '#60a5fa',
+                      borderRadius: 8,
+                      padding: '7px 12px',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: isDraftGenerating[1] ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      opacity: isDraftGenerating[1] ? 0.6 : 1,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    <span>
+                      {isDraftGenerating[1] ? 'Generating...' : 'Generate'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Tone Chips */}
+                {rewriterAvailable &&
+                  answers[1] &&
+                  answers[1].trim().length > 20 && (
+                    <>
+                      {(writerAvailable && !answers[1]) ||
+                      voiceInput1.isSupported ? (
+                        <div
+                          style={{
+                            width: 1,
+                            height: 20,
+                            background: 'rgba(226,232,240,0.15)',
+                          }}
+                        />
+                      ) : null}
+                      <TonePresetChips
+                        selectedTone={selectedTone}
+                        onToneSelect={handleToneSelect}
+                        disabled={isRewriting[1]}
+                        isLoading={isRewriting[1]}
+                      />
+                    </>
+                  )}
+
+                {/* Proofread Button */}
+                {onProofread && answers[1] && answers[1].trim().length > 20 && (
+                  <>
+                    <div
+                      style={{
+                        width: 1,
+                        height: 20,
+                        background: 'rgba(226,232,240,0.15)',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsProofreading((prev) => {
+                          const next = [...prev];
+                          next[1] = true;
+                          return next;
+                        });
+                        try {
+                          const result = await onProofread(answers[1], 1);
+                          setProofreadResult({ index: 1, result });
+                        } catch (error) {
+                          console.error('Proofread failed:', error);
+                        } finally {
+                          setIsProofreading((prev) => {
+                            const next = [...prev];
+                            next[1] = false;
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={isProofreading[1]}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.2)',
+                        color: 'rgba(226,232,240,0.7)',
+                        borderRadius: 8,
+                        padding: '7px 12px',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: isProofreading[1] ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        opacity: isProofreading[1] ? 0.6 : 1,
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -1316,35 +1697,16 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <path d="M12 5v14M5 12h14" />
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                       </svg>
                       <span>
-                        {isDraftGenerating[1] ? 'Generating...' : 'Generate'}
+                        {isProofreading[1] ? 'Checking...' : 'Proofread'}
                       </span>
                     </button>
-                  )}
-
-                  {rewriterAvailable &&
-                    answers[1] &&
-                    answers[1].trim().length > 20 && (
-                      <>
-                        <div
-                          style={{
-                            width: 1,
-                            height: 20,
-                            background: 'rgba(226,232,240,0.15)',
-                          }}
-                        />
-                        <TonePresetChips
-                          selectedTone={selectedTone}
-                          onToneSelect={handleToneSelect}
-                          disabled={isRewriting[1]}
-                          isLoading={isRewriting[1]}
-                        />
-                      </>
-                    )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
 
               {/* Rewrite Preview */}
               {rewritePreview?.index === 1 && (
@@ -1356,7 +1718,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     border: '1px solid rgba(59,130,246,0.25)',
                     borderRadius: 12,
                     maxWidth: 720,
+                    width: '100%',
                     margin: '16px auto 0',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <div
@@ -1394,6 +1758,85 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     <button
                       type="button"
                       onClick={handleDiscardRewrite}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.25)',
+                        color: '#cbd5e1',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      × Discard
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Proofread Result */}
+              {proofreadResult?.index === 1 && (
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: 14,
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1px solid rgba(34,197,94,0.25)',
+                    borderRadius: 12,
+                    maxWidth: 720,
+                    width: '100%',
+                    margin: '16px auto 0',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#4ade80',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Proofread Suggestions
+                  </div>
+                  <div
+                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
+                  >
+                    {proofreadResult.result.correctedText}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (proofreadResult) {
+                          setAnswers((prev) => {
+                            const next = [...prev];
+                            next[proofreadResult.index] =
+                              proofreadResult.result.correctedText;
+                            lastTextValueRef.current[proofreadResult.index] =
+                              proofreadResult.result.correctedText;
+                            return next;
+                          });
+                          setProofreadResult(null);
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(34,197,94,0.15)',
+                        border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#4ade80',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProofreadResult(null)}
                       style={{
                         background: 'transparent',
                         border: '1px solid rgba(226,232,240,0.25)',
