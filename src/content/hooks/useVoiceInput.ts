@@ -598,11 +598,21 @@ export const useVoiceInput = (
 
   // Stop recording function
   const stopRecording = useCallback(() => {
+    console.log(
+      '[useVoiceInput] stopRecording called, isRecording:',
+      isRecording,
+      'hasRecognition:',
+      !!recognitionRef.current
+    );
     if (!recognitionRef.current || !isRecording) {
+      console.log(
+        '[useVoiceInput] stopRecording early return - no recognition or not recording'
+      );
       return;
     }
 
     try {
+      console.log('[useVoiceInput] Stopping recognition...');
       isStoppingRef.current = true;
       updateStatus('stopping');
       clearAutoStopTimer();
@@ -611,8 +621,9 @@ export const useVoiceInput = (
       recognitionRef.current.stop();
       setIsPaused(false);
       isPausedRef.current = false;
+      console.log('[useVoiceInput] Recognition stopped successfully');
     } catch (err) {
-      console.error('Failed to stop recording:', err);
+      console.error('[useVoiceInput] Failed to stop recording:', err);
       setIsRecording(false);
       updateStatus('idle');
       setIsPaused(false);

@@ -758,22 +758,78 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={save}
-          aria-label="Save reflection"
-          style={{
-            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-            border: '1px solid rgba(226,232,240,0.25)',
-            color: '#fff',
-            borderRadius: 999,
-            padding: '8px 14px',
-            fontWeight: 800,
-            cursor: 'pointer',
-          }}
-        >
-          Save
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <MoreToolsMenu
+            currentScreen="reflection"
+            currentFormat={currentFormat}
+            onFormatChange={undefined}
+            isLoadingSummary={isLoadingSummary}
+            onGenerateDraft={
+              settings.experimentalMode && !answers[1]?.trim()
+                ? (draft) => {
+                    setAnswers((prev) => {
+                      const next = [...prev];
+                      next[1] = draft;
+                      return next;
+                    });
+                  }
+                : undefined
+            }
+            generateDraftDisabled={false}
+            summary={summary}
+            selectedTone={_selectedTone}
+            onToneSelect={
+              settings.experimentalMode ? handleToneSelect : undefined
+            }
+            tonesDisabled={!answers[1]?.trim()}
+            isRewriting={_isRewriting.some((r) => r)}
+            hasReflectionContent={answers.some((a) => a.trim() !== '')}
+            onProofread={
+              (settings.enableProofreading || settings.proofreadEnabled) &&
+              proofreaderAvailable
+                ? async (_index) => {
+                    if (!onProofread) return;
+                    try {
+                      const result = await onProofread(answers[1] ?? '', 1);
+                      setAnswers((prev) => {
+                        const next = [...prev];
+                        next[1] = result.correctedText ?? prev[1];
+                        return next;
+                      });
+                    } catch {
+                      // silent
+                    }
+                  }
+                : undefined
+            }
+            proofreadDisabled={!answers[1]?.trim()}
+            isProofreading={false}
+            proofreaderAvailable={proofreaderAvailable}
+            activeReflectionIndex={1}
+            ambientMuted={_ambientMuted}
+            onToggleAmbient={_onToggleAmbient}
+            onTranslateSummary={_onTranslate}
+            isTranslating={_isTranslating}
+            currentLanguage={languageDetection?.detectedLanguage}
+            unsupportedLanguages={[]}
+          />
+          <button
+            type="button"
+            onClick={save}
+            aria-label="Save reflection"
+            style={{
+              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              border: '1px solid rgba(226,232,240,0.25)',
+              color: '#fff',
+              borderRadius: 999,
+              padding: '8px 14px',
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            Save
+          </button>
+        </div>
       )}
     </div>
   );
@@ -1021,9 +1077,31 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   <VoiceToggleButton
                     isRecording={voiceInput0.isRecording}
                     onToggle={() => {
+                      console.log(
+                        '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
+                        voiceInput0.isRecording
+                      );
                       if (voiceInput0.isRecording) {
+                        console.log(
+                          '[MeditationFlowOverlay] Stopping recording for input 0'
+                        );
                         voiceInput0.stopRecording();
+
+                        // Play voice stop audio cue if sound is enabled
+                        if (settings.enableSound && audioManagerRef.current) {
+                          audioManagerRef.current
+                            .playVoiceStopCue()
+                            .catch((err) => {
+                              console.error(
+                                'Failed to play voice stop audio cue:',
+                                err
+                              );
+                            });
+                        }
                       } else {
+                        console.log(
+                          '[MeditationFlowOverlay] Starting recording for input 0'
+                        );
                         void voiceInput0.startRecording().catch((err) => {
                           setVoiceError({
                             code: 'network',
@@ -1284,9 +1362,31 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   <VoiceToggleButton
                     isRecording={voiceInput1.isRecording}
                     onToggle={() => {
+                      console.log(
+                        '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
+                        voiceInput1.isRecording
+                      );
                       if (voiceInput1.isRecording) {
+                        console.log(
+                          '[MeditationFlowOverlay] Stopping recording for input 1'
+                        );
                         voiceInput1.stopRecording();
+
+                        // Play voice stop audio cue if sound is enabled
+                        if (settings.enableSound && audioManagerRef.current) {
+                          audioManagerRef.current
+                            .playVoiceStopCue()
+                            .catch((err) => {
+                              console.error(
+                                'Failed to play voice stop audio cue:',
+                                err
+                              );
+                            });
+                        }
                       } else {
+                        console.log(
+                          '[MeditationFlowOverlay] Starting recording for input 1'
+                        );
                         void voiceInput1.startRecording().catch((err) => {
                           setVoiceError({
                             code: 'network',
