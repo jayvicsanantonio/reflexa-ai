@@ -956,8 +956,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
               isRewriting={isRewriting.some((r) => r)}
               hasReflectionContent={reflections.some((r) => r.trim() !== '')}
               onProofread={
-                (settings.enableProofreading || settings.proofreadEnabled) &&
-                proofreaderAvailable
+                settings.enableProofreading || settings.proofreadEnabled
                   ? handleProofread
                   : undefined
               }
