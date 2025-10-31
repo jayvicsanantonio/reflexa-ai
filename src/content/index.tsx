@@ -698,10 +698,10 @@ const showReflectModeOverlay = async () => {
 
   // Initialize audio manager if sound is enabled
   if (currentSettings?.enableSound && !audioManager) {
-    audioManager = new AudioManager();
+    audioManager = new AudioManager(currentSettings);
   }
 
-  // Play entry chime if enabled
+  // Play entry chime and ambient loop if enabled
   if (currentSettings?.enableSound && audioManager) {
     void audioManager.playEntryChime();
     void audioManager.playAmbientLoop();
@@ -1391,6 +1391,11 @@ const handleFormatChange = async (format: SummaryFormat) => {
 const hideReflectModeOverlay = () => {
   if (!isOverlayVisible) {
     return;
+  }
+
+  // Stop ambient audio if playing
+  if (audioManager) {
+    audioManager.stopAmbientLoop();
   }
 
   // Stop frame rate monitoring if active

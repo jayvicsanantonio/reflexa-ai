@@ -103,6 +103,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     index: number;
     result: ProofreadResult;
   } | null>(null);
+  const [isProofreading, setIsProofreading] = useState<boolean[]>([
+    false,
+    false,
+  ]);
   const [languageFallbackNotification, setLanguageFallbackNotification] =
     useState<{ show: boolean; languageName: string }>({
       show: false,
@@ -654,6 +658,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     </div>
   );
 
+  const disableSave =
+    _isRewriting.some((v) => v) || isProofreading.some((v) => v);
+  const disableNext = (step === 0 && isLoadingSummary) || disableSave;
+
   const Nav = (
     <div
       style={{
@@ -669,15 +677,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       <button
         type="button"
         onClick={prev}
-        disabled={step === 0}
+        disabled={step === 0 || disableSave}
         aria-label="Previous"
         style={{
           background: 'transparent',
           border: '1px solid rgba(226,232,240,0.25)',
-          color: step === 0 ? 'rgba(226,232,240,0.35)' : '#e2e8f0',
+          color:
+            step === 0 || disableSave ? 'rgba(226,232,240,0.35)' : '#e2e8f0',
           borderRadius: 999,
           padding: '8px 12px',
-          cursor: step === 0 ? 'default' : 'pointer',
+          cursor: step === 0 || disableSave ? 'not-allowed' : 'pointer',
+          opacity: step === 0 || disableSave ? 0.6 : 1,
         }}
       >
         ← Back
@@ -721,6 +731,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 ? async (_index) => {
                     if (!onProofread) return;
                     const idx = step === 2 ? 0 : 1;
+                    setIsProofreading((prev) => {
+                      const next = [...prev];
+                      next[idx] = true;
+                      return next;
+                    });
                     try {
                       const result = await onProofread(answers[idx] ?? '', idx);
                       setAnswers((prev) => {
@@ -728,14 +743,21 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         next[idx] = result.correctedText ?? prev[idx];
                         return next;
                       });
+                      setProofreadResult({ index: idx, result });
                     } catch {
                       // silent
+                    } finally {
+                      setIsProofreading((prev) => {
+                        const next = [...prev];
+                        next[idx] = false;
+                        return next;
+                      });
                     }
                   }
                 : undefined
             }
             proofreadDisabled={!answers[step - 2]?.trim()}
-            isProofreading={false}
+            isProofreading={isProofreading[step - 2]}
             proofreaderAvailable={proofreaderAvailable}
             activeReflectionIndex={step - 2}
             ambientMuted={_ambientMuted}
@@ -748,27 +770,24 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           <button
             type="button"
             onClick={next}
-            disabled={step === 0 && isLoadingSummary}
+            disabled={disableNext}
             aria-label="Next"
             style={{
-              background:
-                step === 0 && isLoadingSummary
-                  ? 'rgba(100, 116, 139, 0.5)'
-                  : 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+              background: disableNext
+                ? 'rgba(100, 116, 139, 0.5)'
+                : 'linear-gradient(135deg, #60a5fa, #3b82f6)',
               border: '1px solid rgba(226,232,240,0.25)',
-              color:
-                step === 0 && isLoadingSummary
-                  ? 'rgba(226,232,240,0.5)'
-                  : '#fff',
+              color: disableNext ? 'rgba(226,232,240,0.5)' : '#fff',
               borderRadius: 999,
               padding: '8px 14px',
               fontWeight: 700,
-              cursor:
-                step === 0 && isLoadingSummary ? 'not-allowed' : 'pointer',
-              opacity: step === 0 && isLoadingSummary ? 0.6 : 1,
+              cursor: disableNext ? 'not-allowed' : 'pointer',
+              opacity: disableNext ? 0.6 : 1,
             }}
           >
-            {step === 0 && isLoadingSummary ? 'Preparing...' : 'Next →'}
+            {disableNext && step === 0 && isLoadingSummary
+              ? 'Preparing...'
+              : 'Next →'}
           </button>
         </div>
       ) : (
@@ -804,20 +823,32 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 ? async (_index) => {
                     if (!onProofread) return;
                     try {
+                      setIsProofreading((prev) => {
+                        const next = [...prev];
+                        next[1] = true;
+                        return next;
+                      });
                       const result = await onProofread(answers[1] ?? '', 1);
                       setAnswers((prev) => {
                         const next = [...prev];
                         next[1] = result.correctedText ?? prev[1];
                         return next;
                       });
+                      setProofreadResult({ index: 1, result });
                     } catch {
                       // silent
+                    } finally {
+                      setIsProofreading((prev) => {
+                        const next = [...prev];
+                        next[1] = false;
+                        return next;
+                      });
                     }
                   }
                 : undefined
             }
             proofreadDisabled={!answers[1]?.trim()}
-            isProofreading={false}
+            isProofreading={isProofreading[1]}
             proofreaderAvailable={proofreaderAvailable}
             activeReflectionIndex={1}
             ambientMuted={_ambientMuted}
@@ -832,14 +863,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             onClick={save}
             aria-label="Save reflection"
             style={{
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              background: disableSave
+                ? 'rgba(34,197,94,0.4)'
+                : 'linear-gradient(135deg, #22c55e, #16a34a)',
               border: '1px solid rgba(226,232,240,0.25)',
-              color: '#fff',
+              color: disableSave ? 'rgba(255,255,255,0.7)' : '#fff',
               borderRadius: 999,
               padding: '8px 14px',
               fontWeight: 800,
-              cursor: 'pointer',
+              cursor: disableSave ? 'not-allowed' : 'pointer',
             }}
+            disabled={disableSave}
           >
             Save
           </button>

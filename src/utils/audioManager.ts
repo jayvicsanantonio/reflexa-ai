@@ -11,7 +11,7 @@ import type { Settings } from '../types';
  */
 const AUDIO_FILES = {
   ENTRY_CHIME: '/audio/entry-chime.mp3',
-  AMBIENT_LOOP: '/audio/ambient-loop.mp3',
+  AMBIENT_LOOP: '/audio/ambient-loop.wav',
   COMPLETION_BELL: '/audio/completion-bell.mp3',
   VOICE_STOP_CUE: '/audio/voice-stop-cue.mp3',
 } as const;
