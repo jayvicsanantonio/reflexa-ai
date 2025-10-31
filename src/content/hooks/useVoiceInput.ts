@@ -474,12 +474,14 @@ export const useVoiceInput = (
 
       // Handle end event
       recognition.onend = () => {
+        console.log('[useVoiceInput] onend event fired');
         setIsRecording(false);
         updateStatus('idle');
         clearAutoStopTimer();
         clearNoSpeechTimer();
         isStoppingRef.current = false;
         hasSpeechDetectedRef.current = false;
+        console.log('[useVoiceInput] State updated to not recording');
       };
 
       // Handle speechend event (user stopped speaking)
@@ -614,14 +616,20 @@ export const useVoiceInput = (
     try {
       console.log('[useVoiceInput] Stopping recognition...');
       isStoppingRef.current = true;
-      updateStatus('stopping');
       clearAutoStopTimer();
       clearNoSpeechTimer();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       recognitionRef.current.stop();
+
+      // Immediately update state (onend event will also fire but this ensures immediate UI update)
+      setIsRecording(false);
+      updateStatus('idle');
       setIsPaused(false);
       isPausedRef.current = false;
-      console.log('[useVoiceInput] Recognition stopped successfully');
+      hasSpeechDetectedRef.current = false;
+      console.log(
+        '[useVoiceInput] Recognition stopped successfully, state updated'
+      );
     } catch (err) {
       console.error('[useVoiceInput] Failed to stop recording:', err);
       setIsRecording(false);

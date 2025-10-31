@@ -116,9 +116,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     false,
   ]);
 
-  const [_selectedTone, setSelectedTone] = useState<TonePreset | undefined>(
-    undefined
-  );
+  // Keep tone selection per reflection input (index 0 and 1)
+  const [_selectedTones, setSelectedTones] = useState<
+    (TonePreset | undefined)[]
+  >([undefined, undefined]);
 
   const [_isRewriting, setIsRewriting] = useState<boolean[]>([false, false]);
 
@@ -424,7 +425,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
       if (!text || text.trim().length === 0) return;
 
-      setSelectedTone(tone);
+      setSelectedTones((prev) => {
+        const next = [...prev];
+        next[index] = tone;
+        return next;
+      });
       setIsRewriting((prev) => {
         const next = [...prev];
         next[index] = true;
@@ -474,14 +479,23 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     });
 
     setRewritePreview(null);
-    setSelectedTone(undefined);
+    setSelectedTones((prev) => {
+      const next = [...prev];
+      next[rewritePreview.index] = undefined;
+      return next;
+    });
   }, [rewritePreview]);
 
   // Discard rewrite
   const handleDiscardRewrite = useCallback(() => {
     setRewritePreview(null);
-    setSelectedTone(undefined);
-  }, []);
+    setSelectedTones((prev) => {
+      const next = [...prev];
+      const idx = step === 2 ? 0 : 1;
+      next[idx] = undefined;
+      return next;
+    });
+  }, [step]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -691,14 +705,14 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             }
             generateDraftDisabled={false}
             summary={summary}
-            selectedTone={_selectedTone}
+            selectedTone={_selectedTones[step === 2 ? 0 : 1]}
             onToneSelect={
               settings.experimentalMode && (step === 2 || step === 3)
                 ? handleToneSelect
                 : undefined
             }
             tonesDisabled={!answers[step - 2]?.trim()}
-            isRewriting={_isRewriting.some((r) => r)}
+            isRewriting={_isRewriting[step === 2 ? 0 : 1]}
             hasReflectionContent={answers.some((a) => a.trim() !== '')}
             onProofread={
               (settings.enableProofreading || settings.proofreadEnabled) &&
@@ -777,12 +791,12 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             }
             generateDraftDisabled={false}
             summary={summary}
-            selectedTone={_selectedTone}
+            selectedTone={_selectedTones[1]}
             onToneSelect={
               settings.experimentalMode ? handleToneSelect : undefined
             }
             tonesDisabled={!answers[1]?.trim()}
-            isRewriting={_isRewriting.some((r) => r)}
+            isRewriting={_isRewriting[1]}
             hasReflectionContent={answers.some((a) => a.trim() !== '')}
             onProofread={
               (settings.enableProofreading || settings.proofreadEnabled) &&
