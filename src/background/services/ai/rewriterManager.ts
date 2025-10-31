@@ -6,7 +6,7 @@
 
 import type { TonePreset } from '../../../types';
 import type { AIRewriter } from '../../../types/chrome-ai';
-import { capabilityDetector } from '../capabilities/capabilityDetector';
+import { capabilityDetector } from '../../capabilityDetector';
 
 /**
  * Timeout duration for rewriter operations (5 seconds)
@@ -32,16 +32,14 @@ export class RewriterManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
-    console.log('[RewriterManager] Checking availability...');
     try {
       const capabilities = await Promise.resolve(
         capabilityDetector.getCapabilities()
       );
       this.available = Boolean(capabilities.rewriter);
-      console.log(`[RewriterManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('[RewriterManager] Error checking availability:', error);
+      console.error('Error checking Rewriter availability:', error);
       this.available = false;
       return false;
     }
@@ -93,44 +91,41 @@ export class RewriterManager {
     tone?: 'as-is' | 'more-formal' | 'more-casual';
     format?: 'as-is' | 'markdown' | 'plain-text';
     length?: 'as-is' | 'shorter' | 'longer';
+    outputLanguage?: string;
   }): Promise<AIRewriter | null> {
-    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}`;
+    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}-${config.outputLanguage ?? 'default'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
-      console.log(`[RewriterManager] Reusing cached session: ${sessionKey}`);
       return this.sessions.get(sessionKey)!;
     }
-
-    console.log(`[RewriterManager] Creating new session: ${sessionKey}`);
 
     try {
       // Access Rewriter from globalThis (service worker context)
       // Note: Rewriter API is accessed via global Rewriter, not ai.rewriter
       if (typeof Rewriter === 'undefined') {
-        console.warn('[RewriterManager] Rewriter API not available');
+        console.warn('Rewriter API not available');
         return null;
       }
 
       // Create new session with specified options
-      const startTime = performance.now();
       const session = await Rewriter.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
         format: config.format,
         length: config.length,
+        ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
       });
-      const duration = performance.now() - startTime;
 
       // Cache the session
       this.sessions.set(sessionKey, session);
       console.log(
-        `[RewriterManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
+        `Created rewriter session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
       );
 
       return session;
     } catch (error) {
-      console.error('[RewriterManager] Error creating session:', error);
+      console.error('Error creating rewriter session:', error);
       return null;
     }
   }
@@ -142,23 +137,18 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
+   * @param outputLanguage - Target language for rewritten text
    * @returns Object containing both original and rewritten text
    * @throws Error if rewriting fails after retry
    */
   async rewrite(
     text: string,
     preset: TonePreset,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<{ original: string; rewritten: string }> {
-    console.log(
-      `[RewriterManager] rewrite() called with preset: ${preset}, text length: ${text.length}, context: ${context ? 'yes' : 'no'}`
-    );
-
     // Check availability first
     if (!this.available) {
-      console.log(
-        '[RewriterManager] API not available, checking availability...'
-      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Rewriter API is not available');
@@ -167,45 +157,29 @@ export class RewriterManager {
 
     try {
       // First attempt with standard timeout
-      console.log(
-        `[RewriterManager] Attempting rewrite with ${REWRITER_TIMEOUT}ms timeout`
-      );
       const rewritten = await this.rewriteWithTimeout(
         text,
         preset,
         context,
+        outputLanguage,
         REWRITER_TIMEOUT
-      );
-      console.log(
-        `[RewriterManager] Rewrite successful, output length: ${rewritten.length}`
       );
       return { original: text, rewritten };
     } catch (error) {
-      console.warn(
-        '[RewriterManager] First rewrite attempt failed, retrying...',
-        error
-      );
+      console.warn('First rewrite attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
-        console.log(
-          `[RewriterManager] Retrying with ${RETRY_TIMEOUT}ms timeout`
-        );
         const rewritten = await this.rewriteWithTimeout(
           text,
           preset,
           context,
+          outputLanguage,
           RETRY_TIMEOUT
-        );
-        console.log(
-          `[RewriterManager] Retry successful, output length: ${rewritten.length}`
         );
         return { original: text, rewritten };
       } catch (retryError) {
-        console.error(
-          '[RewriterManager] Rewriting failed after retry:',
-          retryError
-        );
+        console.error('Rewriting failed after retry:', retryError);
         throw new Error(
           `Text rewriting failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -218,6 +192,7 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context
+   * @param outputLanguage - Target language for rewritten text
    * @param timeout - Timeout in milliseconds
    * @returns Rewritten text
    */
@@ -225,13 +200,19 @@ export class RewriterManager {
     text: string,
     preset: TonePreset,
     context: string | undefined,
+    outputLanguage: string | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Rewriter timeout')), timeout);
     });
 
-    const rewritePromise = this.executeRewrite(text, preset, context);
+    const rewritePromise = this.executeRewrite(
+      text,
+      preset,
+      context,
+      outputLanguage
+    );
 
     return Promise.race([rewritePromise, timeoutPromise]);
   }
@@ -241,18 +222,17 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
+   * @param outputLanguage - Target language for rewritten text
    * @returns Rewritten text
    */
   private async executeRewrite(
     text: string,
     preset: TonePreset,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
     // Map tone preset to API parameters
     const { tone, length } = this.mapTonePreset(preset);
-    console.log(
-      `[RewriterManager] Mapped preset "${preset}" to tone: ${tone}, length: ${length}`
-    );
 
     // Build shared context if provided
     const sharedContext = context
@@ -265,6 +245,7 @@ export class RewriterManager {
       tone,
       format: 'plain-text',
       length,
+      outputLanguage,
     });
 
     if (!session) {
@@ -272,13 +253,7 @@ export class RewriterManager {
     }
 
     // Rewrite text while preserving structure
-    console.log('[RewriterManager] Calling session.rewrite()...');
-    const startTime = performance.now();
     const result = await session.rewrite(text, { context });
-    const duration = performance.now() - startTime;
-    console.log(
-      `[RewriterManager] Rewrite completed in ${duration.toFixed(2)}ms`
-    );
 
     // Return cleaned text
     return result.trim();
@@ -291,13 +266,15 @@ export class RewriterManager {
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
    * @param onChunk - Callback for each text chunk
+   * @param outputLanguage - Target language for rewritten text
    * @returns Object containing both original and complete rewritten text
    */
   async rewriteStreaming(
     text: string,
     preset: TonePreset,
     context: string | undefined,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    outputLanguage?: string
   ): Promise<{ original: string; rewritten: string }> {
     // Check availability first
     if (!this.available) {
@@ -322,6 +299,7 @@ export class RewriterManager {
         tone,
         format: 'plain-text',
         length,
+        outputLanguage,
       });
 
       if (!session) {
@@ -353,22 +331,15 @@ export class RewriterManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
-    console.log(
-      `[RewriterManager] destroy() called (${this.sessions.size} sessions)`
-    );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`[RewriterManager] Destroyed session: ${key}`);
+        console.log(`Destroyed rewriter session: ${key}`);
       } catch (error) {
-        console.error(
-          `[RewriterManager] Error destroying session ${key}:`,
-          error
-        );
+        console.error(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
-    console.log('[RewriterManager] All sessions destroyed');
   }
 
   /**

@@ -373,11 +373,18 @@ async function handleSummarize(
     let apiUsed: string;
 
     if (summarizerAvailable) {
-      console.log(`[Summarize] Using Summarizer API with format: ${format}`);
+      console.log(
+        `[Summarize] Using Summarizer API with format: ${format}, language: ${settings.targetLanguage}`
+      );
 
-      // Use specialized Summarizer API with format parameter and rate limiting
+      // Use specialized Summarizer API with format parameter, language, and rate limiting
       summary = await rateLimiter.executeWithRetry(
-        () => aiService.summarizer.summarize(content, format),
+        () =>
+          aiService.summarizer.summarize(
+            content,
+            format,
+            settings.targetLanguage
+          ),
         'summarizations'
       );
       apiUsed = 'summarizer';
@@ -619,6 +626,7 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
         tone?: 'formal' | 'neutral' | 'casual';
         format?: 'plain-text' | 'markdown';
         length?: 'short' | 'medium' | 'long';
+        outputLanguage?: string;
       };
     };
 
@@ -630,17 +638,22 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
       );
     }
 
+    // Get user settings for target language
+    const settings = await settingsManager.getSettings();
+
     // Check if Writer API is available
     const writerAvailable = await aiService.writer.checkAvailability();
     let result: string;
     let apiUsed: string;
 
     if (writerAvailable) {
-      console.log('[Write] Using Writer API');
-      result = await aiService.writer.write(
-        payloadObj.prompt,
-        payloadObj.options
+      console.log(
+        `[Write] Using Writer API (language: ${settings.targetLanguage})`
       );
+      result = await aiService.writer.write(payloadObj.prompt, {
+        ...payloadObj.options,
+        outputLanguage: settings.targetLanguage,
+      });
       apiUsed = 'writer';
     } else {
       // Fallback to Prompt API
@@ -724,17 +737,23 @@ async function handleRewrite(
 
     const preset = payloadObj.preset ?? 'calm';
 
+    // Get user settings for target language
+    const settings = await settingsManager.getSettings();
+
     // Check if Rewriter API is available
     const rewriterAvailable = await aiService.rewriter.checkAvailability();
     let result: { original: string; rewritten: string };
     let apiUsed: string;
 
     if (rewriterAvailable) {
-      console.log(`[Rewrite] Using Rewriter API with preset: ${preset}`);
+      console.log(
+        `[Rewrite] Using Rewriter API with preset: ${preset} (language: ${settings.targetLanguage})`
+      );
       result = await aiService.rewriter.rewrite(
         payloadObj.text,
         preset,
-        payloadObj.context
+        payloadObj.context,
+        settings.targetLanguage
       );
       apiUsed = 'rewriter';
     } else {

@@ -102,8 +102,9 @@ export class WriterManager {
     tone?: 'formal' | 'neutral' | 'casual';
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
+    outputLanguage?: string;
   }): Promise<AIWriter | null> {
-    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}`;
+    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}-${config.outputLanguage ?? 'default'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -124,11 +125,14 @@ export class WriterManager {
         tone: config.tone,
         format: config.format ?? 'markdown', // Default is markdown per docs
         length: config.length,
+        ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
       });
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created writer session: ${sessionKey}`);
+      console.log(
+        `Created writer session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
+      );
 
       return session;
     } catch (error) {
@@ -140,7 +144,7 @@ export class WriterManager {
   /**
    * Write/generate text with specified options (main method for message handlers)
    * @param prompt - Prompt for text generation
-   * @param options - Writer options (tone, format, length)
+   * @param options - Writer options (tone, format, length, outputLanguage)
    * @returns Generated text
    */
   async write(
@@ -149,6 +153,7 @@ export class WriterManager {
       tone?: 'formal' | 'neutral' | 'casual';
       format?: 'plain-text' | 'markdown';
       length?: 'short' | 'medium' | 'long';
+      outputLanguage?: string;
     }
   ): Promise<string> {
     // Map to WriterOptions format
@@ -157,7 +162,12 @@ export class WriterManager {
       length: options?.length ?? 'medium',
     };
 
-    return this.generate(prompt, writerOptions);
+    return this.generate(
+      prompt,
+      writerOptions,
+      undefined,
+      options?.outputLanguage
+    );
   }
 
   /**
@@ -186,13 +196,15 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options (tone, length)
    * @param context - Optional context (e.g., summary) for better generation
+   * @param outputLanguage - Target language for generated text
    * @returns Generated draft text
    * @throws Error if generation fails after retry
    */
   async generate(
     topic: string,
     options: WriterOptions,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
     // Check availability first
     if (!this.available) {
@@ -208,6 +220,7 @@ export class WriterManager {
         topic,
         options,
         context,
+        outputLanguage,
         WRITER_TIMEOUT
       );
     } catch (error) {
@@ -219,6 +232,7 @@ export class WriterManager {
           topic,
           options,
           context,
+          outputLanguage,
           RETRY_TIMEOUT
         );
       } catch (retryError) {
@@ -235,6 +249,7 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options
    * @param context - Optional context
+   * @param outputLanguage - Target language for generated text
    * @param timeout - Timeout in milliseconds
    * @returns Generated draft text
    */
@@ -242,13 +257,19 @@ export class WriterManager {
     topic: string,
     options: WriterOptions,
     context: string | undefined,
+    outputLanguage: string | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Writer timeout')), timeout);
     });
 
-    const generatePromise = this.executeGenerate(topic, options, context);
+    const generatePromise = this.executeGenerate(
+      topic,
+      options,
+      context,
+      outputLanguage
+    );
 
     return Promise.race([generatePromise, timeoutPromise]);
   }
@@ -258,12 +279,14 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options (tone, length)
    * @param context - Optional context for better generation
+   * @param outputLanguage - Target language for generated text
    * @returns Generated draft text
    */
   private async executeGenerate(
     topic: string,
     options: WriterOptions,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
     // Map tone and length to Writer API values
     const apiTone = this.mapTone(options.tone);
@@ -280,6 +303,7 @@ export class WriterManager {
       tone: apiTone,
       format: 'plain-text',
       length: apiLength,
+      outputLanguage,
     });
 
     if (!session) {
@@ -312,13 +336,15 @@ export class WriterManager {
    * @param options - Writer options (tone, length)
    * @param context - Optional context for better generation
    * @param onChunk - Callback for each text chunk
+   * @param outputLanguage - Target language for generated text
    * @returns Complete generated text
    */
   async generateStreaming(
     topic: string,
     options: WriterOptions,
     context: string | undefined,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    outputLanguage?: string
   ): Promise<string> {
     // Check availability first
     if (!this.available) {
@@ -344,6 +370,7 @@ export class WriterManager {
         tone: apiTone,
         format: 'plain-text',
         length: apiLength,
+        outputLanguage,
       });
 
       if (!session) {

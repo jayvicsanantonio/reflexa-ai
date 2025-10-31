@@ -267,7 +267,10 @@ describe('SummarizerManager', () => {
       const result = await manager.summarize('test text', 'bullets');
 
       expect(result).toHaveLength(3);
-      expect(mockSummarizerFactory.create).toHaveBeenCalledTimes(2); // Original + retry
+      // Session is created once and reused, retry happens at the summarize level
+      expect(mockSummarizerFactory.create).toHaveBeenCalledTimes(1);
+      // But summarize should be called twice (initial + retry)
+      expect(mockSummarizer.summarize).toHaveBeenCalledTimes(2);
     });
   });
 

@@ -48,6 +48,8 @@ interface MeditationFlowOverlayProps {
   proofreaderAvailable?: boolean;
   ambientMuted?: boolean;
   onToggleAmbient?: (mute: boolean) => void;
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: (enabled: boolean) => void;
   // removed translated target pill per request
 }
 
@@ -68,6 +70,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   proofreaderAvailable = false,
   ambientMuted: _ambientMuted = false,
   onToggleAmbient: _onToggleAmbient,
+  reduceMotion: _reduceMotion = false,
+  onToggleReduceMotion: _onToggleReduceMotion,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
@@ -762,6 +766,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             onToggleAmbient={
               settings.enableSound ? _onToggleAmbient : undefined
             }
+            reduceMotion={_reduceMotion}
+            onToggleReduceMotion={_onToggleReduceMotion}
             onTranslateSummary={
               settings.enableTranslation ? _onTranslate : undefined
             }
@@ -862,6 +868,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             onToggleAmbient={
               settings.enableSound ? _onToggleAmbient : undefined
             }
+            reduceMotion={_reduceMotion}
+            onToggleReduceMotion={_onToggleReduceMotion}
             onTranslateSummary={
               settings.enableTranslation ? _onTranslate : undefined
             }

@@ -56,6 +56,22 @@ const VolumeMuteIcon = () => (
   </svg>
 );
 
+const ReduceMotionIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M8 12h8" />
+  </svg>
+);
+
 // TranslateIcon removed from UI redesign
 
 const BulletIcon = () => (
@@ -266,6 +282,10 @@ interface MoreToolsMenuProps {
   ambientMuted?: boolean;
   onToggleAmbient?: (mute: boolean) => void;
 
+  // Reduce Motion (available in all screens)
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: (enabled: boolean) => void;
+
   // Translate Summary (available in all screens)
   onTranslateSummary?: (targetLanguage: string) => void;
   isTranslating?: boolean;
@@ -357,6 +377,8 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   activeReflectionIndex = 0,
   ambientMuted = false,
   onToggleAmbient,
+  reduceMotion = false,
+  onToggleReduceMotion,
   onTranslateSummary,
   isTranslating = false,
   currentLanguage: _currentLanguage,
@@ -744,6 +766,24 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                   </span>
                   <span className="reflexa-more-tools__tile-label">
                     {ambientMuted ? 'Unmute' : 'Mute'}
+                  </span>
+                </button>
+              )}
+              {onToggleReduceMotion && (
+                <button
+                  type="button"
+                  className="reflexa-more-tools__tile"
+                  onClick={() => {
+                    onToggleReduceMotion(!reduceMotion);
+                  }}
+                  role="menuitem"
+                  data-testid="reduce-motion-toggle"
+                >
+                  <span className="reflexa-more-tools__tile-icon">
+                    <ReduceMotionIcon />
+                  </span>
+                  <span className="reflexa-more-tools__tile-label">
+                    {reduceMotion ? 'Enable Motion' : 'Reduce Motion'}
                   </span>
                 </button>
               )}

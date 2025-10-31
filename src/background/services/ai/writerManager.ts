@@ -6,7 +6,7 @@
 
 import type { WriterOptions } from '../../../types';
 import type { AIWriter } from '../../../types/chrome-ai';
-import { capabilityDetector } from '../capabilities/capabilityDetector';
+import { capabilityDetector } from '../../capabilityDetector';
 
 /**
  * Timeout duration for writer operations (5 seconds)
@@ -41,14 +41,12 @@ export class WriterManager {
    * @returns Promise resolving to availability status
    */
   checkAvailability(): Promise<boolean> {
-    console.log('[WriterManager] Checking availability...');
     try {
       const capabilities = capabilityDetector.getCapabilities();
       this.available = capabilities.writer;
-      console.log(`[WriterManager] Available: ${this.available}`);
       return Promise.resolve(this.available);
     } catch (error) {
-      console.error('[WriterManager] Error checking availability:', error);
+      console.error('Error checking Writer availability:', error);
       this.available = false;
       return Promise.resolve(false);
     }
@@ -104,44 +102,41 @@ export class WriterManager {
     tone?: 'formal' | 'neutral' | 'casual';
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
+    outputLanguage?: string;
   }): Promise<AIWriter | null> {
-    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}`;
+    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}-${config.outputLanguage ?? 'default'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
-      console.log(`[WriterManager] Reusing cached session: ${sessionKey}`);
       return this.sessions.get(sessionKey)!;
     }
-
-    console.log(`[WriterManager] Creating new session: ${sessionKey}`);
 
     try {
       // Access Writer from globalThis (service worker context)
       // Note: Writer API is accessed via global Writer, not ai.writer
       if (typeof Writer === 'undefined') {
-        console.warn('[WriterManager] Writer API not available');
+        console.warn('Writer API not available');
         return null;
       }
 
       // Create new session with specified options
-      const startTime = performance.now();
       const session = await Writer.create({
         sharedContext: config.sharedContext,
         tone: config.tone,
         format: config.format ?? 'markdown', // Default is markdown per docs
         length: config.length,
+        ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
       });
-      const duration = performance.now() - startTime;
 
       // Cache the session
       this.sessions.set(sessionKey, session);
       console.log(
-        `[WriterManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
+        `Created writer session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
       );
 
       return session;
     } catch (error) {
-      console.error('[WriterManager] Error creating session:', error);
+      console.error('Error creating writer session:', error);
       return null;
     }
   }
@@ -149,7 +144,7 @@ export class WriterManager {
   /**
    * Write/generate text with specified options (main method for message handlers)
    * @param prompt - Prompt for text generation
-   * @param options - Writer options (tone, format, length)
+   * @param options - Writer options (tone, format, length, outputLanguage)
    * @returns Generated text
    */
   async write(
@@ -158,6 +153,7 @@ export class WriterManager {
       tone?: 'formal' | 'neutral' | 'casual';
       format?: 'plain-text' | 'markdown';
       length?: 'short' | 'medium' | 'long';
+      outputLanguage?: string;
     }
   ): Promise<string> {
     // Map to WriterOptions format
@@ -166,7 +162,12 @@ export class WriterManager {
       length: options?.length ?? 'medium',
     };
 
-    return this.generate(prompt, writerOptions);
+    return this.generate(
+      prompt,
+      writerOptions,
+      undefined,
+      options?.outputLanguage
+    );
   }
 
   /**
@@ -195,23 +196,18 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options (tone, length)
    * @param context - Optional context (e.g., summary) for better generation
+   * @param outputLanguage - Target language for generated text
    * @returns Generated draft text
    * @throws Error if generation fails after retry
    */
   async generate(
     topic: string,
     options: WriterOptions,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
-    console.log(
-      `[WriterManager] generate() called with topic: "${topic}", tone: ${options.tone}, length: ${options.length}, context: ${context ? 'yes' : 'no'}`
-    );
-
     // Check availability first
     if (!this.available) {
-      console.log(
-        '[WriterManager] API not available, checking availability...'
-      );
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Writer API is not available');
@@ -220,43 +216,27 @@ export class WriterManager {
 
     try {
       // First attempt with standard timeout
-      console.log(
-        `[WriterManager] Attempting generation with ${WRITER_TIMEOUT}ms timeout`
-      );
-      const result = await this.generateWithTimeout(
+      return await this.generateWithTimeout(
         topic,
         options,
         context,
+        outputLanguage,
         WRITER_TIMEOUT
       );
-      console.log(
-        `[WriterManager] Generation successful, output length: ${result.length}`
-      );
-      return result;
     } catch (error) {
-      console.warn(
-        '[WriterManager] First generation attempt failed, retrying...',
-        error
-      );
+      console.warn('First generation attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
-        console.log(`[WriterManager] Retrying with ${RETRY_TIMEOUT}ms timeout`);
-        const result = await this.generateWithTimeout(
+        return await this.generateWithTimeout(
           topic,
           options,
           context,
+          outputLanguage,
           RETRY_TIMEOUT
         );
-        console.log(
-          `[WriterManager] Retry successful, output length: ${result.length}`
-        );
-        return result;
       } catch (retryError) {
-        console.error(
-          '[WriterManager] Generation failed after retry:',
-          retryError
-        );
+        console.error('Generation failed after retry:', retryError);
         throw new Error(
           `Draft generation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -269,6 +249,7 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options
    * @param context - Optional context
+   * @param outputLanguage - Target language for generated text
    * @param timeout - Timeout in milliseconds
    * @returns Generated draft text
    */
@@ -276,13 +257,19 @@ export class WriterManager {
     topic: string,
     options: WriterOptions,
     context: string | undefined,
+    outputLanguage: string | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Writer timeout')), timeout);
     });
 
-    const generatePromise = this.executeGenerate(topic, options, context);
+    const generatePromise = this.executeGenerate(
+      topic,
+      options,
+      context,
+      outputLanguage
+    );
 
     return Promise.race([generatePromise, timeoutPromise]);
   }
@@ -292,19 +279,18 @@ export class WriterManager {
    * @param topic - Topic or prompt for draft generation
    * @param options - Writer options (tone, length)
    * @param context - Optional context for better generation
+   * @param outputLanguage - Target language for generated text
    * @returns Generated draft text
    */
   private async executeGenerate(
     topic: string,
     options: WriterOptions,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
     // Map tone and length to Writer API values
     const apiTone = this.mapTone(options.tone);
     const apiLength = this.mapLength(options.length);
-    console.log(
-      `[WriterManager] Mapped tone "${options.tone}" -> ${apiTone}, length "${options.length}" -> ${apiLength}`
-    );
 
     // Build shared context from provided context
     const sharedContext = context
@@ -317,6 +303,7 @@ export class WriterManager {
       tone: apiTone,
       format: 'plain-text',
       length: apiLength,
+      outputLanguage,
     });
 
     if (!session) {
@@ -324,12 +311,9 @@ export class WriterManager {
     }
 
     // Generate draft - pass context in the options parameter per API spec
-    console.log('[WriterManager] Calling session.write()...');
-    const startTime = performance.now();
     const result = await session.write(topic, {
       context: context,
     });
-    const duration = performance.now() - startTime;
 
     // Format response as clean paragraph text
     const cleanedText = result.trim();
@@ -339,7 +323,7 @@ export class WriterManager {
     const range = LENGTH_RANGES[options.length];
 
     console.log(
-      `[WriterManager] Generated draft in ${duration.toFixed(2)}ms: ${wordCount} words (target: ${range.min}-${range.max})`
+      `Generated draft: ${wordCount} words (target: ${range.min}-${range.max})`
     );
 
     return cleanedText;
@@ -352,13 +336,15 @@ export class WriterManager {
    * @param options - Writer options (tone, length)
    * @param context - Optional context for better generation
    * @param onChunk - Callback for each text chunk
+   * @param outputLanguage - Target language for generated text
    * @returns Complete generated text
    */
   async generateStreaming(
     topic: string,
     options: WriterOptions,
     context: string | undefined,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    outputLanguage?: string
   ): Promise<string> {
     // Check availability first
     if (!this.available) {
@@ -384,6 +370,7 @@ export class WriterManager {
         tone: apiTone,
         format: 'plain-text',
         length: apiLength,
+        outputLanguage,
       });
 
       if (!session) {
@@ -417,41 +404,57 @@ export class WriterManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
-    console.log(
-      `[WriterManager] destroy() called (${this.sessions.size} sessions)`
-    );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`[WriterManager] Destroyed session: ${key}`);
+        console.log(`Destroyed writer session: ${key}`);
       } catch (error) {
-        console.error(
-          `[WriterManager] Error destroying session ${key}:`,
-          error
-        );
+        console.error(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
-    console.log('[WriterManager] All sessions destroyed');
   }
 
   /**
    * Clean up a specific session
    * @param options - Writer options to identify the session
+   * @param outputLanguage - Language to match (optional, destroys all language variants if not specified)
    */
-  destroySession(options: WriterOptions): void {
+  destroySession(options: WriterOptions, outputLanguage?: string): void {
     const apiTone = this.mapTone(options.tone);
     const apiLength = this.mapLength(options.length);
-    const sessionKey = `${apiTone}-plain-text-${apiLength}`;
 
-    const session = this.sessions.get(sessionKey);
-    if (session) {
-      try {
-        session.destroy();
-        this.sessions.delete(sessionKey);
-        console.log(`Destroyed writer session: ${sessionKey}`);
-      } catch (error) {
-        console.error(`Error destroying session ${sessionKey}:`, error);
+    // If language specified, destroy exact match
+    if (outputLanguage) {
+      const sessionKey = `${apiTone}-plain-text-${apiLength}-${outputLanguage}`;
+      const session = this.sessions.get(sessionKey);
+      if (session) {
+        try {
+          session.destroy();
+          this.sessions.delete(sessionKey);
+          console.log(`Destroyed writer session: ${sessionKey}`);
+        } catch (error) {
+          console.error(`Error destroying session ${sessionKey}:`, error);
+        }
+      }
+    } else {
+      // Destroy all sessions matching tone and length (any language)
+      const prefix = `${apiTone}-plain-text-${apiLength}`;
+      const keysToDestroy = Array.from(this.sessions.keys()).filter((key) =>
+        key.startsWith(prefix)
+      );
+
+      for (const key of keysToDestroy) {
+        const session = this.sessions.get(key);
+        if (session) {
+          try {
+            session.destroy();
+            this.sessions.delete(key);
+            console.log(`Destroyed writer session: ${key}`);
+          } catch (error) {
+            console.error(`Error destroying session ${key}:`, error);
+          }
+        }
       }
     }
   }

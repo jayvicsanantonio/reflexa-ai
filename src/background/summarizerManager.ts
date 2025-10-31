@@ -62,14 +62,16 @@ export class SummarizerManager {
    * @param type - Type of summary to generate
    * @param format - Output format (plain-text or markdown)
    * @param length - Length of summary
+   * @param outputLanguage - Target language for summary output (e.g., 'en', 'es', 'fr')
    * @returns AISummarizer session or null if unavailable
    */
   private async createSession(
     type: 'tldr' | 'key-points' | 'teaser' | 'headline' = 'key-points',
     format: 'plain-text' | 'markdown' = 'plain-text',
-    length: 'short' | 'medium' | 'long' = 'medium'
+    length: 'short' | 'medium' | 'long' = 'medium',
+    outputLanguage?: string
   ): Promise<AISummarizer | null> {
-    const sessionKey = `${type}-${format}-${length}`;
+    const sessionKey = `${type}-${format}-${length}-${outputLanguage ?? 'default'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -94,11 +96,14 @@ export class SummarizerManager {
         type,
         format,
         length,
+        ...(outputLanguage && { outputLanguage }),
       });
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created summarizer session: ${sessionKey}`);
+      console.log(
+        `Created summarizer session: ${sessionKey}${outputLanguage ? ` (language: ${outputLanguage})` : ''}`
+      );
 
       return session;
     } catch (error) {
@@ -112,10 +117,15 @@ export class SummarizerManager {
    * Implements timeout logic and retry mechanism
    * @param text - Content to summarize
    * @param format - Desired summary format
+   * @param outputLanguage - Target language for summary output (e.g., 'en', 'es', 'fr')
    * @returns Array of summary strings (bullets or paragraphs)
    * @throws Error if summarization fails after retry
    */
-  async summarize(text: string, format: SummaryFormat): Promise<string[]> {
+  async summarize(
+    text: string,
+    format: SummaryFormat,
+    outputLanguage?: string
+  ): Promise<string[]> {
     // Check availability first
     if (!this.available) {
       const isAvailable = await this.checkAvailability();
@@ -126,13 +136,23 @@ export class SummarizerManager {
 
     try {
       // First attempt with standard timeout
-      return await this.summarizeWithTimeout(text, format, SUMMARIZE_TIMEOUT);
+      return await this.summarizeWithTimeout(
+        text,
+        format,
+        outputLanguage,
+        SUMMARIZE_TIMEOUT
+      );
     } catch (error) {
       console.warn('First summarization attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
-        return await this.summarizeWithTimeout(text, format, RETRY_TIMEOUT);
+        return await this.summarizeWithTimeout(
+          text,
+          format,
+          outputLanguage,
+          RETRY_TIMEOUT
+        );
       } catch (retryError) {
         console.error('Summarization failed after retry:', retryError);
         throw new Error(
@@ -146,19 +166,25 @@ export class SummarizerManager {
    * Summarize with timeout wrapper
    * @param text - Content to summarize
    * @param format - Desired summary format
+   * @param outputLanguage - Target language for summary output
    * @param timeout - Timeout in milliseconds
    * @returns Array of summary strings
    */
   private async summarizeWithTimeout(
     text: string,
     format: SummaryFormat,
+    outputLanguage: string | undefined,
     timeout: number
   ): Promise<string[]> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Summarization timeout')), timeout);
     });
 
-    const summarizePromise = this.executeSummarize(text, format);
+    const summarizePromise = this.executeSummarize(
+      text,
+      format,
+      outputLanguage
+    );
 
     return Promise.race([summarizePromise, timeoutPromise]);
   }
@@ -168,19 +194,21 @@ export class SummarizerManager {
    * Maps SummaryFormat to appropriate API calls and parses responses
    * @param text - Content to summarize
    * @param format - Desired summary format
+   * @param outputLanguage - Target language for summary output
    * @returns Array of summary strings
    */
   private async executeSummarize(
     text: string,
-    format: SummaryFormat
+    format: SummaryFormat,
+    outputLanguage?: string
   ): Promise<string[]> {
     switch (format) {
       case 'bullets':
-        return this.summarizeBullets(text);
+        return this.summarizeBullets(text, outputLanguage);
       case 'paragraph':
-        return this.summarizeParagraph(text);
+        return this.summarizeParagraph(text, outputLanguage);
       case 'headline-bullets':
-        return this.summarizeHeadlineBullets(text);
+        return this.summarizeHeadlineBullets(text, outputLanguage);
       default:
         throw new Error(`Unsupported format: ${String(format)}`);
     }
@@ -189,10 +217,19 @@ export class SummarizerManager {
   /**
    * Generate bullet point summary (3 bullets, max 20 words each)
    * @param text - Content to summarize
+   * @param outputLanguage - Target language for summary output
    * @returns Array of 3 bullet points
    */
-  private async summarizeBullets(text: string): Promise<string[]> {
-    const session = await this.createSession('key-points', 'markdown', 'short');
+  private async summarizeBullets(
+    text: string,
+    outputLanguage?: string
+  ): Promise<string[]> {
+    const session = await this.createSession(
+      'key-points',
+      'markdown',
+      'short',
+      outputLanguage
+    );
 
     if (!session) {
       throw new Error('Failed to create summarizer session');
@@ -227,10 +264,19 @@ export class SummarizerManager {
   /**
    * Generate paragraph summary (max 150 words)
    * @param text - Content to summarize
+   * @param outputLanguage - Target language for summary output
    * @returns Array with single paragraph
    */
-  private async summarizeParagraph(text: string): Promise<string[]> {
-    const session = await this.createSession('tldr', 'plain-text', 'medium');
+  private async summarizeParagraph(
+    text: string,
+    outputLanguage?: string
+  ): Promise<string[]> {
+    const session = await this.createSession(
+      'tldr',
+      'plain-text',
+      'medium',
+      outputLanguage
+    );
 
     if (!session) {
       throw new Error('Failed to create summarizer session');
@@ -243,14 +289,19 @@ export class SummarizerManager {
   /**
    * Generate headline + bullets summary (10-word headline + 3 bullets)
    * @param text - Content to summarize
+   * @param outputLanguage - Target language for summary output
    * @returns Array with headline followed by 3 bullets
    */
-  private async summarizeHeadlineBullets(text: string): Promise<string[]> {
+  private async summarizeHeadlineBullets(
+    text: string,
+    outputLanguage?: string
+  ): Promise<string[]> {
     // Create headline session
     const headlineSession = await this.createSession(
       'headline',
       'plain-text',
-      'short'
+      'short',
+      outputLanguage
     );
 
     if (!headlineSession) {
@@ -261,7 +312,8 @@ export class SummarizerManager {
     const bulletsSession = await this.createSession(
       'key-points',
       'markdown',
-      'short'
+      'short',
+      outputLanguage
     );
 
     if (!bulletsSession) {

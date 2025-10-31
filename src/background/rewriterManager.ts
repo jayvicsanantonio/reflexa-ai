@@ -91,8 +91,9 @@ export class RewriterManager {
     tone?: 'as-is' | 'more-formal' | 'more-casual';
     format?: 'as-is' | 'markdown' | 'plain-text';
     length?: 'as-is' | 'shorter' | 'longer';
+    outputLanguage?: string;
   }): Promise<AIRewriter | null> {
-    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}`;
+    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}-${config.outputLanguage ?? 'default'}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -113,11 +114,14 @@ export class RewriterManager {
         tone: config.tone,
         format: config.format,
         length: config.length,
+        ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
       });
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created rewriter session: ${sessionKey}`);
+      console.log(
+        `Created rewriter session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
+      );
 
       return session;
     } catch (error) {
@@ -133,13 +137,15 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
+   * @param outputLanguage - Target language for rewritten text
    * @returns Object containing both original and rewritten text
    * @throws Error if rewriting fails after retry
    */
   async rewrite(
     text: string,
     preset: TonePreset,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<{ original: string; rewritten: string }> {
     // Check availability first
     if (!this.available) {
@@ -155,6 +161,7 @@ export class RewriterManager {
         text,
         preset,
         context,
+        outputLanguage,
         REWRITER_TIMEOUT
       );
       return { original: text, rewritten };
@@ -167,6 +174,7 @@ export class RewriterManager {
           text,
           preset,
           context,
+          outputLanguage,
           RETRY_TIMEOUT
         );
         return { original: text, rewritten };
@@ -184,6 +192,7 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context
+   * @param outputLanguage - Target language for rewritten text
    * @param timeout - Timeout in milliseconds
    * @returns Rewritten text
    */
@@ -191,13 +200,19 @@ export class RewriterManager {
     text: string,
     preset: TonePreset,
     context: string | undefined,
+    outputLanguage: string | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Rewriter timeout')), timeout);
     });
 
-    const rewritePromise = this.executeRewrite(text, preset, context);
+    const rewritePromise = this.executeRewrite(
+      text,
+      preset,
+      context,
+      outputLanguage
+    );
 
     return Promise.race([rewritePromise, timeoutPromise]);
   }
@@ -207,12 +222,14 @@ export class RewriterManager {
    * @param text - Text to rewrite
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
+   * @param outputLanguage - Target language for rewritten text
    * @returns Rewritten text
    */
   private async executeRewrite(
     text: string,
     preset: TonePreset,
-    context?: string
+    context?: string,
+    outputLanguage?: string
   ): Promise<string> {
     // Map tone preset to API parameters
     const { tone, length } = this.mapTonePreset(preset);
@@ -228,6 +245,7 @@ export class RewriterManager {
       tone,
       format: 'plain-text',
       length,
+      outputLanguage,
     });
 
     if (!session) {
@@ -248,13 +266,15 @@ export class RewriterManager {
    * @param preset - Tone preset to apply
    * @param context - Optional context for better rewriting
    * @param onChunk - Callback for each text chunk
+   * @param outputLanguage - Target language for rewritten text
    * @returns Object containing both original and complete rewritten text
    */
   async rewriteStreaming(
     text: string,
     preset: TonePreset,
     context: string | undefined,
-    onChunk: (chunk: string) => void
+    onChunk: (chunk: string) => void,
+    outputLanguage?: string
   ): Promise<{ original: string; rewritten: string }> {
     // Check availability first
     if (!this.available) {
@@ -279,6 +299,7 @@ export class RewriterManager {
         tone,
         format: 'plain-text',
         length,
+        outputLanguage,
       });
 
       if (!session) {
