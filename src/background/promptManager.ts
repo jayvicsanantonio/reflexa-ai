@@ -116,6 +116,9 @@ export class PromptManager {
         return null;
       }
 
+      console.log('[PromptManager] Creating LanguageModel session...');
+      const createStart = Date.now();
+
       // Create new session with specified options
       const session = await LanguageModel.create({
         systemPrompt: config.systemPrompt,
@@ -125,6 +128,10 @@ export class PromptManager {
         monitor: config.monitor,
         signal: config.signal,
       });
+
+      console.log(
+        `[PromptManager] LanguageModel.create completed in ${Date.now() - createStart}ms`
+      );
 
       // Cache the session
       this.sessions.set(sessionKey, session);
@@ -218,6 +225,9 @@ export class PromptManager {
       topK?: number;
     }
   ): Promise<string> {
+    console.log('[PromptManager] Starting executePrompt...');
+    const sessionStart = Date.now();
+
     // Create session with configuration
     const session = await this.createSession({
       systemPrompt: options?.systemPrompt,
@@ -225,12 +235,21 @@ export class PromptManager {
       topK: options?.topK,
     });
 
+    console.log(
+      `[PromptManager] Session created in ${Date.now() - sessionStart}ms`
+    );
+
     if (!session) {
       throw new Error('Failed to create prompt session');
     }
 
     // Execute prompt
+    console.log('[PromptManager] Executing prompt...');
+    const promptStart = Date.now();
     const result = await session.prompt(text);
+    console.log(
+      `[PromptManager] Prompt completed in ${Date.now() - promptStart}ms`
+    );
 
     return result.trim();
   }

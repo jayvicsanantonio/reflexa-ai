@@ -350,11 +350,19 @@ async function handleSummarize(
 
     // Get user settings to check if native Summarizer should be used
     const settings = await settingsManager.getSettings();
+    console.log(
+      `[Summarize] useNativeSummarizer setting: ${settings.useNativeSummarizer}`
+    );
 
     // Check if Summarizer API is available and enabled in settings
+    const summarizerApiAvailable =
+      await aiService.summarizer.checkAvailability();
+    console.log(
+      `[Summarize] Summarizer API available: ${summarizerApiAvailable}`
+    );
+
     const summarizerAvailable =
-      settings.useNativeSummarizer &&
-      (await aiService.summarizer.checkAvailability());
+      settings.useNativeSummarizer && summarizerApiAvailable;
     let summary: string[];
     let apiUsed: string;
 
