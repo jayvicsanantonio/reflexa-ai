@@ -785,6 +785,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               color: disableNext ? 'rgba(226,232,240,0.5)' : '#fff',
               borderRadius: 999,
               padding: '8px 14px',
+              minWidth: 110,
+              textAlign: 'center',
               fontWeight: 700,
               cursor: disableNext ? 'not-allowed' : 'pointer',
               opacity: disableNext ? 0.6 : 1,
@@ -875,6 +877,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               color: disableSave ? 'rgba(255,255,255,0.7)' : '#fff',
               borderRadius: 999,
               padding: '8px 14px',
+              minWidth: 110,
+              textAlign: 'center',
               fontWeight: 800,
               cursor: disableSave ? 'not-allowed' : 'pointer',
             }}

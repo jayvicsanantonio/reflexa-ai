@@ -673,6 +673,47 @@ const sendMessageToBackground = <T,>(
 };
 
 /**
+ * Helper function to render the overlay with current state
+ * Used for initial render and re-renders when state changes
+ */
+const renderOverlay = () => {
+  if (!overlayRoot || !overlayContainer) return;
+
+  const handleToggleAmbient = async (mute: boolean) => {
+    if (!audioManager) return;
+    if (mute) {
+      await audioManager.stopAmbientLoopGracefully(400);
+    } else {
+      await audioManager.playAmbientLoopGracefully(400);
+    }
+    // Re-render overlay to update mute button state
+    renderOverlay();
+  };
+
+  overlayRoot.render(
+    <MeditationFlowOverlay
+      summary={currentSummary}
+      prompts={currentPrompts}
+      onSave={handleSaveReflection}
+      onCancel={handleCancelReflection}
+      settings={currentSettings ?? getDefaultSettings()}
+      onFormatChange={handleFormatChange}
+      currentFormat={currentSummaryFormat}
+      isLoadingSummary={isLoadingSummary}
+      languageDetection={currentLanguageDetection ?? undefined}
+      onTranslateToEnglish={handleTranslateToEnglish}
+      onTranslate={handleTranslate}
+      isTranslating={isTranslating}
+      onProofread={handleProofread}
+      ambientMuted={
+        audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+      }
+      onToggleAmbient={handleToggleAmbient}
+    />
+  );
+};
+
+/**
  * Show the Reflect Mode overlay
  * Creates shadow DOM and renders the overlay component
  * Optimized to minimize layout shifts and track render time
@@ -738,31 +779,8 @@ const showReflectModeOverlay = async () => {
   // Render the ReflectModeOverlay component
   overlayRoot = createRoot(rootElement);
 
-  overlayRoot.render(
-    <MeditationFlowOverlay
-      summary={currentSummary}
-      prompts={currentPrompts}
-      onSave={handleSaveReflection}
-      onCancel={handleCancelReflection}
-      settings={currentSettings ?? getDefaultSettings()}
-      onFormatChange={handleFormatChange}
-      currentFormat={currentSummaryFormat}
-      isLoadingSummary={isLoadingSummary}
-      languageDetection={currentLanguageDetection ?? undefined}
-      onTranslateToEnglish={handleTranslateToEnglish}
-      onTranslate={handleTranslate}
-      isTranslating={isTranslating}
-      onProofread={handleProofread}
-      ambientMuted={
-        audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
-      }
-      onToggleAmbient={(mute) => {
-        if (!audioManager) return;
-        if (mute) void audioManager.stopAmbientLoopGracefully(400);
-        else void audioManager.playAmbientLoopGracefully(400);
-      }}
-    />
-  );
+  // Use the helper function for initial render
+  renderOverlay();
 
   isOverlayVisible = true;
 

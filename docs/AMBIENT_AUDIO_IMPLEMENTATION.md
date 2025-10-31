@@ -78,3 +78,53 @@ The ambient loop stops in three scenarios:
 - Consider adding user-configurable volume control
 - Add option to select different ambient tracks
 - Implement audio ducking when voice input is active
+
+### 4. Fixed Mute/Unmute Toggle Issue (`src/content/index.tsx`)
+
+- Created `renderOverlay()` helper function to centralize overlay rendering logic
+- Fixed issue where mute button state wouldn't update after toggling
+- **Problem**: React didn't know to re-render when AudioManager's internal state changed
+- **Solution**: Call `renderOverlay()` after toggling ambient audio to trigger a re-render with updated state
+- This ensures the mute/unmute button always shows the correct state
+
+## Bug Fix: Mute Toggle Not Working
+
+### Issue
+
+When clicking "Mute" in the More Tools menu, the audio would stop but the button would still show "Mute". Clicking again wouldn't unmute because the button state was out of sync.
+
+### Root Cause
+
+The `ambientMuted` prop was calculated from `audioManager.isAmbientLoopPlayingNow()`, but this value wasn't reactive. When the audio state changed, React had no way to know it should re-render the overlay with the new state.
+
+### Solution
+
+1. Created a `renderOverlay()` helper function that encapsulates all the overlay rendering logic
+2. In the `onToggleAmbient` handler, after changing the audio state, we call `renderOverlay()` to force a re-render
+3. This ensures the `ambientMuted` prop is recalculated with the latest audio state
+4. The mute/unmute button now correctly reflects the current audio state
+
+### Code Pattern
+
+```typescript
+const renderOverlay = () => {
+  const handleToggleAmbient = async (mute: boolean) => {
+    // Toggle audio state
+    if (mute) {
+      await audioManager.stopAmbientLoopGracefully(400);
+    } else {
+      await audioManager.playAmbientLoopGracefully(400);
+    }
+    // Re-render to update UI
+    renderOverlay();
+  };
+
+  overlayRoot.render(
+    <MeditationFlowOverlay
+      ambientMuted={audioManager ? !audioManager.isAmbientLoopPlayingNow() : false}
+      onToggleAmbient={handleToggleAmbient}
+      // ... other props
+    />
+  );
+};
+```
