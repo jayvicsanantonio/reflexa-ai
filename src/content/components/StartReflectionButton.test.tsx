@@ -12,6 +12,10 @@ global.chrome = {
 
 describe('StartReflectionButton', () => {
   const mockSummary = ['Summary point 1', 'Summary point 2', 'Summary point 3'];
+  const mockPrompts = [
+    'What insights resonate with you?',
+    'How can you apply this?',
+  ];
   const mockOnDraftGenerated = vi.fn();
 
   beforeEach(() => {
@@ -22,6 +26,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -36,6 +41,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
         disabled={true}
       />
@@ -64,6 +70,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -90,6 +97,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -101,7 +109,7 @@ describe('StartReflectionButton', () => {
       expect(mockSendMessage).toHaveBeenCalledWith({
         type: 'write',
         payload: {
-          prompt: expect.stringContaining('Summary point 1'),
+          prompt: expect.stringContaining('What insights resonate with you?'),
           options: {
             tone: 'neutral',
             format: 'plain-text',
@@ -124,6 +132,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -151,6 +160,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -172,6 +182,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
         disabled={true}
       />
@@ -201,6 +212,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -223,6 +235,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -235,7 +248,7 @@ describe('StartReflectionButton', () => {
     );
   });
 
-  it('includes summary in prompt', async () => {
+  it('includes summary and reflection prompt in prompt', async () => {
     mockSendMessage.mockResolvedValue({
       success: true,
       data: 'Generated draft',
@@ -246,6 +259,7 @@ describe('StartReflectionButton', () => {
     render(
       <StartReflectionButton
         summary={mockSummary}
+        prompts={mockPrompts}
         onDraftGenerated={mockOnDraftGenerated}
       />
     );
@@ -258,6 +272,7 @@ describe('StartReflectionButton', () => {
       expect(call.payload.prompt).toContain('Summary point 1');
       expect(call.payload.prompt).toContain('Summary point 2');
       expect(call.payload.prompt).toContain('Summary point 3');
+      expect(call.payload.prompt).toContain('What insights resonate with you?');
     });
   });
 });

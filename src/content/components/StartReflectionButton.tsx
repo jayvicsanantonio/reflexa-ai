@@ -4,6 +4,7 @@ import '../styles.css';
 
 interface StartReflectionButtonProps {
   summary: string[];
+  prompts: string[];
   onDraftGenerated: (draft: string) => void;
   disabled?: boolean;
 }
@@ -15,6 +16,7 @@ interface StartReflectionButtonProps {
  */
 export const StartReflectionButton: React.FC<StartReflectionButtonProps> = ({
   summary,
+  prompts,
   onDraftGenerated,
   disabled = false,
 }) => {
@@ -28,9 +30,10 @@ export const StartReflectionButton: React.FC<StartReflectionButtonProps> = ({
     setShowSuccess(false);
 
     try {
-      // Create prompt from summary
+      // Create prompt from summary and reflection prompts
       const summaryText = summary.join('\n');
-      const prompt = `Based on this summary:\n${summaryText}\n\nWrite a reflective paragraph.`;
+      const reflectionPrompt = prompts[0] || 'Reflect on this content';
+      const prompt = `Based on this summary:\n${summaryText}\n\nReflection prompt: ${reflectionPrompt}\n\nWrite a reflective paragraph that addresses the reflection prompt.`;
 
       // Call Writer API via background service worker
       const response: AIResponse<string> = await chrome.runtime.sendMessage({

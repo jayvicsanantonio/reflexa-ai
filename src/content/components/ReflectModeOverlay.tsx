@@ -785,6 +785,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           <div className="reflexa-overlay__start-reflection">
             <StartReflectionButton
               summary={summary}
+              prompts={prompts}
               onDraftGenerated={handleDraftGenerated}
               disabled={false}
             />

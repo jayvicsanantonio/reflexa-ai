@@ -360,6 +360,18 @@ async function handleSummarize(
       `[Summarize] useNativeSummarizer setting: ${settings.useNativeSummarizer}`
     );
 
+    // Determine output language based on translation settings
+    // If translation is disabled, don't specify a language (AI will use source language)
+    // If translation is enabled, use the preferred translation language
+    const outputLanguage =
+      (settings.enableTranslation ?? settings.translationEnabled)
+        ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
+        : undefined;
+
+    console.log(
+      `[Summarize] Translation enabled: ${settings.enableTranslation}, Output language: ${outputLanguage ?? 'source language'}`
+    );
+
     // Check if Summarizer API is available and enabled in settings
     const summarizerApiAvailable =
       await aiService.summarizer.checkAvailability();
@@ -374,17 +386,12 @@ async function handleSummarize(
 
     if (summarizerAvailable) {
       console.log(
-        `[Summarize] Using Summarizer API with format: ${format}, language: ${settings.targetLanguage}`
+        `[Summarize] Using Summarizer API with format: ${format}, language: ${outputLanguage ?? 'auto'}`
       );
 
       // Use specialized Summarizer API with format parameter, language, and rate limiting
       summary = await rateLimiter.executeWithRetry(
-        () =>
-          aiService.summarizer.summarize(
-            content,
-            format,
-            settings.targetLanguage
-          ),
+        () => aiService.summarizer.summarize(content, format, outputLanguage),
         'summarizations'
       );
       apiUsed = 'summarizer';
@@ -641,6 +648,12 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
     // Get user settings for target language
     const settings = await settingsManager.getSettings();
 
+    // Determine output language based on translation settings
+    const outputLanguage =
+      (settings.enableTranslation ?? settings.translationEnabled)
+        ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
+        : undefined;
+
     // Check if Writer API is available
     const writerAvailable = await aiService.writer.checkAvailability();
     let result: string;
@@ -648,11 +661,11 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
 
     if (writerAvailable) {
       console.log(
-        `[Write] Using Writer API (language: ${settings.targetLanguage})`
+        `[Write] Using Writer API (language: ${outputLanguage ?? 'auto'})`
       );
       result = await aiService.writer.write(payloadObj.prompt, {
         ...payloadObj.options,
-        outputLanguage: settings.targetLanguage,
+        outputLanguage,
       });
       apiUsed = 'writer';
     } else {
@@ -740,6 +753,12 @@ async function handleRewrite(
     // Get user settings for target language
     const settings = await settingsManager.getSettings();
 
+    // Determine output language based on translation settings
+    const outputLanguage =
+      (settings.enableTranslation ?? settings.translationEnabled)
+        ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
+        : undefined;
+
     // Check if Rewriter API is available
     const rewriterAvailable = await aiService.rewriter.checkAvailability();
     let result: { original: string; rewritten: string };
@@ -747,13 +766,13 @@ async function handleRewrite(
 
     if (rewriterAvailable) {
       console.log(
-        `[Rewrite] Using Rewriter API with preset: ${preset} (language: ${settings.targetLanguage})`
+        `[Rewrite] Using Rewriter API with preset: ${preset} (language: ${outputLanguage ?? 'auto'})`
       );
       result = await aiService.rewriter.rewrite(
         payloadObj.text,
         preset,
         payloadObj.context,
-        settings.targetLanguage
+        outputLanguage
       );
       apiUsed = 'rewriter';
     } else {
