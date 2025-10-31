@@ -89,6 +89,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'Enter') {
         e.preventDefault();
+        // Don't advance from step 0 if still loading summary
+        if (step === 0 && isLoadingSummary) return;
         setStep((s) => Math.min(3, s + 1));
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -98,7 +100,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         onCancel();
       }
     },
-    [onCancel]
+    [onCancel, step, isLoadingSummary]
   );
 
   useEffect(() => {
@@ -106,7 +108,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     return trapFocus(contentRef.current, onCancel);
   }, [onCancel]);
 
-  const next = () => setStep((s) => Math.min(3, s + 1));
+  const next = () => {
+    // Don't advance from step 0 if still loading summary
+    if (step === 0 && isLoadingSummary) return;
+    setStep((s) => Math.min(3, s + 1));
+  };
   const prev = () => setStep((s) => Math.max(0, s - 1));
 
   const save = () => {
@@ -118,14 +124,21 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     onSave(answers);
   };
 
-  // Auto-advance from settle step after a calm breathing cycle (respect reduced motion)
+  // Track previous loading state to detect when loading completes
+  const prevLoadingRef = useRef(isLoadingSummary);
+
+  useEffect(() => {
+    prevLoadingRef.current = isLoadingSummary;
+  });
+
+  // Auto-advance to summary screen once loading completes
   useEffect(() => {
     if (step !== 0) return;
-    if (settings?.reduceMotion) return; // don't auto-advance when reduced motion
-    const durationMs = 16000; // two cycles of 4s inhale + 4s exhale
-    const id = window.setTimeout(() => setStep(1), Math.min(16000, durationMs));
-    return () => window.clearTimeout(id);
-  }, [step, settings?.reduceMotion]);
+    // If we were loading and now we're done, advance to summary
+    if (prevLoadingRef.current && !isLoadingSummary) {
+      setStep(1);
+    }
+  }, [step, isLoadingSummary]);
 
   // Guided breath cues: 4s inhale → 4s exhale, twice (no holds)
   useEffect(() => {
@@ -242,18 +255,27 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           <button
             type="button"
             onClick={next}
+            disabled={step === 0 && isLoadingSummary}
             aria-label="Next"
             style={{
-              background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+              background:
+                step === 0 && isLoadingSummary
+                  ? 'rgba(100, 116, 139, 0.5)'
+                  : 'linear-gradient(135deg, #60a5fa, #3b82f6)',
               border: '1px solid rgba(226,232,240,0.25)',
-              color: '#fff',
+              color:
+                step === 0 && isLoadingSummary
+                  ? 'rgba(226,232,240,0.5)'
+                  : '#fff',
               borderRadius: 999,
               padding: '8px 14px',
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor:
+                step === 0 && isLoadingSummary ? 'not-allowed' : 'pointer',
+              opacity: step === 0 && isLoadingSummary ? 0.6 : 1,
             }}
           >
-            Next →
+            {step === 0 && isLoadingSummary ? 'Preparing...' : 'Next →'}
           </button>
         </div>
       ) : (
@@ -394,13 +416,15 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 <BreathingOrb
                   enabled={!settings?.reduceMotion}
                   duration={8}
-                  iterations={2}
+                  iterations={isLoadingSummary ? Infinity : 2}
                   size={140}
                   mode="pulse"
                 />
               </div>
               <h1 style={{ fontSize: 28, margin: 0, fontWeight: 800 }}>
-                Find your breath
+                {isLoadingSummary
+                  ? 'Crafting your insights...'
+                  : 'Find your breath'}
               </h1>
               <p
                 style={{
@@ -409,8 +433,28 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   fontSize: 14,
                 }}
               >
-                {breathCue === 'inhale' && 'Inhale…'}
-                {breathCue === 'exhale' && 'Exhale…'}
+                {isLoadingSummary ? (
+                  <>
+                    {breathCue === 'inhale' && 'Inhale…'}
+                    {breathCue === 'exhale' && 'Exhale…'}
+                    <br />
+                    <span
+                      style={{
+                        fontSize: 12,
+                        opacity: 0.7,
+                        marginTop: 4,
+                        display: 'block',
+                      }}
+                    >
+                      Stay present. Your summary will appear shortly.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {breathCue === 'inhale' && 'Inhale…'}
+                    {breathCue === 'exhale' && 'Exhale…'}
+                  </>
+                )}
               </p>
             </div>
           )}
