@@ -357,17 +357,11 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   onToggleAmbient,
   onTranslateSummary,
   isTranslating = false,
-  currentLanguage,
+  currentLanguage: _currentLanguage,
   unsupportedLanguages = [],
 }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<string>(
-    currentLanguage ?? 'en'
-  );
-
-  // Keep local selection in sync with the detected/current language
-  useEffect(() => {
-    setSelectedLanguage(currentLanguage ?? 'en');
-  }, [currentLanguage]);
+  // Default to English regardless of detected language
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -531,88 +525,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
           aria-label="More tools menu"
           data-testid="more-tools-dropdown"
         >
-          {/* Universal Tools - Available in all screens */}
-          <div className="reflexa-more-tools__section">
-            <div className="reflexa-more-tools__section-title">Tools</div>
-            <div className="reflexa-more-tools__grid">
-              {/* Ambient Sound Toggle */}
-              {onToggleAmbient && (
-                <button
-                  type="button"
-                  className="reflexa-more-tools__tile"
-                  onClick={() => {
-                    console.log(
-                      '[MoreToolsMenu] Ambient toggle clicked, current muted:',
-                      ambientMuted
-                    );
-                    onToggleAmbient(!ambientMuted);
-                    console.log('[MoreToolsMenu] Ambient toggle called');
-                  }}
-                  role="menuitem"
-                  data-testid="ambient-sound-toggle"
-                >
-                  <span className="reflexa-more-tools__tile-icon">
-                    {ambientMuted ? <VolumeMuteIcon /> : <VolumeIcon />}
-                  </span>
-                  <span className="reflexa-more-tools__tile-label">
-                    {ambientMuted ? 'Unmute' : 'Mute'}
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* Translate Summary - redesigned: language dropdown + Translate button (below mute) */}
-            {onTranslateSummary && (
-              <div
-                className="reflexa-more-tools__inline-row"
-                role="group"
-                aria-label="Select language"
-              >
-                <select
-                  className="reflexa-more-tools__language-select"
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  disabled={isTranslating}
-                  data-testid="language-select"
-                >
-                  {languageOptions.map((lang) => {
-                    const isUnsupported = unsupportedLanguages.includes(
-                      lang.code
-                    );
-                    return (
-                      <option
-                        key={lang.code}
-                        value={lang.code}
-                        disabled={isUnsupported}
-                      >
-                        {`${lang.name}${
-                          lang.nativeName && lang.nativeName !== lang.name
-                            ? ` (${lang.nativeName})`
-                            : ''
-                        }`}
-                      </option>
-                    );
-                  })}
-                </select>
-                <button
-                  type="button"
-                  className="reflexa-more-tools__inline-button"
-                  onClick={() => {
-                    console.log(
-                      '[MoreToolsMenu] Translate apply clicked:',
-                      selectedLanguage
-                    );
-                    onTranslateSummary(selectedLanguage);
-                    handleClose();
-                  }}
-                  disabled={isTranslating}
-                  data-testid="translate-apply-button"
-                >
-                  {isTranslating ? 'Translating…' : 'Translate'}
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Tools rendered at bottom */}
 
           {/* Summary Format Options (only in summary screen) */}
           {currentScreen === 'summary' && onFormatChange && (
@@ -794,6 +707,81 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 </button>
               </div>
             )}
+
+          {/* Divider above Tools */}
+          <div className="reflexa-more-tools__divider" />
+
+          {/* Tools at bottom: Mute + Language + Translate */}
+          <div className="reflexa-more-tools__section">
+            <div className="reflexa-more-tools__section-title">Tools</div>
+            <div className="reflexa-more-tools__grid">
+              {onToggleAmbient && (
+                <button
+                  type="button"
+                  className="reflexa-more-tools__tile"
+                  onClick={() => {
+                    onToggleAmbient(!ambientMuted);
+                  }}
+                  role="menuitem"
+                  data-testid="ambient-sound-toggle"
+                >
+                  <span className="reflexa-more-tools__tile-icon">
+                    {ambientMuted ? <VolumeMuteIcon /> : <VolumeIcon />}
+                  </span>
+                  <span className="reflexa-more-tools__tile-label">
+                    {ambientMuted ? 'Unmute' : 'Mute'}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {onTranslateSummary && (
+              <div
+                className="reflexa-more-tools__inline-row"
+                role="group"
+                aria-label="Select language"
+              >
+                <select
+                  className="reflexa-more-tools__language-select"
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  disabled={isTranslating}
+                  data-testid="language-select"
+                >
+                  {languageOptions.map((lang) => {
+                    const isUnsupported = unsupportedLanguages.includes(
+                      lang.code
+                    );
+                    return (
+                      <option
+                        key={lang.code}
+                        value={lang.code}
+                        disabled={isUnsupported}
+                      >
+                        {`${lang.name}${
+                          lang.nativeName && lang.nativeName !== lang.name
+                            ? ` (${lang.nativeName})`
+                            : ''
+                        }`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  className="reflexa-more-tools__inline-button"
+                  onClick={() => {
+                    onTranslateSummary(selectedLanguage);
+                    handleClose();
+                  }}
+                  disabled={isTranslating}
+                  data-testid="translate-apply-button"
+                >
+                  {isTranslating ? 'Translating…' : 'Translate'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

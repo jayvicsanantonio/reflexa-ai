@@ -122,22 +122,27 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
   };
 
   const handleDeleteItem = async (id: string) => {
+    console.log('[DashboardModal] Deleting reflection:', id);
     try {
       const resp: unknown = await chrome.runtime.sendMessage({
         type: 'deleteReflection',
         payload: id,
       });
-      const r = resp as { success?: boolean } | undefined;
+      console.log('[DashboardModal] Delete response:', resp);
+      const r = resp as { success?: boolean; error?: string } | undefined;
       if (r?.success) {
+        console.log('[DashboardModal] Delete successful, updating UI');
         setReflections((prev) => (prev ?? []).filter((it) => it.id !== id));
         const sResp: unknown = await chrome.runtime.sendMessage({
           type: 'getStreak',
         });
         const s = sResp as { success?: boolean; data?: unknown } | undefined;
         if (s?.success && s.data) setStreak(s.data as StreakData);
+      } else {
+        console.error('[DashboardModal] Delete failed:', r?.error);
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('[DashboardModal] Delete error:', error);
     }
   };
 
@@ -499,7 +504,15 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
                     >
                       <button
                         type="button"
-                        onClick={() => void handleDeleteItem(r.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log(
+                            '[DashboardModal] Delete button clicked for:',
+                            r.id
+                          );
+                          void handleDeleteItem(r.id);
+                        }}
                         title="Delete reflection"
                         aria-label={`Delete reflection ${r.title || ''}`}
                         style={{

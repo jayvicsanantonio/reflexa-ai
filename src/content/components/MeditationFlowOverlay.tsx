@@ -992,7 +992,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   }}
                   style={{
                     width: '100%',
-                    minHeight: 180,
+                    minHeight: 220,
                     background: voiceInput0.isRecording
                       ? 'rgba(59,130,246,0.1)'
                       : 'rgba(2,6,23,0.35)',
@@ -1221,7 +1221,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   }}
                   style={{
                     width: '100%',
-                    minHeight: 180,
+                    minHeight: 220,
                     background: voiceInput1.isRecording
                       ? 'rgba(59,130,246,0.1)'
                       : 'rgba(2,6,23,0.35)',

@@ -837,6 +837,9 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                     placeholder="Share your thoughts..."
                     rows={3}
                     data-testid={`reflection-input-${index}`}
+                    autoComplete="off"
+                    data-form-type="other"
+                    data-lpignore="true"
                   />
                   {voiceInputStates[index].interimText && (
                     <span

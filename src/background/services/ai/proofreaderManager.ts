@@ -256,7 +256,7 @@ export class ProofreaderManager {
     );
 
     return {
-      correctedText: result.correction.trim(),
+      correctedText: result.correction?.trim() ?? text.trim(),
       corrections,
     };
   }
