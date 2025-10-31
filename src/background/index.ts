@@ -328,14 +328,22 @@ async function handleSummarize(
     // Validate payload - support both string and object formats
     let content: string;
     let format: SummaryFormat = 'bullets'; // default format
+    let detectedLanguage: string | undefined;
 
     if (typeof payload === 'string') {
       content = payload;
     } else if (payload && typeof payload === 'object' && 'content' in payload) {
-      const payloadObj = payload as { content: string; format?: SummaryFormat };
+      const payloadObj = payload as {
+        content: string;
+        format?: SummaryFormat;
+        detectedLanguage?: string;
+      };
       content = payloadObj.content;
       if (payloadObj.format) {
         format = payloadObj.format;
+      }
+      if (payloadObj.detectedLanguage) {
+        detectedLanguage = payloadObj.detectedLanguage;
       }
     } else {
       console.error('[Summarize] Invalid payload:', typeof payload);
@@ -361,15 +369,16 @@ async function handleSummarize(
     );
 
     // Determine output language based on translation settings
-    // If translation is disabled, don't specify a language (AI will use source language)
     // If translation is enabled, use the preferred translation language
-    const outputLanguage =
-      (settings.enableTranslation ?? settings.translationEnabled)
-        ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
-        : undefined;
+    // If translation is disabled, use the detected language (if available) to maintain source language
+    const translationEnabled =
+      settings.enableTranslation ?? settings.translationEnabled;
+    const outputLanguage = translationEnabled
+      ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
+      : detectedLanguage;
 
     console.log(
-      `[Summarize] Translation enabled: ${settings.enableTranslation}, Output language: ${outputLanguage ?? 'source language'}`
+      `[Summarize] Translation enabled: ${translationEnabled}, Output language: ${outputLanguage ?? 'auto-detect'}, Detected language: ${detectedLanguage ?? 'not provided'}`
     );
 
     // Check if Summarizer API is available and enabled in settings

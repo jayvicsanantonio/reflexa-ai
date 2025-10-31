@@ -428,30 +428,47 @@ const initiateReflectionFlow = async () => {
     ];
     void showReflectModeOverlay();
 
-    // Request AI summarization AND language detection in parallel
+    // Request language detection first, then use it for summarization
     // This happens during the breathing phase (Step 0)
-    console.log('Requesting AI summarization and language detection...');
+    console.log('Requesting language detection...');
+
+    // Detect language first
+    const languageResponse = await sendMessageToBackground<LanguageDetection>({
+      type: 'detectLanguage',
+      payload: {
+        text: currentExtractedContent.text.substring(0, 500),
+        pageUrl: currentExtractedContent.url,
+      },
+    });
+
+    // Handle language detection
+    let detectedLanguageCode: string | undefined;
+    if (languageResponse.success) {
+      currentLanguageDetection = languageResponse.data;
+      detectedLanguageCode = languageResponse.data.detectedLanguage;
+      // Capture original language once per session
+      console.log(
+        `Language detected: ${currentLanguageDetection.languageName} (${currentLanguageDetection.detectedLanguage})`
+      );
+    } else {
+      console.warn('Language detection failed:', languageResponse.error);
+    }
+
+    // Now request AI summarization with detected language
+    console.log('Requesting AI summarization...');
 
     // Use default format from settings or fallback to bullets
     const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
     currentSummaryFormat = defaultFormat;
 
-    const [summaryResponse, languageResponse] = await Promise.all([
-      sendMessageToBackground<string[]>({
-        type: 'summarize',
-        payload: {
-          content: currentExtractedContent.text,
-          format: defaultFormat,
-        },
-      }),
-      sendMessageToBackground<LanguageDetection>({
-        type: 'detectLanguage',
-        payload: {
-          text: currentExtractedContent.text.substring(0, 500),
-          pageUrl: currentExtractedContent.url,
-        },
-      }),
-    ]);
+    const summaryResponse = await sendMessageToBackground<string[]>({
+      type: 'summarize',
+      payload: {
+        content: currentExtractedContent.text,
+        format: defaultFormat,
+        detectedLanguage: detectedLanguageCode,
+      },
+    });
 
     if (!summaryResponse.success) {
       console.error('Summarization failed:', summaryResponse.error);
@@ -474,10 +491,8 @@ const initiateReflectionFlow = async () => {
     currentSummary = summaryResponse.data;
     console.log('Summary received:', currentSummary);
 
-    // Handle language detection
-    if (languageResponse.success) {
-      currentLanguageDetection = languageResponse.data;
-      // Capture original language once per session
+    // Store original detected language for later use
+    if (currentLanguageDetection) {
       originalDetectedLanguage ??= currentLanguageDetection.detectedLanguage;
       console.log('Language detected:', currentLanguageDetection);
 
@@ -486,9 +501,6 @@ const initiateReflectionFlow = async () => {
         console.log('Auto-translating during breathing phase...');
         await handleAutoTranslate(currentLanguageDetection);
       }
-    } else {
-      console.warn('Language detection failed:', languageResponse.error);
-      currentLanguageDetection = null;
     }
 
     isLoadingSummary = false;
@@ -1416,11 +1428,13 @@ const handleFormatChange = async (format: SummaryFormat) => {
 
   try {
     // Request new summary with selected format
+    // Pass detected language to maintain source language when translation is disabled
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
       payload: {
         content: currentExtractedContent.text,
         format: format,
+        detectedLanguage: currentLanguageDetection?.detectedLanguage,
       },
     });
 

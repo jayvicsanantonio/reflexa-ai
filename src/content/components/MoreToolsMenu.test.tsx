@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MoreToolsMenu } from './MoreToolsMenu';
 
 describe('MoreToolsMenu', () => {
@@ -79,7 +79,7 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
-    expect(screen.getByText('Get Started')).toBeTruthy();
+    expect(screen.getByText('Write')).toBeTruthy();
     expect(screen.getByTestId('generate-draft-option')).toBeTruthy();
   });
 
@@ -277,8 +277,22 @@ describe('MoreToolsMenu', () => {
     expect(onFormatChange).toHaveBeenCalledWith('paragraph');
   });
 
-  it('should call onGenerateDraft when generate draft is clicked', () => {
+  it('should call onGenerateDraft when generate draft is clicked', async () => {
     const onGenerateDraft = vi.fn();
+
+    // Mock chrome.runtime.sendMessage
+    const mockSendMessage = vi.fn().mockResolvedValue({
+      success: true,
+      data: 'Generated draft text',
+      apiUsed: 'writer',
+      duration: 1000,
+    });
+    global.chrome = {
+      runtime: {
+        sendMessage: mockSendMessage,
+      },
+    } as any;
+
     render(
       <MoreToolsMenu
         currentScreen="reflection"
@@ -294,7 +308,10 @@ describe('MoreToolsMenu', () => {
     const generateOption = screen.getByTestId('generate-draft-option');
     fireEvent.click(generateOption);
 
-    expect(onGenerateDraft).toHaveBeenCalled();
+    // Wait for async operation
+    await waitFor(() => {
+      expect(onGenerateDraft).toHaveBeenCalledWith('Generated draft text');
+    });
   });
 
   it('should call onToneSelect when tone is selected', () => {

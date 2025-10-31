@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { SummaryFormat, TonePreset } from '../../types';
+import type { AIResponse, SummaryFormat, TonePreset } from '../../types';
 import '../styles.css';
 
 // Language options for translation
@@ -499,19 +499,44 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
     }
   };
 
-  const handleGenerateDraft = () => {
+  const handleGenerateDraft = async () => {
     if (onGenerateDraft && !generateDraftDisabled && !isGenerating) {
       setIsGenerating(true);
       try {
         // Use the Chrome AI Writer API to generate a draft
-        const summaryText = summary.join(' ');
-        const prompt = `Based on this summary: "${summaryText}", write a brief reflection about what you found most interesting.`;
+        const summaryText = summary.join('\n');
+        const prompt = `Based on this summary:\n${summaryText}\n\nWrite a brief reflection about what you found most interesting.`;
 
-        // Call the generate draft handler
-        // The actual API call will be handled by the parent component
-        onGenerateDraft(prompt);
+        console.log('[MoreToolsMenu] Calling Writer API with prompt:', prompt);
+
+        // Call Writer API via background service worker
+        const response: AIResponse<string> = await chrome.runtime.sendMessage({
+          type: 'write',
+          payload: {
+            prompt,
+            options: {
+              tone: 'neutral', // Maps to 'calm' in WriterOptions
+              format: 'plain-text',
+              length: 'short', // 50-100 words
+            },
+          },
+        });
+
+        console.log('[MoreToolsMenu] Writer API response:', response);
+
+        if (response.success) {
+          const draft = response.data;
+          console.log('[MoreToolsMenu] Generated draft:', draft);
+          // Pass the generated draft to parent
+          onGenerateDraft(draft);
+        } else {
+          console.error(
+            '[MoreToolsMenu] Draft generation failed:',
+            response.error
+          );
+        }
       } catch (error) {
-        console.error('Failed to generate draft:', error);
+        console.error('[MoreToolsMenu] Failed to generate draft:', error);
       } finally {
         setIsGenerating(false);
       }
@@ -613,16 +638,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
             onGenerateDraft &&
             !hasReflectionContent && (
               <div className="reflexa-more-tools__section">
-                <div className="reflexa-more-tools__section-title">
-                  Get Started
-                </div>
+                <div className="reflexa-more-tools__section-title">Write</div>
                 <button
                   type="button"
                   className="reflexa-more-tools__option"
                   onClick={(e) => {
                     e.stopPropagation();
                     console.log('[MoreToolsMenu] Generate draft clicked');
-                    handleGenerateDraft();
+                    void handleGenerateDraft();
                     handleClose();
                   }}
                   disabled={generateDraftDisabled || isGenerating}
