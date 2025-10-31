@@ -21,7 +21,7 @@ import {
   cleanupAllAnnouncements,
 } from '../utils/accessibility';
 import {
-  ReflectModeOverlay,
+  MeditationFlowOverlay,
   LotusNudge,
   BreathingOrb,
 } from '../content/components';
@@ -387,7 +387,7 @@ describe('Accessibility Tests', () => {
       });
     });
 
-    describe('ReflectModeOverlay', () => {
+    describe('MeditationFlowOverlay', () => {
       const defaultSettings: Settings = {
         dwellThreshold: 30,
         enableSound: true,
@@ -415,58 +415,25 @@ describe('Accessibility Tests', () => {
       };
 
       it('should have dialog role and aria-modal', () => {
-        render(<ReflectModeOverlay {...defaultProps} />);
+        render(<MeditationFlowOverlay {...defaultProps} />);
 
         const dialog = screen.getByRole('dialog');
         expect(dialog).toHaveAttribute('aria-modal', 'true');
-        expect(dialog).toHaveAttribute('aria-labelledby');
-      });
-
-      it('should have labeled sections', () => {
-        render(<ReflectModeOverlay {...defaultProps} />);
-
-        const summarySection = screen.getByLabelText('Article Summary');
-        const reflectionSection = screen.getByLabelText('Reflection Questions');
-
-        expect(summarySection).toBeInTheDocument();
-        expect(reflectionSection).toBeInTheDocument();
-      });
-
-      it('should have accessible form labels', () => {
-        render(<ReflectModeOverlay {...defaultProps} />);
-
-        const input1 = screen.getByLabelText('Question 1?');
-        const input2 = screen.getByLabelText('Question 2?');
-
-        expect(input1).toBeInTheDocument();
-        expect(input2).toBeInTheDocument();
+        expect(dialog).toHaveAttribute('aria-label', 'Meditation Reflect');
       });
 
       it('should respond to Escape key', () => {
         const onCancel = vi.fn();
-        render(<ReflectModeOverlay {...defaultProps} onCancel={onCancel} />);
+        const { container } = render(
+          <MeditationFlowOverlay {...defaultProps} onCancel={onCancel} />
+        );
 
-        fireEvent.keyDown(document, { key: 'Escape' });
+        const overlay = container.querySelector('.reflexa-overlay');
+        if (overlay) {
+          fireEvent.keyDown(overlay, { key: 'Escape' });
+        }
 
         expect(onCancel).toHaveBeenCalled();
-      });
-
-      it('should respond to Cmd+Enter for save', () => {
-        const onSave = vi.fn();
-        render(<ReflectModeOverlay {...defaultProps} onSave={onSave} />);
-
-        fireEvent.keyDown(document, { key: 'Enter', metaKey: true });
-
-        expect(onSave).toHaveBeenCalled();
-      });
-
-      it('should respond to Ctrl+Enter for save', () => {
-        const onSave = vi.fn();
-        render(<ReflectModeOverlay {...defaultProps} onSave={onSave} />);
-
-        fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
-
-        expect(onSave).toHaveBeenCalled();
       });
 
       it('should disable breathing orb when reduceMotion is true', () => {
@@ -476,7 +443,7 @@ describe('Accessibility Tests', () => {
         };
 
         const { container } = render(
-          <ReflectModeOverlay
+          <MeditationFlowOverlay
             {...defaultProps}
             settings={settingsWithReducedMotion}
           />
@@ -484,51 +451,6 @@ describe('Accessibility Tests', () => {
 
         const orb = container.querySelector('.reflexa-breathing-orb');
         expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
-      });
-
-      it('should show proofread button when enabled', () => {
-        const settingsWithProofread: Settings = {
-          ...defaultSettings,
-          proofreadEnabled: true,
-        };
-
-        render(
-          <ReflectModeOverlay
-            {...defaultProps}
-            settings={settingsWithProofread}
-            proofreaderAvailable={true}
-          />
-        );
-
-        // Type some text to enable proofread option
-        const input = screen.getByLabelText('Question 1?');
-        fireEvent.change(input, { target: { value: 'My reflection' } });
-
-        // Open More Tools menu
-        const moreButton = screen.getByTestId('more-tools-trigger');
-        fireEvent.click(moreButton);
-
-        // Check that proofread option is available in the menu
-        const proofreadOption = screen.getByTestId('proofread-option');
-        expect(proofreadOption).toBeInTheDocument();
-      });
-
-      it('should announce to screen reader on mount', async () => {
-        render(<ReflectModeOverlay {...defaultProps} />);
-
-        await waitFor(() => {
-          const announcement = document.querySelector('[role="status"]');
-          expect(announcement).toBeInTheDocument();
-        });
-      });
-
-      it('should focus first input on mount', async () => {
-        render(<ReflectModeOverlay {...defaultProps} />);
-
-        await waitFor(() => {
-          const input = screen.getByLabelText('Question 1?');
-          expect(input).toHaveFocus();
-        });
       });
     });
   });

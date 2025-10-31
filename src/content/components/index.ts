@@ -3,7 +3,7 @@
  */
 
 export { BreathingOrb } from './BreathingOrb';
-export { ReflectModeOverlay } from './ReflectModeOverlay';
+export { MeditationFlowOverlay } from './MeditationFlowOverlay';
 export { LotusNudge } from './LotusNudge';
 export { ErrorModal } from './ErrorModal';
 export { Notification } from './Notification';
