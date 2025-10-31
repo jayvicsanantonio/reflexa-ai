@@ -58,6 +58,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   onFormatChange,
   currentFormat = 'bullets',
   isLoadingSummary = false,
+  languageDetection,
   onProofread,
   onTranslateToEnglish: _onTranslateToEnglish,
   onTranslate,
@@ -917,7 +918,47 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           )}
 
           {step === 1 && (
-            <div className="reflexa-meditation-slide">
+            <div
+              className="reflexa-meditation-slide"
+              style={{ position: 'relative' }}
+            >
+              {/* Subtle language badge - only show if foreign language detected */}
+              {languageDetection &&
+                languageDetection.detectedLanguage !==
+                  navigator.language.split('-')[0] && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '4px 10px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(226, 232, 240, 0.12)',
+                      borderRadius: 999,
+                      fontSize: 11,
+                      color: 'rgba(226, 232, 240, 0.6)',
+                      backdropFilter: 'blur(8px)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.color = 'rgba(226, 232, 240, 0.8)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background =
+                        'rgba(255, 255, 255, 0.06)';
+                      e.currentTarget.style.color = 'rgba(226, 232, 240, 0.6)';
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>🌐</span>
+                    <span>{languageDetection.languageName}</span>
+                  </div>
+                )}
+
               <h2 style={{ fontSize: 22, margin: '0 0 12px', fontWeight: 800 }}>
                 Summary
               </h2>

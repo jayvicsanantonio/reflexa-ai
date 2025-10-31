@@ -416,20 +416,30 @@ const initiateReflectionFlow = async () => {
     ];
     void showReflectModeOverlay();
 
-    // Request AI summarization with retry logic in the background
-    console.log('Requesting AI summarization...');
+    // Request AI summarization AND language detection in parallel
+    // This happens during the breathing phase (Step 0)
+    console.log('Requesting AI summarization and language detection...');
 
     // Use default format from settings or fallback to bullets
     const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
     currentSummaryFormat = defaultFormat;
 
-    const summaryResponse = await sendMessageToBackground<string[]>({
-      type: 'summarize',
-      payload: {
-        content: currentExtractedContent.text,
-        format: defaultFormat,
-      },
-    });
+    const [summaryResponse, languageResponse] = await Promise.all([
+      sendMessageToBackground<string[]>({
+        type: 'summarize',
+        payload: {
+          content: currentExtractedContent.text,
+          format: defaultFormat,
+        },
+      }),
+      sendMessageToBackground<LanguageDetection>({
+        type: 'detectLanguage',
+        payload: {
+          text: currentExtractedContent.text.substring(0, 500),
+          pageUrl: currentExtractedContent.url,
+        },
+      }),
+    ]);
 
     if (!summaryResponse.success) {
       console.error('Summarization failed:', summaryResponse.error);
@@ -451,6 +461,22 @@ const initiateReflectionFlow = async () => {
 
     currentSummary = summaryResponse.data;
     console.log('Summary received:', currentSummary);
+
+    // Handle language detection
+    if (languageResponse.success) {
+      currentLanguageDetection = languageResponse.data;
+      console.log('Language detected:', currentLanguageDetection);
+
+      // Auto-translate if needed (during breathing phase)
+      if (shouldAutoTranslate(currentLanguageDetection, currentSettings)) {
+        console.log('Auto-translating during breathing phase...');
+        await handleAutoTranslate(currentLanguageDetection);
+      }
+    } else {
+      console.warn('Language detection failed:', languageResponse.error);
+      currentLanguageDetection = null;
+    }
+
     isLoadingSummary = false;
 
     // Re-render overlay with summary loaded
@@ -480,34 +506,6 @@ const initiateReflectionFlow = async () => {
           }}
         />
       );
-    }
-
-    // Detect language when content is extracted
-    // Pass page URL for per-page caching
-    console.log('Detecting language...');
-    try {
-      const languageResponse = await sendMessageToBackground<LanguageDetection>(
-        {
-          type: 'detectLanguage',
-          payload: {
-            text: currentExtractedContent.text.substring(0, 500), // Use first 500 chars
-            pageUrl: currentExtractedContent.url, // Pass URL for caching
-          },
-        }
-      );
-
-      if (languageResponse.success) {
-        currentLanguageDetection = languageResponse.data;
-        console.log('Language detected:', currentLanguageDetection);
-      } else {
-        console.warn('Language detection failed:', languageResponse.error);
-        // Don't block the flow if language detection fails
-        currentLanguageDetection = null;
-      }
-    } catch (error) {
-      console.error('Error detecting language:', error);
-      // Don't block the flow if language detection fails
-      currentLanguageDetection = null;
     }
 
     // Request AI reflection prompts
@@ -543,6 +541,98 @@ const initiateReflectionFlow = async () => {
   } finally {
     // Hide loading state
     setNudgeLoadingState(false);
+  }
+};
+
+/**
+ * Determine if content should be auto-translated
+ */
+const shouldAutoTranslate = (
+  detection: LanguageDetection,
+  settings: Settings | null
+): boolean => {
+  if (!settings?.enableTranslation) return false;
+  if (!detection) return false;
+
+  const userLang = navigator.language.split('-')[0];
+
+  // Don't translate if already in user's language
+  if (detection.detectedLanguage === userLang) return false;
+
+  // Don't translate if already in preferred language
+  if (detection.detectedLanguage === settings.preferredTranslationLanguage) {
+    return false;
+  }
+
+  // Only auto-translate if confidence is very high (90%+)
+  const threshold = 0.9;
+  if (detection.confidence < threshold) return false;
+
+  return true;
+};
+
+/**
+ * Auto-translate content during breathing phase
+ */
+const handleAutoTranslate = async (detection: LanguageDetection) => {
+  try {
+    const targetLang =
+      currentSettings?.preferredTranslationLanguage ??
+      navigator.language.split('-')[0];
+
+    // Check cache first
+    const cacheKey = `translation:${currentExtractedContent?.url}:${detection.detectedLanguage}:${targetLang}`;
+    const cached = await chrome.storage.local.get(cacheKey);
+
+    if (cached[cacheKey]) {
+      const cachedData = cached[cacheKey] as {
+        summary: string[];
+        timestamp: number;
+      };
+      const age = Date.now() - cachedData.timestamp;
+
+      // Use cache if less than 24 hours old
+      if (age < 24 * 60 * 60 * 1000) {
+        console.log('Using cached translation');
+        currentSummary = cachedData.summary;
+        return;
+      }
+    }
+
+    // Translate each bullet
+    const translatedSummary: string[] = [];
+    for (const bullet of currentSummary) {
+      const response = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          source: detection.detectedLanguage,
+          target: targetLang,
+        },
+      });
+
+      if (response.success) {
+        translatedSummary.push(response.data);
+      } else {
+        translatedSummary.push(bullet); // Keep original on error
+      }
+    }
+
+    // Update summary
+    currentSummary = translatedSummary;
+
+    // Cache result
+    await chrome.storage.local.set({
+      [cacheKey]: {
+        summary: translatedSummary,
+        timestamp: Date.now(),
+      },
+    });
+
+    console.log('Auto-translation complete');
+  } catch (error) {
+    console.error('Auto-translation failed:', error);
+    // Keep original summary on error
   }
 };
 
