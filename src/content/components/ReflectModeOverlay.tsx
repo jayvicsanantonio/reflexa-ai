@@ -16,6 +16,7 @@ import type {
   VoiceInputMetadata,
 } from '../../types';
 import { trapFocus, announceToScreenReader } from '../../utils/accessibility';
+import { renderMarkdown } from '../../utils/markdownRenderer';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
 import { AudioManager } from '../../utils/audioManager';
@@ -732,7 +733,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                 <div className="reflexa-overlay__summary-label">
                   {summaryLabels[index]}
                 </div>
-                <p className="reflexa-overlay__summary-text">{bullet}</p>
+                <p
+                  className="reflexa-overlay__summary-text"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(bullet) }}
+                />
               </div>
             ))
           )}

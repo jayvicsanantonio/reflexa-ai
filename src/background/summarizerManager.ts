@@ -192,11 +192,7 @@ export class SummarizerManager {
    * @returns Array of 3 bullet points
    */
   private async summarizeBullets(text: string): Promise<string[]> {
-    const session = await this.createSession(
-      'key-points',
-      'plain-text',
-      'short'
-    );
+    const session = await this.createSession('key-points', 'markdown', 'short');
 
     if (!session) {
       throw new Error('Failed to create summarizer session');
@@ -264,7 +260,7 @@ export class SummarizerManager {
     // Create key-points session for bullets
     const bulletsSession = await this.createSession(
       'key-points',
-      'plain-text',
+      'markdown',
       'short'
     );
 

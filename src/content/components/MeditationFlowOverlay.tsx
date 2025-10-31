@@ -8,6 +8,7 @@ import type {
   VoiceInputMetadata,
 } from '../../types';
 import { trapFocus } from '../../utils/accessibility';
+import { renderMarkdown } from '../../utils/markdownRenderer';
 
 import { BreathingOrb } from './BreathingOrb';
 import { Notification } from './Notification';
@@ -1053,13 +1054,22 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   {currentFormat === 'bullets' ? (
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
                       {summary.map((s, i) => (
-                        <li key={i} style={{ marginBottom: 8 }}>
-                          {s}
-                        </li>
+                        <li
+                          key={i}
+                          style={{ marginBottom: 8 }}
+                          dangerouslySetInnerHTML={{
+                            __html: renderMarkdown(s),
+                          }}
+                        />
                       ))}
                     </ul>
                   ) : (
-                    <p style={{ margin: 0 }}>{summary.join(' ')}</p>
+                    <p
+                      style={{ margin: 0 }}
+                      dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(summary.join(' ')),
+                      }}
+                    />
                   )}
                 </div>
               )}
