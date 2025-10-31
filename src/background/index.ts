@@ -68,6 +68,12 @@ function isValidMessage(message: unknown): message is Message {
     'updateSettings',
     'resetSettings',
     'getUsageStats',
+    'getPerformanceStats',
+    'canTranslate',
+    'checkTranslationAvailability',
+    'getStreak',
+    'deleteReflection',
+    'exportReflections',
     'openDashboardInActiveTab',
     'startReflectInActiveTab',
   ];

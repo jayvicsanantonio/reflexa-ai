@@ -11,6 +11,7 @@ import { trapFocus } from '../../utils/accessibility';
 
 import { BreathingOrb } from './BreathingOrb';
 import { Notification } from './Notification';
+import { VoiceToggleButton } from './VoiceToggleButton';
 import { MoreToolsMenu } from './MoreToolsMenu';
 
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -949,6 +950,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 {prompts[0] ?? 'What did you find most interesting?'}
               </p>
               <div
+                className="reflexa-overlay__reflection-input-wrapper"
                 style={{
                   maxWidth: 720,
                   margin: '0 auto',
@@ -956,6 +958,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 }}
               >
                 <textarea
+                  className={`reflexa-overlay__reflection-input ${
+                    voiceInput0.isRecording
+                      ? 'reflexa-overlay__reflection-input--recording'
+                      : ''
+                  }`}
                   aria-label="Reflection answer 1"
                   value={
                     voiceInputStates[0].interimText
@@ -1007,6 +1014,31 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     boxSizing: 'border-box',
                   }}
                 />
+                {voiceInput0.isSupported && (
+                  <VoiceToggleButton
+                    isRecording={voiceInput0.isRecording}
+                    onToggle={() => {
+                      if (voiceInput0.isRecording) {
+                        voiceInput0.stopRecording();
+                      } else {
+                        void voiceInput0.startRecording().catch((err) => {
+                          setVoiceError({
+                            code: 'network',
+                            message:
+                              err instanceof Error
+                                ? err.message
+                                : 'Voice input failed',
+                          });
+                        });
+                      }
+                    }}
+                    disabled={false}
+                    language={voiceInput0.effectiveLanguage}
+                    languageName={voiceInput0.languageName}
+                    isLanguageFallback={voiceInput0.isLanguageFallback}
+                    reduceMotion={settings.reduceMotion}
+                  />
+                )}
               </div>
 
               {/* Rewrite Preview */}
@@ -1178,6 +1210,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 {prompts[1] ?? 'How might you apply this?'}
               </p>
               <div
+                className="reflexa-overlay__reflection-input-wrapper"
                 style={{
                   maxWidth: 720,
                   margin: '0 auto',
@@ -1185,6 +1218,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 }}
               >
                 <textarea
+                  className={`reflexa-overlay__reflection-input ${
+                    voiceInput1.isRecording
+                      ? 'reflexa-overlay__reflection-input--recording'
+                      : ''
+                  }`}
                   aria-label="Reflection answer 2"
                   value={
                     voiceInputStates[1].interimText
@@ -1236,6 +1274,31 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     boxSizing: 'border-box',
                   }}
                 />
+                {voiceInput1.isSupported && (
+                  <VoiceToggleButton
+                    isRecording={voiceInput1.isRecording}
+                    onToggle={() => {
+                      if (voiceInput1.isRecording) {
+                        voiceInput1.stopRecording();
+                      } else {
+                        void voiceInput1.startRecording().catch((err) => {
+                          setVoiceError({
+                            code: 'network',
+                            message:
+                              err instanceof Error
+                                ? err.message
+                                : 'Voice input failed',
+                          });
+                        });
+                      }
+                    }}
+                    disabled={false}
+                    language={voiceInput1.effectiveLanguage}
+                    languageName={voiceInput1.languageName}
+                    isLanguageFallback={voiceInput1.isLanguageFallback}
+                    reduceMotion={settings.reduceMotion}
+                  />
+                )}
               </div>
 
               {/* Rewrite Preview */}
