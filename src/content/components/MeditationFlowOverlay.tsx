@@ -722,6 +722,12 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             isProofreading={false}
             proofreaderAvailable={proofreaderAvailable}
             activeReflectionIndex={step - 2}
+            ambientMuted={_ambientMuted}
+            onToggleAmbient={_onToggleAmbient}
+            onTranslateSummary={
+              _onTranslate ? () => _onTranslate('en') : undefined
+            }
+            isTranslating={_isTranslating}
           />
           <button
             type="button"

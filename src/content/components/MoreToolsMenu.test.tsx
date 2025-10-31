@@ -25,6 +25,26 @@ describe('MoreToolsMenu', () => {
     expect(screen.getByTestId('more-tools-dropdown')).toBeTruthy();
   });
 
+  it('should show universal tools section', () => {
+    const onToggleAmbient = vi.fn();
+    const onTranslateSummary = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="summary"
+        currentFormat="bullets"
+        onToggleAmbient={onToggleAmbient}
+        onTranslateSummary={onTranslateSummary}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Tools')).toBeTruthy();
+    expect(screen.getByTestId('ambient-sound-toggle')).toBeTruthy();
+    expect(screen.getByTestId('translate-summary-option')).toBeTruthy();
+  });
+
   it('should show summary format options in summary screen', () => {
     const onFormatChange = vi.fn();
     render(
@@ -38,7 +58,7 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
-    expect(screen.getByText('Summary Format')).toBeTruthy();
+    expect(screen.getByText('Format')).toBeTruthy();
     expect(screen.getByTestId('format-option-bullets')).toBeTruthy();
     expect(screen.getByTestId('format-option-paragraph')).toBeTruthy();
     expect(screen.getByTestId('format-option-headline-bullets')).toBeTruthy();
@@ -103,7 +123,6 @@ describe('MoreToolsMenu', () => {
     render(
       <MoreToolsMenu
         currentScreen="reflection"
-        onToneSelect={vi.fn()}
         onProofread={onProofread}
         proofreaderAvailable={true}
         hasReflectionContent={true}
@@ -113,6 +132,7 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
+    expect(screen.getByText('Polish')).toBeTruthy();
     expect(screen.getByTestId('proofread-option')).toBeTruthy();
   });
 
@@ -146,7 +166,76 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
-    expect(screen.queryByText('Summary Format')).toBeNull();
+    expect(screen.queryByText('Format')).toBeNull();
+  });
+
+  it('should call onToggleAmbient when ambient sound is toggled', () => {
+    const onToggleAmbient = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="summary"
+        ambientMuted={false}
+        onToggleAmbient={onToggleAmbient}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    const ambientToggle = screen.getByTestId('ambient-sound-toggle');
+    fireEvent.click(ambientToggle);
+
+    expect(onToggleAmbient).toHaveBeenCalledWith(true);
+  });
+
+  it('should call onTranslateSummary when translate is clicked', () => {
+    const onTranslateSummary = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="summary"
+        onTranslateSummary={onTranslateSummary}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    const translateOption = screen.getByTestId('translate-summary-option');
+    fireEvent.click(translateOption);
+
+    expect(onTranslateSummary).toHaveBeenCalled();
+  });
+
+  it('should show correct ambient sound icon based on muted state', () => {
+    const { rerender } = render(
+      <MoreToolsMenu
+        currentScreen="summary"
+        ambientMuted={false}
+        onToggleAmbient={vi.fn()}
+      />
+    );
+
+    let trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Mute')).toBeTruthy();
+
+    // Close menu
+    fireEvent.click(trigger);
+
+    // Rerender with muted state
+    rerender(
+      <MoreToolsMenu
+        currentScreen="summary"
+        ambientMuted={true}
+        onToggleAmbient={vi.fn()}
+      />
+    );
+
+    trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Unmute')).toBeTruthy();
   });
 
   it('should not show tone options in summary screen', () => {

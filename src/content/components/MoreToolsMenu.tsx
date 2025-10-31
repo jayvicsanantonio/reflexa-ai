@@ -29,6 +29,14 @@ interface MoreToolsMenuProps {
   isProofreading?: boolean;
   proofreaderAvailable?: boolean;
   activeReflectionIndex?: number;
+
+  // Ambient Sound (available in all screens)
+  ambientMuted?: boolean;
+  onToggleAmbient?: (mute: boolean) => void;
+
+  // Translate Summary (available in all screens)
+  onTranslateSummary?: () => void;
+  isTranslating?: boolean;
 }
 
 interface FormatOption {
@@ -111,6 +119,10 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   isProofreading = false,
   proofreaderAvailable = false,
   activeReflectionIndex = 0,
+  ambientMuted = false,
+  onToggleAmbient,
+  onTranslateSummary,
+  isTranslating = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -231,39 +243,87 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
           aria-label="More tools menu"
           data-testid="more-tools-dropdown"
         >
+          {/* Universal Tools - Available in all screens */}
+          <div className="reflexa-more-tools__section">
+            <div className="reflexa-more-tools__section-title">Tools</div>
+            <div className="reflexa-more-tools__grid">
+              {/* Ambient Sound Toggle */}
+              {onToggleAmbient && (
+                <button
+                  type="button"
+                  className="reflexa-more-tools__tile"
+                  onClick={() => {
+                    onToggleAmbient(!ambientMuted);
+                    handleClose();
+                  }}
+                  role="menuitem"
+                  data-testid="ambient-sound-toggle"
+                >
+                  <span className="reflexa-more-tools__tile-icon">
+                    {ambientMuted ? '🔇' : '🎵'}
+                  </span>
+                  <span className="reflexa-more-tools__tile-label">
+                    {ambientMuted ? 'Unmute' : 'Mute'}
+                  </span>
+                </button>
+              )}
+
+              {/* Translate Summary */}
+              {onTranslateSummary && (
+                <button
+                  type="button"
+                  className="reflexa-more-tools__tile"
+                  onClick={() => {
+                    onTranslateSummary();
+                    handleClose();
+                  }}
+                  disabled={isTranslating}
+                  role="menuitem"
+                  data-testid="translate-summary-option"
+                >
+                  <span className="reflexa-more-tools__tile-icon">
+                    {isTranslating ? '⏳' : '🌐'}
+                  </span>
+                  <span className="reflexa-more-tools__tile-label">
+                    {isTranslating ? 'Translating...' : 'Translate'}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Summary Format Options (only in summary screen) */}
           {currentScreen === 'summary' && onFormatChange && (
             <div className="reflexa-more-tools__section">
-              <div className="reflexa-more-tools__section-title">
-                Summary Format
-              </div>
-              {formatOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`reflexa-more-tools__option ${
-                    currentFormat === option.value
-                      ? 'reflexa-more-tools__option--selected'
-                      : ''
-                  }`}
-                  onClick={() => handleFormatSelect(option.value)}
-                  disabled={isLoadingSummary}
-                  role="menuitem"
-                  data-testid={`format-option-${option.value}`}
-                >
-                  <div className="reflexa-more-tools__option-content">
-                    <span className="reflexa-more-tools__option-label">
+              <div className="reflexa-more-tools__section-title">Format</div>
+              <div className="reflexa-more-tools__grid">
+                {formatOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`reflexa-more-tools__tile ${
+                      currentFormat === option.value
+                        ? 'reflexa-more-tools__tile--selected'
+                        : ''
+                    }`}
+                    onClick={() => handleFormatSelect(option.value)}
+                    disabled={isLoadingSummary}
+                    role="menuitem"
+                    data-testid={`format-option-${option.value}`}
+                  >
+                    <span className="reflexa-more-tools__tile-icon">
+                      {option.value === 'bullets'
+                        ? '•'
+                        : option.value === 'paragraph'
+                          ? '¶'
+                          : '⚡'}
+                    </span>
+                    <span className="reflexa-more-tools__tile-label">
                       {option.label}
                     </span>
-                    <span className="reflexa-more-tools__option-description">
-                      {option.description}
-                    </span>
-                  </div>
-                  {currentFormat === option.value && (
-                    <span className="reflexa-more-tools__option-check">✓</span>
-                  )}
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -311,40 +371,35 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 <div className="reflexa-more-tools__section-title">
                   Rewrite Tone
                 </div>
-                {toneOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`reflexa-more-tools__option ${
-                      selectedTone === option.value
-                        ? 'reflexa-more-tools__option--selected'
-                        : ''
-                    }`}
-                    onClick={() => handleToneSelect(option.value)}
-                    disabled={tonesDisabled || isRewriting}
-                    role="menuitem"
-                    data-testid={`tone-option-${option.value}`}
-                  >
-                    <div className="reflexa-more-tools__option-content">
-                      <span className="reflexa-more-tools__option-icon">
+                <div className="reflexa-more-tools__grid">
+                  {toneOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`reflexa-more-tools__tile ${
+                        selectedTone === option.value
+                          ? 'reflexa-more-tools__tile--selected'
+                          : ''
+                      }`}
+                      onClick={() => handleToneSelect(option.value)}
+                      disabled={tonesDisabled || isRewriting}
+                      role="menuitem"
+                      data-testid={`tone-option-${option.value}`}
+                    >
+                      <span className="reflexa-more-tools__tile-icon">
                         {option.icon}
                       </span>
-                      <div>
-                        <span className="reflexa-more-tools__option-label">
-                          {option.label}
-                        </span>
-                        <span className="reflexa-more-tools__option-description">
-                          {option.description}
-                        </span>
-                      </div>
-                    </div>
-                    {selectedTone === option.value && isRewriting && (
-                      <span className="reflexa-more-tools__option-spinner">
-                        ⏳
+                      <span className="reflexa-more-tools__tile-label">
+                        {option.label}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      {selectedTone === option.value && isRewriting && (
+                        <span className="reflexa-more-tools__tile-spinner">
+                          ⏳
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -353,10 +408,8 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
             proofreaderAvailable &&
             onProofread &&
             hasReflectionContent && (
-              <>
-                {onToneSelect && (
-                  <div className="reflexa-more-tools__divider" />
-                )}
+              <div className="reflexa-more-tools__section">
+                <div className="reflexa-more-tools__section-title">Polish</div>
                 <button
                   type="button"
                   className="reflexa-more-tools__option"
@@ -367,12 +420,17 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 >
                   <div className="reflexa-more-tools__option-content">
                     <span className="reflexa-more-tools__option-icon">✏️</span>
-                    <span className="reflexa-more-tools__option-label">
-                      {isProofreading ? 'Proofreading...' : 'Proofread'}
-                    </span>
+                    <div>
+                      <span className="reflexa-more-tools__option-label">
+                        {isProofreading ? 'Proofreading...' : 'Proofread'}
+                      </span>
+                      <span className="reflexa-more-tools__option-description">
+                        Check grammar and spelling
+                      </span>
+                    </div>
                   </div>
                 </button>
-              </>
+              </div>
             )}
         </div>
       )}
