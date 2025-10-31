@@ -35,7 +35,7 @@ export const App: React.FC = () => {
     current: 0,
     lastReflectionDate: '',
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -256,25 +256,9 @@ export const App: React.FC = () => {
   }, [reflections.length]);
 
   // Option B: open in-page Dashboard overlay and close popup
+  // Disabled per new design: toolbar click shows minimalist popup hero
   useEffect(() => {
-    void (async () => {
-      try {
-        const resp: unknown = await chrome.runtime.sendMessage({
-          type: 'openDashboardInActiveTab',
-        });
-        const ok =
-          resp && typeof resp === 'object' && 'success' in resp
-            ? Boolean((resp as { success?: boolean }).success)
-            : false;
-        if (ok) {
-          window.close();
-        } else {
-          // Keep popup open as fallback on restricted pages
-        }
-      } catch {
-        // Keep popup usable on errors
-      }
-    })();
+    // no-op
   }, []);
 
   // Focus trap ref for privacy modal
@@ -314,22 +298,107 @@ export const App: React.FC = () => {
     return () => modal.removeEventListener('keydown', handleTabKey);
   }, [showPrivacyNotice]);
 
-  // Render loading state
-  if (isLoading) {
+  // New minimalist hero for toolbar popup
+  const renderHero = () => {
+    // Match pulsing lotus gradient (zen palette)
+    const bgGradient =
+      'linear-gradient(135deg, var(--color-zen-500, #0ea5e9) 0%, var(--color-zen-600, #0284c7) 100%)';
+    const handleReflectClick = async () => {
+      try {
+        const resp: unknown = await chrome.runtime.sendMessage({
+          type: 'startReflectInActiveTab',
+        });
+        const ok =
+          resp && typeof resp === 'object' && 'success' in resp
+            ? Boolean((resp as { success?: boolean }).success)
+            : false;
+        if (ok) window.close();
+      } catch {
+        // keep popup open
+      }
+    };
     return (
-      <div className="to-calm-50/60 flex h-[600px] w-96 items-center justify-center bg-gradient-to-b from-white">
-        <div className="text-center">
+      <div
+        role="document"
+        style={{
+          width: '100%',
+          height: '100%',
+          background: bgGradient,
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+      >
+        {/* Backdrop keyword removed for a lighter look */}
+
+        {/* Center card */}
+        <div
+          style={{
+            position: 'relative',
+            width: 'min(480px, 92%)',
+            borderRadius: 9999,
+            background: '#ffffff',
+            border: '1px solid rgba(15, 23, 42, 0.08)',
+            boxShadow: '0 12px 36px rgba(2,8,23,0.18)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
           <img
             src={chrome.runtime.getURL('icons/reflexa.png')}
-            alt="Reflexa logo"
-            className="mx-auto mb-3 h-12 w-12 rounded-full shadow-sm"
+            alt="Reflexa AI"
+            width={40}
+            height={40}
+            style={{ borderRadius: 999, flexShrink: 0 }}
           />
-          <div className="border-calm-300 border-t-zen-500 mx-auto mb-2 h-4 w-4 animate-spin rounded-full border-2"></div>
-          <p className="text-calm-700 text-sm">Loading your reflections…</p>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                color: '#0f172a',
+                fontWeight: 800,
+                fontSize: 18,
+                marginBottom: 2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+              title="Reflexa AI"
+            >
+              Reflexa AI
+            </div>
+            <div style={{ color: '#334155', fontSize: 12 }}>
+              Calm reflections, better focus
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleReflectClick}
+            aria-label="Start reflecting"
+            style={{
+              border: '1px solid rgba(15,23,42,0.12)',
+              color: '#0f172a',
+              background: '#ffffff',
+              borderRadius: 999,
+              padding: '8px 12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Reflect
+          </button>
         </div>
       </div>
     );
-  }
+  };
+
+  // Always render the new hero popup
+  return renderHero();
 
   return (
     <div className="h-full w-full overflow-hidden bg-white" role="document">

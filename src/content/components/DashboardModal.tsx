@@ -271,23 +271,135 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
                 background: '#ffffff',
               }}
             >
-              <div
-                style={{ fontWeight: 700, color: '#0f172a', marginBottom: 8 }}
-              >
-                Daily Streak
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span
+                  aria-hidden
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 999,
+                    background: 'rgba(59,130,246,0.12)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563eb',
+                  }}
+                >
+                  {/* flame icon */}
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M14 9a4 4 0 00-8 0c0 5 4 7 4 7s4-2 4-7z" />
+                    <path d="M12 12a2 2 0 00-4 0c0 3 2 4 2 4s2-1 2-4z" />
+                  </svg>
+                </span>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>
+                    Daily Streak
+                  </div>
+                  <div style={{ color: '#64748b', fontSize: 12 }}>
+                    Keep the rhythm of reflection
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 10,
+                  marginTop: 12,
+                }}
+              >
                 <div
-                  style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}
+                  style={{ fontSize: 30, fontWeight: 900, color: '#0f172a' }}
                 >
                   {streak?.current ?? 0}
                 </div>
-                <div style={{ color: '#64748b', fontSize: 12 }}>
+                <div
+                  style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}
+                >
                   {streak?.current === 1 ? 'day' : 'days'}
                 </div>
               </div>
-              <div style={{ color: '#64748b', fontSize: 12, marginTop: 6 }}>
-                Last: {streak?.lastReflectionDate ?? '—'}
+
+              {/* Weekly progress bar (out of 7) */}
+              <div style={{ marginTop: 10 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 6,
+                  }}
+                >
+                  <span
+                    style={{ color: '#334155', fontSize: 12, fontWeight: 600 }}
+                  >
+                    This week
+                  </span>
+                  <span style={{ color: '#64748b', fontSize: 12 }}>
+                    {Math.min(streak?.current ?? 0, 7)} / 7
+                  </span>
+                </div>
+                <div
+                  aria-label="Weekly streak progress"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={7}
+                  aria-valuenow={Math.min(streak?.current ?? 0, 7)}
+                  style={{
+                    height: 10,
+                    background: '#e2e8f0',
+                    borderRadius: 999,
+                    overflow: 'hidden',
+                    position: 'relative',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${(Math.min(streak?.current ?? 0, 7) / 7) * 100}%`,
+                      background: 'linear-gradient(90deg, #60a5fa, #3b82f6)',
+                      height: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Mini badges row (7 slots) */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                {Array.from({ length: 7 }).map((_, i) => {
+                  const filled = i < Math.min(streak?.current ?? 0, 7);
+                  return (
+                    <span
+                      key={i}
+                      aria-hidden
+                      title={filled ? 'Completed' : 'Pending'}
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 999,
+                        background: filled ? '#60a5fa' : '#e2e8f0',
+                        border: filled
+                          ? '1px solid rgba(30,64,175,0.2)'
+                          : '1px solid rgba(15,23,42,0.08)',
+                        display: 'inline-block',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 10 }}>
+                Last reflection: {streak?.lastReflectionDate ?? '—'}
               </div>
             </div>
             <CalmStatsLite
@@ -312,12 +424,33 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
                 style={{
                   border: '1px solid rgba(15, 23, 42, 0.08)',
                   borderRadius: 16,
-                  padding: 16,
-                  color: '#64748b',
+                  padding: 24,
                   background: '#ffffff',
+                  textAlign: 'center',
                 }}
               >
-                No reflections yet. Start reading and Reflect.
+                <img
+                  src={chrome.runtime.getURL('icons/reflexa.png')}
+                  alt=""
+                  width={40}
+                  height={40}
+                  style={{ borderRadius: 999, marginBottom: 8, opacity: 0.9 }}
+                />
+                <div
+                  style={{ fontWeight: 800, color: '#0f172a', marginBottom: 6 }}
+                >
+                  No reflections yet
+                </div>
+                <div
+                  style={{ color: '#475569', fontSize: 13, marginBottom: 8 }}
+                >
+                  Start reading an article. When the lotus appears, click
+                  <span style={{ fontWeight: 700 }}> Reflect</span>.
+                </div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>
+                  Tip: You can adjust the dwell threshold in Settings (default
+                  10s).
+                </div>
               </div>
             ) : (
               <ul
@@ -404,33 +537,7 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
             )}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              marginTop: 12,
-            }}
-          >
-            <button
-              type="button"
-              className="reflexa-btn reflexa-btn--ghost"
-              onClick={() => {
-                try {
-                  const url = chrome.runtime.getURL('src/popup/index.html');
-                  window.open(url, '_blank');
-                } catch {
-                  // no-op
-                }
-              }}
-              style={{
-                border: '1px solid rgba(15,23,42,0.15)',
-                color: '#0f172a',
-                background: '#ffffff',
-              }}
-            >
-              Open full dashboard
-            </button>
-          </div>
+          {/* Removed "Open full dashboard" per design */}
         </div>
 
         <div

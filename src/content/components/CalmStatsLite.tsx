@@ -277,15 +277,55 @@ export const CalmStatsLite: React.FC<CalmStatsLiteProps> = ({
               padding: '0 10px',
             }}
           >
-            <span style={{ color: '#475569', fontSize: 12 }}>📖 Reading</span>
+            <span
+              style={{
+                color: '#475569',
+                fontSize: 12,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M3 6h7a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V6z" />
+                <path d="M12 18V8a2 2 0 0 1 2-2h7v10a2 2 0 0 1-2 2h-7" />
+              </svg>
+              <span>Reading</span>
+            </span>
             <span
               style={{
                 color: '#ffffff',
                 fontSize: 12,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 textShadow: '0 1px 1px rgba(0,0,0,0.25)',
               }}
             >
-              🪷 Reflecting
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 7c-2 2-6 2-8 2 2 2 3 6 8 8 5-2 6-6 8-8-2 0-6 0-8-2z" />
+              </svg>
+              <span>Reflecting</span>
             </span>
           </div>
         </div>

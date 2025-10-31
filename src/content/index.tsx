@@ -1594,6 +1594,17 @@ const setupMessageListener = () => {
             void showDashboardModal();
             sendResponse({ success: true });
             return true;
+          } else if (type === 'startReflection') {
+            // Mirror lotus click behavior
+            void (async () => {
+              try {
+                await initiateReflectionFlow();
+                sendResponse({ success: true });
+              } catch {
+                sendResponse({ success: false });
+              }
+            })();
+            return true;
           }
         }
       } catch (e) {

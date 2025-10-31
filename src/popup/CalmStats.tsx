@@ -203,11 +203,36 @@ const CalmStatsComponent: React.FC<CalmStatsProps> = ({
 
           {/* Labels */}
           <div className="relative flex h-full items-center justify-between px-3">
-            <span className="text-calm-700 text-xs font-medium">
-              📖 Reading
+            <span className="text-calm-700 inline-flex items-center gap-1.5 text-xs font-medium">
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M3 6h7a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V6z" />
+                <path d="M12 18V8a2 2 0 0 1 2-2h7v10a2 2 0 0 1-2 2h-7" />
+              </svg>
+              <span>Reading</span>
             </span>
-            <span className="text-xs font-medium text-white drop-shadow-sm">
-              🪷 Reflecting
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white drop-shadow-sm">
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M12 7c-2 2-6 2-8 2 2 2 3 6 8 8 5-2 6-6 8-8-2 0-6 0-8-2z" />
+              </svg>
+              <span>Reflecting</span>
             </span>
           </div>
         </div>

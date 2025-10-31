@@ -471,10 +471,19 @@ input[disabled] {
   outline-offset: 4px;
 }
 
-/* When NOT expanded (circular button), make SVG much bigger to fill the button */
-.reflexa-nudge-wrapper:not([data-open='true']) .reflexa-lotus-nudge svg {
-  width: 56px;
-  height: 56px;
+/* Make SVG bigger by default in circular button */
+.reflexa-lotus-nudge svg {
+  width: 60px;
+  height: 60px;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease;
+}
+
+/* When expanded into pill, make SVG smaller */
+.reflexa-nudge-wrapper[data-open='true'] .reflexa-lotus-nudge svg {
+  width: 48px;
+  height: 48px;
 }
 
 /* Respect reduced motion preferences */

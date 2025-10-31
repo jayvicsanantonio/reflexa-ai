@@ -12,8 +12,9 @@
 html,
 body,
 #root {
-  width: 720px;
-  height: 600px;
+  /* Compact popup to complement the pill size */
+  width: 520px;
+  height: 200px;
   margin: 0;
 }
 

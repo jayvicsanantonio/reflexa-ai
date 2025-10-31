@@ -132,7 +132,8 @@ export type MessageType =
   | 'getStreak'
   | 'deleteReflection'
   | 'exportReflections'
-  | 'openDashboardInActiveTab';
+  | 'openDashboardInActiveTab'
+  | 'startReflectInActiveTab';
 
 /**
  * Message structure for background worker communication

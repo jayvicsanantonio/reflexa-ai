@@ -68,6 +68,8 @@ function isValidMessage(message: unknown): message is Message {
     'updateSettings',
     'resetSettings',
     'getUsageStats',
+    'openDashboardInActiveTab',
+    'startReflectInActiveTab',
   ];
 
   return validTypes.includes(message.type as MessageType);
@@ -192,6 +194,9 @@ async function handleMessage(message: Message): Promise<AIResponse> {
 
     case 'openDashboardInActiveTab':
       return handleOpenDashboardInActiveTab();
+
+    case 'startReflectInActiveTab':
+      return handleStartReflectInActiveTab();
 
     default:
       return createErrorResponse(
@@ -1159,6 +1164,61 @@ async function handleOpenDashboardInActiveTab(): Promise<AIResponse<boolean>> {
     }
     return createErrorResponse(
       'Unable to open overlay on this page',
+      Date.now() - startTime,
+      'ui'
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'ui'
+    );
+  }
+}
+
+/**
+ * Ask the active tab's content script to start the reflection flow.
+ */
+async function handleStartReflectInActiveTab(): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
+  try {
+    const delivered = await new Promise<boolean>((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        const tab = tabs[0];
+        const tabId = typeof tab?.id === 'number' ? tab.id : null;
+        const url = tab?.url ?? '';
+        if (
+          !tabId ||
+          url.startsWith('chrome://') ||
+          url.startsWith('edge://') ||
+          url.includes('chrome.google.com/webstore')
+        ) {
+          resolve(false);
+          return;
+        }
+        try {
+          const resp: unknown = await chrome.tabs.sendMessage(tabId, {
+            type: 'startReflection',
+          });
+          const ok =
+            resp &&
+            typeof resp === 'object' &&
+            resp !== null &&
+            'success' in resp
+              ? Boolean((resp as { success?: boolean }).success)
+              : false;
+          resolve(ok);
+        } catch {
+          resolve(false);
+        }
+      });
+    });
+
+    if (delivered) {
+      return createSuccessResponse(true, 'ui', Date.now() - startTime);
+    }
+    return createErrorResponse(
+      'Unable to start reflection on this page',
       Date.now() - startTime,
       'ui'
     );
