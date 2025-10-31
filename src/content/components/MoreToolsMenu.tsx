@@ -393,6 +393,18 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Debug: Log proofreader availability
+  useEffect(() => {
+    console.log('[MoreToolsMenu] Proofreader debug:', {
+      currentScreen,
+      proofreaderAvailable,
+      onProofread: !!onProofread,
+      hasReflectionContent,
+      shouldShow:
+        currentScreen === 'reflection' && proofreaderAvailable && !!onProofread,
+    });
+  }, [currentScreen, proofreaderAvailable, onProofread, hasReflectionContent]);
+
   // Keep internal selection in sync if parent preference changes
   useEffect(() => {
     if (defaultTargetLanguage && defaultTargetLanguage !== selectedLanguage) {
