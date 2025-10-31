@@ -53,7 +53,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   currentFormat = 'bullets',
   isLoadingSummary = false,
   onProofread,
-  onTranslateToEnglish,
+  onTranslateToEnglish: _onTranslateToEnglish,
   onTranslate,
   isTranslating,
   ambientMuted = false,
@@ -228,28 +228,24 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         ← Back
       </button>
       {step < 3 ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          {onFormatChange && step === 1 && (
-            <button
-              type="button"
-              onClick={() =>
-                void onFormatChange(
-                  currentFormat === 'bullets' ? 'paragraph' : 'bullets'
-                )
-              }
-              aria-label="Toggle summary format"
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(226,232,240,0.25)',
-                color: '#e2e8f0',
-                borderRadius: 999,
-                padding: '8px 12px',
-                cursor: 'pointer',
-              }}
-            >
-              {currentFormat === 'bullets' ? 'Paragraph' : 'Bullets'}
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowMore((s) => !s)}
+            aria-expanded={showMore}
+            aria-label="More options"
+            style={{
+              background: 'rgba(2,6,23,0.4)',
+              border: '1px solid rgba(226,232,240,0.25)',
+              color: '#e2e8f0',
+              borderRadius: 999,
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+          >
+            ··· More
+          </button>
           <button
             type="button"
             onClick={next}
@@ -521,78 +517,108 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
         {Nav}
 
-        {/* Tucked More panel */}
-        <div
-          style={{
-            position: 'absolute',
-            right: 24,
-            top: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setShowMore((s) => !s)}
-            aria-expanded={showMore}
-            aria-label="More options"
-            style={{
-              background: 'rgba(2,6,23,0.4)',
-              border: '1px solid rgba(226,232,240,0.25)',
-              color: '#e2e8f0',
-              borderRadius: 999,
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: 12,
-            }}
-          >
-            ··· More
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const next = !isMuted;
-              setIsMuted(next);
-              onToggleAmbient?.(next);
-            }}
-            aria-label={isMuted ? 'Unmute ambient' : 'Mute ambient'}
-            style={{
-              background: 'rgba(2,6,23,0.4)',
-              border: '1px solid rgba(226,232,240,0.25)',
-              color: '#e2e8f0',
-              borderRadius: 999,
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: 12,
-            }}
-          >
-            {isMuted ? 'Unmute' : 'Mute'}
-          </button>
-        </div>
-
+        {/* More panel (bottom-right) */}
         {showMore && (
           <div
             style={{
               position: 'absolute',
               right: 24,
-              top: 56,
-              width: 300,
-              background: 'rgba(2,8,23,0.75)',
+              bottom: 72,
+              width: 340,
+              background: 'rgba(2,8,23,0.8)',
               border: '1px solid rgba(226,232,240,0.18)',
               borderRadius: 12,
               boxShadow: '0 20px 50px rgba(0,0,0,0.45)',
               color: '#e2e8f0',
-              padding: 12,
+              padding: 14,
               backdropFilter: 'blur(10px) saturate(110%)',
             }}
           >
-            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 10 }}>
               Tools
             </div>
 
+            {/* Summary format (only on Summary step) */}
+            <div style={{ marginBottom: 12, opacity: step === 1 ? 1 : 0.7 }}>
+              <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
+                Summary format
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  disabled={!onFormatChange || step !== 1}
+                  onClick={() => {
+                    if (onFormatChange) void onFormatChange('bullets');
+                  }}
+                  style={{
+                    background:
+                      onFormatChange && currentFormat === 'bullets'
+                        ? 'rgba(59,130,246,0.25)'
+                        : 'transparent',
+                    border: '1px solid rgba(226,232,240,0.25)',
+                    color: '#e2e8f0',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    cursor:
+                      onFormatChange && step === 1 ? 'pointer' : 'default',
+                  }}
+                >
+                  Bullets
+                </button>
+                <button
+                  type="button"
+                  disabled={!onFormatChange || step !== 1}
+                  onClick={() => {
+                    if (onFormatChange) void onFormatChange('paragraph');
+                  }}
+                  style={{
+                    background:
+                      onFormatChange && currentFormat === 'paragraph'
+                        ? 'rgba(59,130,246,0.25)'
+                        : 'transparent',
+                    border: '1px solid rgba(226,232,240,0.25)',
+                    color: '#e2e8f0',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    cursor:
+                      onFormatChange && step === 1 ? 'pointer' : 'default',
+                  }}
+                >
+                  Paragraph
+                </button>
+              </div>
+            </div>
+
+            {/* Ambient sound */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
+                Ambient sound
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !isMuted;
+                    setIsMuted(next);
+                    onToggleAmbient?.(next);
+                  }}
+                  style={{
+                    background: isMuted
+                      ? 'transparent'
+                      : 'rgba(59,130,246,0.25)',
+                    border: '1px solid rgba(226,232,240,0.25)',
+                    color: '#e2e8f0',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                  }}
+                >
+                  {isMuted ? 'Unmute' : 'Mute'}
+                </button>
+              </div>
+            </div>
+
             {/* Translation */}
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 6 }}>
               <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
                 Translate summary
               </div>
@@ -631,29 +657,12 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 >
                   {isTranslating ? '…' : 'Translate'}
                 </button>
-                <button
-                  type="button"
-                  disabled={!onTranslateToEnglish || isTranslating}
-                  onClick={() =>
-                    onTranslateToEnglish && void onTranslateToEnglish()
-                  }
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor: onTranslateToEnglish ? 'pointer' : 'default',
-                  }}
-                >
-                  English
-                </button>
               </div>
             </div>
 
             {/* Proofread current answer */}
             {(step === 2 || step === 3) && (
-              <div style={{ marginBottom: 4 }}>
+              <div>
                 <div
                   style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}
                 >
