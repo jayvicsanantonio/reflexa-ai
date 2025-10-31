@@ -257,7 +257,7 @@ export const App: React.FC = () => {
               value={settings.dwellThreshold}
               min={TIMING.DWELL_MIN}
               max={TIMING.DWELL_MAX}
-              step={5}
+              step={10}
               unit=" seconds"
               description="How long you need to read before seeing the reflection prompt (0 = instant)"
               onChange={(value) => updateSetting('dwellThreshold', value)}

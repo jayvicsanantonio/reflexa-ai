@@ -147,7 +147,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
           </div>
           <div
             className="reflexa-settings-row__desc"
-            style={{ color: '#64748b', fontSize: 13 }}
+            style={{ color: '#334155', fontSize: 13 }}
           >
             {desc}
           </div>
@@ -419,7 +419,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
               >
                 Settings
               </div>
-              <div style={{ color: '#64748b', fontSize: 12 }}>
+              <div style={{ color: '#334155', fontSize: 12 }}>
                 Preferences & Features
               </div>
             </div>
@@ -691,6 +691,14 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
                           void updateSetting('privacyMode', 'local')
                         }
                         className="reflexa-btn reflexa-btn--ghost"
+                        style={{
+                          border: '1px solid rgba(15,23,42,0.15)',
+                          color: '#0f172a',
+                          background:
+                            settings.privacyMode === 'local'
+                              ? '#e2e8f0'
+                              : '#ffffff',
+                        }}
                       >
                         Local
                       </button>
@@ -701,6 +709,14 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
                           void updateSetting('privacyMode', 'sync')
                         }
                         className="reflexa-btn reflexa-btn--ghost"
+                        style={{
+                          border: '1px solid rgba(15,23,42,0.15)',
+                          color: '#0f172a',
+                          background:
+                            settings.privacyMode === 'sync'
+                              ? '#e2e8f0'
+                              : '#ffffff',
+                        }}
                       >
                         Sync
                       </button>

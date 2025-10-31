@@ -194,9 +194,10 @@ function validateSettings(settings: unknown): void {
     );
   }
 
-  if (dwellThreshold < 30 || dwellThreshold > 300) {
+  // New validated range: 0–60 seconds (0 = instant)
+  if (dwellThreshold < 0 || dwellThreshold > 60) {
     throw new ValidationError(
-      'dwellThreshold must be between 30 and 300',
+      'dwellThreshold must be between 0 and 60',
       'dwellThreshold',
       dwellThreshold
     );

@@ -17,6 +17,122 @@ This document summarizes prioritized UX/UI improvements across the popup dashboa
 
 ---
 
+## Overall Look & Feel Revamp (Implemented)
+
+What changed in the content experience to match the requested direction:
+
+- Floating lotus → pill on hover
+  - Position: lower‑left by default; responsive variants supported.
+  - Hover/focus expands fluidly into a pill that reveals the “Reflect” label.
+  - Keyboard: Enter/Space triggers reflect; tooltips on quick actions.
+- Vertical quick actions column (stable hover)
+  - Actions: Dashboard (top), AI Status (middle), Settings (closest to lotus).
+  - Stability: Wrapper hit‑area extends vertically so the stack doesn’t collapse when cursor travels upward along the column.
+  - Tooltips: Appear on hover/focus with accessible labels.
+- Modals restyle (centered cards)
+  - Settings and AI Status are centered, white card surfaces with rounded corners, soft border/shadow, and subtle entrance animation.
+  - Opaque cards over a soft blurred backdrop; content behind remains visible vaguely.
+  - Z‑index: Cards render above backdrop and the toast renders above everything.
+- Help → AI Status
+  - “Help” quick action replaced with “AI Status” (brain icon) and a status modal that matches the provided visual reference.
+  - Includes an “Experimental Mode Active” banner when enabled.
+
+Notes
+- The visuals align to the project’s zen/lotus palette; color tokens are reused where present.
+- Reduced‑motion preference disables non‑essential animations.
+
+Key files
+- Content entry and styling injection: `src/content/index.tsx:88` (LOTUS_NUDGE_STYLES)
+- Lotus UI and quick actions: `src/content/components/LotusNudge.tsx`
+- Settings modal: `src/content/components/QuickSettingsModal.tsx`
+- AI Status modal: `src/content/components/AIStatusModal.tsx`
+- Shared styles/utilities: `src/content/styles.css`
+
+---
+
+## Settings UX and Behavior (Implemented)
+
+- Live updates without reload
+  - Changing any control immediately persists via `chrome.runtime.sendMessage('updateSettings')` and broadcasts `settingsUpdated` to all tabs.
+  - Content script applies updates in place: dwell threshold resets, audio fades in/out, overlay refreshes.
+  - Visual feedback: only a lightweight toast “Settings updated”; no inline “Saving/Saved” text.
+- Visible dependencies (no hidden options)
+  - All options are visible; dependent ones are disabled with an info tooltip (e.g., Translation‑dependent controls).
+  - Examples include Translation, Voice input, and Proofreading.
+- Defaults and ranges (updated)
+  - Dwell Threshold: 0–60s, step 10, default 10s.
+  - Voice Auto‑stop Delay: 0–60s, step 10 (UI in seconds), stored in ms; default 10s.
+  - Experimental Mode: enabled by default.
+- Storage mode
+  - Default remains `local`. `sync` is available for portability but is optional and clearly labeled; consider removing from quick settings if confusing.
+
+Open question
+- “Pause nudges on this …” microcopy should be explicit. Recommendation: “Pause on this site for 15 minutes” or “Pause on this page for 15 minutes”.
+
+---
+
+## AI Status Popover (Implemented)
+
+- Replaces the former Help modal and quick action.
+- Styled per reference: light card, header icon/badge, capability grid, and setup steps.
+- Always above blur backdrop (explicit content z‑index) and keyboard accessible; focus trapped; ESC closes.
+
+Enhancements to consider
+- Add per‑API brand icons instead of the generic circle glyphs in capability cards.
+- Optional “Refresh status” button with a tiny spinner to re‑check availability.
+
+---
+
+## Accessibility & Interaction
+
+- Dialogs declare `role="dialog"` and `aria-modal="true"` and are focus‑trapped with ESC to close.
+- Switches expose `role="switch"` and toggle with Enter/Space; disabled states are announced.
+- Tooltips are hover/focus aware and never trap focus.
+- Hover stability for the quick‑action rail prevents flicker when traveling vertically from pill → actions.
+
+---
+
+## Performance & Implementation Notes
+
+- Shadow DOM is used for injected UIs; styles are linked once per overlay/modal.
+- Animations are modest and disabled under reduced motion to respect user preference.
+- Backdrop and toast stacking were tuned so the toast is always visible above overlays.
+
+---
+
+## Next Steps (Polish)
+
+- Settings polish
+  - Add small feature icons per row (brand‑aligned) and unify section headers to match AI Status typography.
+  - Extract shared modal layout styles into CSS classes to reduce inline styles.
+- Quick actions rail
+  - Compute wrapper vertical padding dynamically from the number of actions (currently fixed to accommodate three).
+- Tests
+  - Dialog a11y: roles, aria‑modal, ESC close, focus trap.
+  - Live updates: verify `settingsUpdated` triggers dwell/audio/overlay changes.
+  - Quick‑action hover stability: ensure visibility across the rail’s y‑axis.
+
+---
+
+## Build & Test Status
+
+- Local verification
+  - `npm run build`: passes (type‑check, lint, format, test, Vite build).
+  - `npm run test`: 494 passed, 21 skipped.
+
+---
+
+## Appendix — How Settings Persist and Apply
+
+- Persistence
+  - Saved in `chrome.storage.local` by default (optional `chrome.storage.sync` if selected).
+- Application
+  - Background updates values, then broadcasts a `settingsUpdated` message.
+  - Content scripts apply changes immediately (no reloads).
+
+
+---
+
 ## Quick Wins (Low Effort → High Impact)
 
 1) Add Options shortcut in popup header

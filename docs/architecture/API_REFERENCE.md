@@ -599,7 +599,7 @@ Updates one or more settings.
 
 ```typescript
 await settingsManager.updateSettings({
-  dwellThreshold: 90,
+  dwellThreshold: 10,
   enableSound: false,
 });
 ```
