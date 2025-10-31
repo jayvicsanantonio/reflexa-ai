@@ -1069,6 +1069,25 @@ async function handleUpdateSettings(
       payload as Partial<Settings>
     );
 
+    // Broadcast settings update to all tabs so content scripts can react live
+    try {
+      chrome.tabs.query({}, (tabs) => {
+        for (const tab of tabs) {
+          if (typeof tab.id === 'number') {
+            // Best-effort fire-and-forget; ignore failures for tabs without our content script
+            void chrome.tabs
+              .sendMessage(tab.id, {
+                type: 'settingsUpdated',
+                data: updatedSettings,
+              })
+              .catch(() => undefined);
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Broadcast of settingsUpdated failed:', e);
+    }
+
     return createSuccessResponse(
       updatedSettings,
       'storage',

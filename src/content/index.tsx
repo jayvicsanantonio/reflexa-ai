@@ -1521,11 +1521,65 @@ const hideSettingsModal = () => {
 const setupMessageListener = () => {
   chrome.runtime.onMessage.addListener(
     (message: unknown, _sender, sendResponse) => {
-      console.log('Content script received message:', message);
+      try {
+        if (message && typeof message === 'object' && 'type' in message) {
+          const { type } = message as { type: string };
+          if (type === 'settingsUpdated') {
+            const updated = (message as { data?: unknown }).data as
+              | Settings
+              | undefined;
+            if (updated) {
+              console.log('Applying live settings update:', updated);
+              currentSettings = updated;
+              // Live-update dwell tracker so changes take effect immediately
+              if (dwellTracker) {
+                dwellTracker.setDwellThreshold(updated.dwellThreshold);
+                // Reset to apply new threshold from now
+                dwellTracker.reset();
+              }
+              // Live-update audio behavior
+              if (audioManager) {
+                audioManager.updateSettings(updated);
+              } else if (updated.enableSound) {
+                audioManager = new AudioManager(updated);
+              }
+              if (isOverlayVisible && audioManager) {
+                if (updated.enableSound) {
+                  void audioManager.playAmbientLoopGracefully(300);
+                } else {
+                  void audioManager.stopAmbientLoopGracefully(300);
+                }
+              }
 
-      // Handle different message types if needed
-      // For now, we primarily use sendMessage with responses
-      // This listener is here for future extensibility
+              // If overlay is mounted, re-render with updated settings to reflect toggles immediately
+              if (isOverlayVisible && overlayRoot && overlayContainer) {
+                overlayRoot.render(
+                  <ReflectModeOverlay
+                    summary={currentSummary}
+                    prompts={currentPrompts}
+                    onSave={handleSaveReflection}
+                    onCancel={handleCancelReflection}
+                    settings={currentSettings ?? getDefaultSettings()}
+                    onProofread={handleProofread}
+                    onFormatChange={handleFormatChange}
+                    currentFormat={currentSummaryFormat}
+                    isLoadingSummary={isLoadingSummary}
+                    languageDetection={currentLanguageDetection ?? undefined}
+                    onTranslateToEnglish={handleTranslateToEnglish}
+                    onTranslate={handleTranslate}
+                    isTranslating={isTranslating}
+                    onRewrite={handleRewrite}
+                    isRewriting={isRewritingArray}
+                    proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+                  />
+                );
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Error handling incoming message in content script:', e);
+      }
 
       sendResponse({ success: true });
       return true;

@@ -601,20 +601,10 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
           )}
         </div>
 
-        <div className="reflexa-modal__footer">
-          <button
-            type="button"
-            onClick={() => {
-              try {
-                void chrome.runtime.openOptionsPage();
-              } catch {
-                void chrome.runtime.sendMessage({ type: 'openOptions' });
-              }
-            }}
-            className="reflexa-btn reflexa-btn--ghost"
-          >
-            Open full settings
-          </button>
+        <div
+          className="reflexa-modal__footer"
+          style={{ justifyContent: 'flex-end' }}
+        >
           <button
             type="button"
             onClick={onClose}
