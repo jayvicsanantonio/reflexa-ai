@@ -742,43 +742,41 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
               </div>
             )}
 
-          {/* Proofread (shown in reflection screen when proofreader is available) */}
-          {currentScreen === 'reflection' &&
-            proofreaderAvailable &&
-            onProofread && (
-              <div className="reflexa-more-tools__section">
-                <div className="reflexa-more-tools__section-title">Polish</div>
-                <button
-                  type="button"
-                  className="reflexa-more-tools__option"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('[MoreToolsMenu] Proofread clicked');
-                    handleProofreadClick();
-                    handleClose();
-                  }}
-                  disabled={
-                    proofreadDisabled || isProofreading || !hasReflectionContent
-                  }
-                  role="menuitem"
-                  data-testid="proofread-option"
-                >
-                  <div className="reflexa-more-tools__option-content">
-                    <span className="reflexa-more-tools__option-icon">
-                      <EditIcon />
+          {/* Proofread (shown in reflection screen when proofreading is enabled) */}
+          {currentScreen === 'reflection' && onProofread && (
+            <div className="reflexa-more-tools__section">
+              <div className="reflexa-more-tools__section-title">Polish</div>
+              <button
+                type="button"
+                className="reflexa-more-tools__option"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('[MoreToolsMenu] Proofread clicked');
+                  handleProofreadClick();
+                  handleClose();
+                }}
+                disabled={
+                  proofreadDisabled || isProofreading || !hasReflectionContent
+                }
+                role="menuitem"
+                data-testid="proofread-option"
+              >
+                <div className="reflexa-more-tools__option-content">
+                  <span className="reflexa-more-tools__option-icon">
+                    <EditIcon />
+                  </span>
+                  <div>
+                    <span className="reflexa-more-tools__option-label">
+                      {isProofreading ? 'Proofreading...' : 'Proofread'}
                     </span>
-                    <div>
-                      <span className="reflexa-more-tools__option-label">
-                        {isProofreading ? 'Proofreading...' : 'Proofread'}
-                      </span>
-                      <span className="reflexa-more-tools__option-description">
-                        Check grammar and spelling
-                      </span>
-                    </div>
+                    <span className="reflexa-more-tools__option-description">
+                      Check grammar and spelling
+                    </span>
                   </div>
-                </button>
-              </div>
-            )}
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Divider above Tools */}
           <div className="reflexa-more-tools__divider" />
