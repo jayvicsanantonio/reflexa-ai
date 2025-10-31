@@ -321,7 +321,7 @@ const formatOptions: FormatOption[] = [
   },
   {
     value: 'headline-bullets',
-    label: 'Headline + Bullets',
+    label: 'Headline',
     description: 'Headline with bullet points',
   },
 ];
@@ -755,8 +755,10 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 <button
                   type="button"
                   className="reflexa-more-tools__tile"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onToggleAmbient(!ambientMuted);
+                    handleClose();
                   }}
                   role="menuitem"
                   data-testid="ambient-sound-toggle"
@@ -773,8 +775,10 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 <button
                   type="button"
                   className="reflexa-more-tools__tile"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onToggleReduceMotion(!reduceMotion);
+                    handleClose();
                   }}
                   role="menuitem"
                   data-testid="reduce-motion-toggle"

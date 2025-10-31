@@ -108,10 +108,9 @@ describe('WriterManager', () => {
 
       await manager.generate('test topic', options, context);
 
-      expect((globalThis as any).Writer.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sharedContext: expect.stringContaining(context),
-        })
+      // Context is now passed in the prompt, not as sharedContext
+      expect(mockWriter.write).toHaveBeenCalledWith(
+        expect.stringContaining(context)
       );
     });
 
@@ -121,9 +120,9 @@ describe('WriterManager', () => {
 
       await manager.generate('test topic', options, context);
 
+      // Context is prepended to the topic in the prompt
       expect(mockWriter.write).toHaveBeenCalledWith(
-        'test topic',
-        expect.objectContaining({ context })
+        `Context: ${context}\n\ntest topic`
       );
     });
   });

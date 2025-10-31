@@ -292,14 +292,9 @@ export class WriterManager {
     const apiTone = this.mapTone(options.tone);
     const apiLength = this.mapLength(options.length);
 
-    // Build shared context from provided context
-    const sharedContext = context
-      ? `Context: ${context}\n\nGenerate a reflective paragraph about: ${topic}`
-      : `Generate a reflective paragraph about: ${topic}`;
-
-    // Create session with configuration
+    // Don't use sharedContext - pass everything as the input to write()
+    // This ensures the Writer API generates content based on the full prompt
     const session = await this.createSession({
-      sharedContext,
       tone: apiTone,
       format: 'plain-text',
       length: apiLength,
@@ -310,10 +305,11 @@ export class WriterManager {
       throw new Error('Failed to create writer session');
     }
 
-    // Generate draft - pass context in the options parameter per API spec
-    const result = await session.write(topic, {
-      context: context,
-    });
+    // Build the full prompt to pass to write()
+    const fullPrompt = context ? `Context: ${context}\n\n${topic}` : topic;
+
+    // Generate draft - pass the full prompt as input
+    const result = await session.write(fullPrompt);
 
     // Format response as clean paragraph text
     const cleanedText = result.trim();

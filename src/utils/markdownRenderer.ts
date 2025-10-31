@@ -11,11 +11,17 @@
 export function renderMarkdown(markdown: string): string {
   let html = markdown;
 
+  // Remove markdown headings (##, ###, etc.) - just keep the text
+  html = html.replace(/^#{1,6}\s+/gm, '');
+
+  // Remove list markers (* or - at start of line)
+  html = html.replace(/^[*-]\s+/gm, '');
+
   // Bold: **text** or __text__
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
 
-  // Italic: *text* or _text_
+  // Italic: *text* or _text_ (but not list markers)
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   html = html.replace(/_(.+?)_/g, '<em>$1</em>');
 
