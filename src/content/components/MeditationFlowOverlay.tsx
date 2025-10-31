@@ -157,41 +157,38 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   ];
 
   // Voice input handlers for answer field 0
-  const handleTranscript0 = useCallback(
-    (text: string, isFinal: boolean) => {
-      if (isFinal) {
-        setAnswers((prev) => {
-          const newAnswers = [...prev];
-          const currentText = newAnswers[0] || '';
-          newAnswers[0] = currentText
-            ? `${currentText} ${text.trim()}`
-            : text.trim();
-          lastTextValueRef.current[0] = newAnswers[0];
-          return newAnswers;
-        });
+  const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      setAnswers((prev) => {
+        const newAnswers = [...prev];
+        const currentText = newAnswers[0] || '';
+        newAnswers[0] = currentText
+          ? `${currentText} ${text.trim()}`
+          : text.trim();
+        lastTextValueRef.current[0] = newAnswers[0];
+        return newAnswers;
+      });
 
-        setVoiceInputStates((prev) => {
-          const newStates = [...prev];
-          newStates[0].interimText = '';
-          return newStates;
-        });
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = '';
+        return newStates;
+      });
 
-        // Show voice enhancement prompt if rewriter is available
-        if (rewriterAvailable && text.trim().length > 30) {
-          setTimeout(() => {
-            setShowVoiceEnhancePrompt({ show: true, index: 0 });
-          }, 1000);
-        }
-      } else {
-        setVoiceInputStates((prev) => {
-          const newStates = [...prev];
-          newStates[0].interimText = text;
-          return newStates;
-        });
-      }
-    },
-    [rewriterAvailable]
-  );
+      // Voice enhancement prompt disabled
+      // if (rewriterAvailable && text.trim().length > 30) {
+      //   setTimeout(() => {
+      //     setShowVoiceEnhancePrompt({ show: true, index: 0 });
+      //   }, 1000);
+      // }
+    } else {
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
 
   const handleVoiceError0 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 0):', error);
@@ -221,41 +218,38 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   });
 
   // Voice input handlers for answer field 1
-  const handleTranscript1 = useCallback(
-    (text: string, isFinal: boolean) => {
-      if (isFinal) {
-        setAnswers((prev) => {
-          const newAnswers = [...prev];
-          const currentText = newAnswers[1] || '';
-          newAnswers[1] = currentText
-            ? `${currentText} ${text.trim()}`
-            : text.trim();
-          lastTextValueRef.current[1] = newAnswers[1];
-          return newAnswers;
-        });
+  const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      setAnswers((prev) => {
+        const newAnswers = [...prev];
+        const currentText = newAnswers[1] || '';
+        newAnswers[1] = currentText
+          ? `${currentText} ${text.trim()}`
+          : text.trim();
+        lastTextValueRef.current[1] = newAnswers[1];
+        return newAnswers;
+      });
 
-        setVoiceInputStates((prev) => {
-          const newStates = [...prev];
-          newStates[1].interimText = '';
-          return newStates;
-        });
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = '';
+        return newStates;
+      });
 
-        // Show voice enhancement prompt if rewriter is available
-        if (rewriterAvailable && text.trim().length > 30) {
-          setTimeout(() => {
-            setShowVoiceEnhancePrompt({ show: true, index: 1 });
-          }, 1000);
-        }
-      } else {
-        setVoiceInputStates((prev) => {
-          const newStates = [...prev];
-          newStates[1].interimText = text;
-          return newStates;
-        });
-      }
-    },
-    [rewriterAvailable]
-  );
+      // Voice enhancement prompt disabled
+      // if (rewriterAvailable && text.trim().length > 30) {
+      //   setTimeout(() => {
+      //     setShowVoiceEnhancePrompt({ show: true, index: 1 });
+      //   }, 1000);
+      // }
+    } else {
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
 
   const handleVoiceError1 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 1):', error);
@@ -1038,22 +1032,45 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               <h2 style={{ fontSize: 22, margin: '0 0 12px', fontWeight: 800 }}>
                 Summary
               </h2>
-              {isLoadingSummary ? (
-                <div style={{ color: '#cbd5e1' }}>Generating…</div>
-              ) : (
-                <div
-                  style={{
-                    color: '#f1f5f9',
-                    fontSize: 16,
-                    lineHeight: 1.8,
-                    textAlign: 'left',
-                    margin: '0 auto',
-                    maxWidth: 720,
-                  }}
-                >
-                  {currentFormat === 'bullets' ? (
+              <div
+                style={{
+                  color: '#f1f5f9',
+                  fontSize: 16,
+                  lineHeight: 1.8,
+                  textAlign: 'left',
+                  margin: '0 auto',
+                  maxWidth: 720,
+                  minHeight: 120,
+                }}
+              >
+                {isLoadingSummary ? (
+                  <div style={{ color: '#cbd5e1' }}>Generating…</div>
+                ) : currentFormat === 'bullets' ? (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {summary.map((s, i) => (
+                      <li
+                        key={i}
+                        style={{ marginBottom: 8 }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(s),
+                        }}
+                      />
+                    ))}
+                  </ul>
+                ) : currentFormat === 'headline-bullets' ? (
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 700,
+                        margin: '0 0 16px',
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(summary[0] || ''),
+                      }}
+                    />
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {summary.map((s, i) => (
+                      {summary.slice(1).map((s, i) => (
                         <li
                           key={i}
                           style={{ marginBottom: 8 }}
@@ -1063,16 +1080,16 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         />
                       ))}
                     </ul>
-                  ) : (
-                    <p
-                      style={{ margin: 0 }}
-                      dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(summary.join(' ')),
-                      }}
-                    />
-                  )}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <p
+                    style={{ margin: 0 }}
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(summary.join(' ')),
+                    }}
+                  />
+                )}
+              </div>
             </div>
           )}
 
@@ -1228,9 +1245,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   </div>
                   <div
                     style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                  >
-                    {rewritePreview.rewritten}
-                  </div>
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(rewritePreview.rewritten),
+                    }}
+                  />
                   <div
                     style={{
                       display: 'flex',
@@ -1513,9 +1531,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   </div>
                   <div
                     style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                  >
-                    {rewritePreview.rewritten}
-                  </div>
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(rewritePreview.rewritten),
+                    }}
+                  />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       type="button"

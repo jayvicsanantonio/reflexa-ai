@@ -723,6 +723,44 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                 Your personalized summary will appear shortly.
               </p>
             </div>
+          ) : currentFormat === 'headline-bullets' ? (
+            <>
+              <div
+                className="reflexa-overlay__summary-item"
+                data-testid="summary-headline"
+                style={{ marginBottom: 16 }}
+              >
+                <div className="reflexa-overlay__summary-label">Headline</div>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    margin: 0,
+                    lineHeight: 1.6,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(summary[0] || ''),
+                  }}
+                />
+              </div>
+              {summary.slice(1).map((bullet, index) => (
+                <div
+                  key={index}
+                  className="reflexa-overlay__summary-item"
+                  data-testid="summary-bullet"
+                >
+                  <div className="reflexa-overlay__summary-label">
+                    {summaryLabels[index]}
+                  </div>
+                  <p
+                    className="reflexa-overlay__summary-text"
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(bullet),
+                    }}
+                  />
+                </div>
+              ))}
+            </>
           ) : (
             summary.map((bullet, index) => (
               <div
@@ -784,10 +822,20 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
               </div>
               <div className="reflexa-overlay__rewrite-preview-content">
                 <div className="reflexa-overlay__rewrite-preview-text">
-                  <strong>Original:</strong> {rewritePreview.original}
+                  <strong>Original:</strong>{' '}
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(rewritePreview.original),
+                    }}
+                  />
                 </div>
                 <div className="reflexa-overlay__rewrite-preview-text">
-                  <strong>Rewritten:</strong> {rewritePreview.rewritten}
+                  <strong>Rewritten:</strong>{' '}
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: renderMarkdown(rewritePreview.rewritten),
+                    }}
+                  />
                 </div>
               </div>
             </div>
