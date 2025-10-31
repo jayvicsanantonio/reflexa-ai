@@ -42,7 +42,8 @@ describe('MoreToolsMenu', () => {
 
     expect(screen.getByText('Tools')).toBeTruthy();
     expect(screen.getByTestId('ambient-sound-toggle')).toBeTruthy();
-    expect(screen.getByTestId('translate-summary-option')).toBeTruthy();
+    expect(screen.getByTestId('language-select')).toBeTruthy();
+    expect(screen.getByTestId('translate-apply-button')).toBeTruthy();
   });
 
   it('should show summary format options in summary screen', () => {
@@ -201,13 +202,10 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
-    // Click the translate button to open dropdown
-    const translateOption = screen.getByTestId('translate-summary-option');
-    fireEvent.click(translateOption);
-
-    // Select a language from the dropdown
-    const spanishOption = screen.getByText('Spanish');
-    fireEvent.click(spanishOption);
+    const select = screen.getByTestId('language-select');
+    fireEvent.change(select, { target: { value: 'es' } });
+    const apply = screen.getByTestId('translate-apply-button');
+    fireEvent.click(apply);
 
     expect(onTranslateSummary).toHaveBeenCalledWith('es');
   });

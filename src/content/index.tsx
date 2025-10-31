@@ -61,6 +61,12 @@ let isLoadingSummary = false;
 // Language detection state
 let currentLanguageDetection: LanguageDetection | null = null;
 let isTranslating = false;
+// Persistent target language for current overlay session. When set, all
+// subsequent AI-generated outputs should appear in this language.
+let selectedTargetLanguage: string | null = null;
+// Remember the original detected language for reliable translations after
+// user changes target language.
+let originalDetectedLanguage: string | null = null;
 
 // Rewrite state
 const isRewritingArray: boolean[] = [false, false];
@@ -84,6 +90,20 @@ let isSettingsModalVisible = false;
 let dashboardModalContainer: HTMLDivElement | null = null;
 let dashboardModalRoot: ReturnType<typeof createRoot> | null = null;
 let isDashboardModalVisible = false;
+
+// Language code -> display name map (used for UI labels)
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  zh: 'Chinese',
+  ja: 'Japanese',
+  ko: 'Korean',
+  ar: 'Arabic',
+};
 
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
@@ -465,6 +485,8 @@ const initiateReflectionFlow = async () => {
     // Handle language detection
     if (languageResponse.success) {
       currentLanguageDetection = languageResponse.data;
+      // Capture original language once per session
+      originalDetectedLanguage ??= currentLanguageDetection.detectedLanguage;
       console.log('Language detected:', currentLanguageDetection);
 
       // Auto-translate if needed (during breathing phase)
@@ -504,6 +526,11 @@ const initiateReflectionFlow = async () => {
             if (mute) void audioManager.stopAmbientLoopGracefully(400);
             else void audioManager.playAmbientLoopGracefully(400);
           }}
+          activeTargetLanguageName={
+            selectedTargetLanguage
+              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+              : undefined
+          }
         />
       );
     }
@@ -750,6 +777,11 @@ const showReflectModeOverlay = async () => {
         if (mute) void audioManager.stopAmbientLoopGracefully(400);
         else void audioManager.playAmbientLoopGracefully(400);
       }}
+      activeTargetLanguageName={
+        selectedTargetLanguage
+          ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+          : undefined
+      }
     />
   );
 
@@ -937,7 +969,40 @@ const handleProofread = async (
 
     if (proofreadResponse.success) {
       console.log('Proofread completed');
-      return proofreadResponse.data;
+      let result = proofreadResponse.data;
+
+      // Ensure proofread output is in selected target language, if any
+      if (selectedTargetLanguage && result.correctedText) {
+        try {
+          const detect = await sendMessageToBackground<LanguageDetection>({
+            type: 'detectLanguage',
+            payload: {
+              text: result.correctedText.substring(0, 500),
+              pageUrl: currentExtractedContent?.url ?? location.href,
+            },
+          });
+          const sourceLang = detect.success
+            ? detect.data.detectedLanguage
+            : (originalDetectedLanguage ?? 'en');
+          if (sourceLang !== selectedTargetLanguage) {
+            const tr = await sendMessageToBackground<string>({
+              type: 'translate',
+              payload: {
+                text: result.correctedText,
+                source: sourceLang,
+                target: selectedTargetLanguage,
+              },
+            });
+            if (tr.success) {
+              result = { ...result, correctedText: tr.data };
+            }
+          }
+        } catch (e) {
+          console.warn('Proofread translation skipped due to error:', e);
+        }
+      }
+
+      return result;
     } else {
       console.error('Proofread failed:', proofreadResponse.error);
       throw new Error(proofreadResponse.error);
@@ -959,6 +1024,7 @@ const handleTranslate = async (targetLanguage: string) => {
 
   console.log(`Translating to ${targetLanguage}...`);
   isTranslating = true;
+  selectedTargetLanguage = targetLanguage;
 
   // Re-render with loading state
   if (overlayRoot && overlayContainer) {
@@ -980,6 +1046,11 @@ const handleTranslate = async (targetLanguage: string) => {
         onRewrite={handleRewrite}
         isRewriting={isRewritingArray}
         proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        activeTargetLanguageName={
+          selectedTargetLanguage
+            ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+            : undefined
+        }
       />
     );
   }
@@ -992,7 +1063,9 @@ const handleTranslate = async (targetLanguage: string) => {
         type: 'translate',
         payload: {
           text: bullet,
-          source: currentLanguageDetection.detectedLanguage,
+          source:
+            originalDetectedLanguage ??
+            currentLanguageDetection.detectedLanguage,
           target: targetLanguage,
         },
       });
@@ -1007,7 +1080,6 @@ const handleTranslate = async (targetLanguage: string) => {
 
     currentSummary = translatedSummary;
 
-    // Update language detection to target language
     const languageNames: Record<string, string> = {
       en: 'English',
       es: 'Spanish',
@@ -1019,12 +1091,6 @@ const handleTranslate = async (targetLanguage: string) => {
       ja: 'Japanese',
       ko: 'Korean',
       ar: 'Arabic',
-    };
-
-    currentLanguageDetection = {
-      detectedLanguage: targetLanguage,
-      confidence: 1.0,
-      languageName: languageNames[targetLanguage] || targetLanguage,
     };
 
     showNotification(
@@ -1062,6 +1128,11 @@ const handleTranslate = async (targetLanguage: string) => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          activeTargetLanguageName={
+            selectedTargetLanguage
+              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+              : undefined
+          }
         />
       );
     }
@@ -1175,7 +1246,40 @@ const handleRewrite = async (
 
     if (rewriteResponse.success) {
       console.log('Rewrite completed');
-      return rewriteResponse.data;
+      const { original, rewritten: rw } = rewriteResponse.data;
+      let rewritten = rw;
+
+      // Ensure output language matches selected target language, if any
+      if (selectedTargetLanguage) {
+        try {
+          // Detect language of rewritten text to avoid unnecessary translation
+          const detect = await sendMessageToBackground<LanguageDetection>({
+            type: 'detectLanguage',
+            payload: {
+              text: rewritten.substring(0, 500),
+              pageUrl: currentExtractedContent?.url ?? location.href,
+            },
+          });
+          const sourceLang = detect.success
+            ? detect.data.detectedLanguage
+            : (originalDetectedLanguage ?? 'en');
+          if (sourceLang !== selectedTargetLanguage) {
+            const tr = await sendMessageToBackground<string>({
+              type: 'translate',
+              payload: {
+                text: rewritten,
+                source: sourceLang,
+                target: selectedTargetLanguage,
+              },
+            });
+            if (tr.success) rewritten = tr.data;
+          }
+        } catch (e) {
+          console.warn('Rewrite translation skipped due to error:', e);
+        }
+      }
+
+      return { original, rewritten };
     } else {
       console.error('Rewrite failed:', rewriteResponse.error);
       throw new Error(rewriteResponse.error);
@@ -1226,6 +1330,11 @@ const handleFormatChange = async (format: SummaryFormat) => {
           if (mute) void audioManager.stopAmbientLoopGracefully(400);
           else void audioManager.playAmbientLoopGracefully(400);
         }}
+        activeTargetLanguageName={
+          selectedTargetLanguage
+            ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+            : undefined
+        }
       />
     );
   }
@@ -1241,7 +1350,25 @@ const handleFormatChange = async (format: SummaryFormat) => {
     });
 
     if (summaryResponse.success) {
-      currentSummary = summaryResponse.data;
+      let newSummary = summaryResponse.data;
+      // If the user selected a target language, translate the freshly
+      // generated summary to that language.
+      if (selectedTargetLanguage) {
+        const translated: string[] = [];
+        for (const item of newSummary) {
+          const tr = await sendMessageToBackground<string>({
+            type: 'translate',
+            payload: {
+              text: item,
+              source: originalDetectedLanguage ?? 'en',
+              target: selectedTargetLanguage,
+            },
+          });
+          translated.push(tr.success ? tr.data : item);
+        }
+        newSummary = translated;
+      }
+      currentSummary = newSummary;
       console.log('Summary updated with new format:', currentSummary);
     } else {
       console.error('Failed to update summary format:', summaryResponse.error);
@@ -1287,6 +1414,11 @@ const handleFormatChange = async (format: SummaryFormat) => {
             if (mute) void audioManager.stopAmbientLoopGracefully(400);
             else void audioManager.playAmbientLoopGracefully(400);
           }}
+          activeTargetLanguageName={
+            selectedTargetLanguage
+              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
+              : undefined
+          }
         />
       );
     }
@@ -1700,6 +1832,12 @@ const setupMessageListener = () => {
                     onFormatChange={handleFormatChange}
                     currentFormat={currentSummaryFormat}
                     isLoadingSummary={isLoadingSummary}
+                    activeTargetLanguageName={
+                      selectedTargetLanguage
+                        ? LANGUAGE_NAMES[selectedTargetLanguage] ||
+                          selectedTargetLanguage
+                        : undefined
+                    }
                   />
                 );
               }

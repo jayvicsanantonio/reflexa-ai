@@ -46,6 +46,7 @@ interface MeditationFlowOverlayProps {
   proofreaderAvailable?: boolean;
   ambientMuted?: boolean;
   onToggleAmbient?: (mute: boolean) => void;
+  activeTargetLanguageName?: string;
 }
 
 export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
@@ -65,6 +66,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   proofreaderAvailable = false,
   ambientMuted: _ambientMuted = false,
   onToggleAmbient: _onToggleAmbient,
+  activeTargetLanguageName,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
@@ -729,6 +731,20 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             currentLanguage={languageDetection?.detectedLanguage}
             unsupportedLanguages={[]}
           />
+          {activeTargetLanguageName && (
+            <span
+              style={{
+                fontSize: 12,
+                color: 'rgba(226,232,240,0.7)',
+                border: '1px solid rgba(226,232,240,0.2)',
+                padding: '6px 10px',
+                borderRadius: 999,
+              }}
+              aria-live="polite"
+            >
+              Translated to {activeTargetLanguageName}
+            </span>
+          )}
           <button
             type="button"
             onClick={next}

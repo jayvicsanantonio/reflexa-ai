@@ -56,25 +56,7 @@ const VolumeMuteIcon = () => (
   </svg>
 );
 
-const TranslateIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m5 8 6 6" />
-    <path d="m4 14 6-6 2-3" />
-    <path d="M2 5h12" />
-    <path d="M7 2h1" />
-    <path d="m22 22-5-10-5 10" />
-    <path d="M14 18h6" />
-  </svg>
-);
+// TranslateIcon removed from UI redesign
 
 const BulletIcon = () => (
   <svg
@@ -378,7 +360,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   currentLanguage,
   unsupportedLanguages = [],
 }) => {
-  const [showTranslateDropdown, setShowTranslateDropdown] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(
+    currentLanguage ?? 'en'
+  );
+
+  // Keep local selection in sync with the detected/current language
+  useEffect(() => {
+    setSelectedLanguage(currentLanguage ?? 'en');
+  }, [currentLanguage]);
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -570,90 +559,59 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                   </span>
                 </button>
               )}
-
-              {/* Translate Summary */}
-              {onTranslateSummary && (
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <button
-                    type="button"
-                    className="reflexa-more-tools__tile"
-                    onClick={() =>
-                      setShowTranslateDropdown(!showTranslateDropdown)
-                    }
-                    disabled={isTranslating}
-                    role="menuitem"
-                    data-testid="translate-summary-option"
-                  >
-                    <span className="reflexa-more-tools__tile-icon">
-                      {isTranslating ? <LoadingIcon /> : <TranslateIcon />}
-                    </span>
-                    <span className="reflexa-more-tools__tile-label">
-                      {isTranslating ? 'Translating...' : 'Translate'}
-                    </span>
-                  </button>
-
-                  {/* Language Dropdown */}
-                  {showTranslateDropdown && !isTranslating && (
-                    <div className="reflexa-more-tools__language-dropdown">
-                      <div className="reflexa-more-tools__language-dropdown-title">
-                        Select Language
-                      </div>
-                      {languageOptions.map((lang) => {
-                        const isUnsupported = unsupportedLanguages.includes(
-                          lang.code
-                        );
-                        const isCurrent = lang.code === currentLanguage;
-
-                        return (
-                          <button
-                            key={lang.code}
-                            type="button"
-                            className={`reflexa-more-tools__language-option ${
-                              isUnsupported
-                                ? 'reflexa-more-tools__language-option--disabled'
-                                : ''
-                            } ${
-                              isCurrent
-                                ? 'reflexa-more-tools__language-option--current'
-                                : ''
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              console.log(
-                                '[MoreToolsMenu] Language selected:',
-                                lang.code
-                              );
-                              if (!isUnsupported && !isCurrent) {
-                                onTranslateSummary(lang.code);
-                                setShowTranslateDropdown(false);
-                              }
-                            }}
-                            disabled={isUnsupported || isCurrent}
-                          >
-                            <span className="reflexa-more-tools__language-name">
-                              {lang.name}
-                            </span>
-                            <span className="reflexa-more-tools__language-native">
-                              {lang.nativeName}
-                            </span>
-                            {isCurrent && (
-                              <span className="reflexa-more-tools__language-badge">
-                                Current
-                              </span>
-                            )}
-                            {isUnsupported && (
-                              <span className="reflexa-more-tools__language-badge reflexa-more-tools__language-badge--unavailable">
-                                Unavailable
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+
+            {/* Translate Summary - redesigned: language dropdown + Translate button (below mute) */}
+            {onTranslateSummary && (
+              <div
+                className="reflexa-more-tools__inline-row"
+                role="group"
+                aria-label="Select language"
+              >
+                <select
+                  className="reflexa-more-tools__language-select"
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  disabled={isTranslating}
+                  data-testid="language-select"
+                >
+                  {languageOptions.map((lang) => {
+                    const isUnsupported = unsupportedLanguages.includes(
+                      lang.code
+                    );
+                    return (
+                      <option
+                        key={lang.code}
+                        value={lang.code}
+                        disabled={isUnsupported}
+                      >
+                        {`${lang.name}${
+                          lang.nativeName && lang.nativeName !== lang.name
+                            ? ` (${lang.nativeName})`
+                            : ''
+                        }`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  className="reflexa-more-tools__inline-button"
+                  onClick={() => {
+                    console.log(
+                      '[MoreToolsMenu] Translate apply clicked:',
+                      selectedLanguage
+                    );
+                    onTranslateSummary(selectedLanguage);
+                    handleClose();
+                  }}
+                  disabled={isTranslating}
+                  data-testid="translate-apply-button"
+                >
+                  {isTranslating ? 'Translating…' : 'Translate'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Summary Format Options (only in summary screen) */}
@@ -670,13 +628,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                         ? 'reflexa-more-tools__tile--selected'
                         : ''
                     }`}
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       console.log(
                         '[MoreToolsMenu] Format tile clicked:',
                         option.value
                       );
-                      void handleFormatSelect(option.value);
+                      await handleFormatSelect(option.value);
+                      handleClose();
                     }}
                     disabled={isLoadingSummary}
                     role="menuitem"
@@ -715,6 +674,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                     e.stopPropagation();
                     console.log('[MoreToolsMenu] Generate draft clicked');
                     handleGenerateDraft();
+                    handleClose();
                   }}
                   disabled={generateDraftDisabled || isGenerating}
                   role="menuitem"
@@ -767,6 +727,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                           option.value
                         );
                         handleToneSelect(option.value);
+                        handleClose();
                       }}
                       disabled={tonesDisabled || isRewriting}
                       role="menuitem"
@@ -811,6 +772,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                     e.stopPropagation();
                     console.log('[MoreToolsMenu] Proofread clicked');
                     handleProofreadClick();
+                    handleClose();
                   }}
                   disabled={proofreadDisabled || isProofreading}
                   role="menuitem"

@@ -1083,6 +1083,48 @@ input[disabled] {
   pointer-events: auto;
 }
 
+/* Inline row for language translate controls */
+.reflexa-more-tools__inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.reflexa-more-tools__language-select {
+  flex: 1 1 auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.reflexa-more-tools__inline-button {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  color: #93c5fd;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reflexa-more-tools__inline-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reflexa-more-tools__inline-button:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.22);
+  border-color: rgba(14, 165, 233, 0.5);
+}
+
 .reflexa-more-tools__menu::-webkit-scrollbar {
   width: 6px;
 }
