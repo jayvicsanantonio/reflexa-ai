@@ -522,7 +522,7 @@ A: Yes. You can delete individual reflections from the dashboard or clear all da
 **Q: Why isn't the lotus icon appearing?**
 A: Check that:
 
-- You've been reading for at least the dwell threshold (default 60s)
+- You've been reading for at least the dwell threshold (default 10s)
 - You're actively interacting with the page (scrolling, moving mouse)
 - The page has extractable text content
 - The extension is enabled in `chrome://extensions/`

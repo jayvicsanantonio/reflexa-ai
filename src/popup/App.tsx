@@ -255,6 +255,28 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [reflections.length]);
 
+  // Option B: open in-page Dashboard overlay and close popup
+  useEffect(() => {
+    void (async () => {
+      try {
+        const resp: unknown = await chrome.runtime.sendMessage({
+          type: 'openDashboardInActiveTab',
+        });
+        const ok =
+          resp && typeof resp === 'object' && 'success' in resp
+            ? Boolean((resp as { success?: boolean }).success)
+            : false;
+        if (ok) {
+          window.close();
+        } else {
+          // Keep popup open as fallback on restricted pages
+        }
+      } catch {
+        // Keep popup usable on errors
+      }
+    })();
+  }, []);
+
   // Focus trap ref for privacy modal
   const privacyModalRef = useRef<HTMLDivElement>(null);
 
@@ -310,215 +332,204 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="reflexa-popup-title"
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm supports-[backdrop-filter]:bg-black/40" />
-
-      {/* Card */}
-      <div className="border-calm-200 relative z-10 h-[600px] max-h-[84vh] w-[720px] max-w-[92vw] overflow-hidden rounded-2xl border bg-white shadow-2xl">
+    <div className="h-full w-full overflow-hidden bg-white" role="document">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-white/90 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         {/* Skip to main content link for keyboard navigation */}
         <a href="#main-content" className="skip-to-main">
           Skip to main content
         </a>
 
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white/90 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img
+              src={chrome.runtime.getURL('icons/reflexa.png')}
+              alt="Reflexa"
+              className="h-8 w-8 rounded-full shadow-sm"
+            />
+            <div>
+              <h1
+                id="reflexa-popup-title"
+                className="font-display text-calm-900 text-lg leading-tight font-bold"
+              >
+                Reflexa AI
+              </h1>
+              <p className="text-calm-500 text-[11px]">
+                Calm reflections, better focus
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="border-calm-200 text-calm-800 hover:bg-calm-50 focus-visible:outline-zen-500 inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+            aria-label="Export reflections"
+            disabled={reflections.length === 0}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        </div>
+      </header>
+
+      {/* Scrollable content */}
+      <main
+        id="main-content"
+        className="h-[calc(600px-48px)] overflow-y-auto px-5 py-4"
+        role="main"
+        aria-label="Reflection dashboard"
+      >
+        <div className="space-y-5">
+          {/* Top Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-display text-calm-900 text-sm font-semibold">
+                  Daily Streak
+                </h2>
+                <img
+                  src={chrome.runtime.getURL('icons/reflexa.png')}
+                  alt=""
+                  className="h-4 w-4 rounded"
+                  aria-hidden
+                />
+              </div>
+              <StreakCounter
+                streak={streakData}
+                onStreakIncrease={handleStreakIncrease}
+              />
+            </div>
+            <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
+              <CalmStats stats={calmStats} />
+            </div>
+          </div>
+
+          {/* Reflection List */}
+          {reflections.length > 0 ? (
+            <div className="space-y-4">
+              <h2 className="font-display text-calm-900 text-lg font-semibold">
+                Your Reflections
+              </h2>
+              {/* Use virtual scrolling for lists with more than 10 items */}
+              {reflections.length > 10 ? (
+                <VirtualList
+                  items={reflections}
+                  itemHeight={280}
+                  containerHeight={400}
+                  overscan={2}
+                  renderItem={(reflection) => (
+                    <ReflectionCard
+                      key={reflection.id}
+                      reflection={reflection}
+                      onDelete={handleDelete}
+                    />
+                  )}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {reflections.map((reflection) => (
+                    <ReflectionCard
+                      key={reflection.id}
+                      reflection={reflection}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="border-calm-200 rounded-xl border bg-white p-8 text-center shadow-sm">
               <img
                 src={chrome.runtime.getURL('icons/reflexa.png')}
                 alt="Reflexa"
-                className="h-8 w-8 rounded-full shadow-sm"
+                className="mx-auto mb-4 h-16 w-16 rounded-full shadow"
               />
-              <div>
-                <h1
-                  id="reflexa-popup-title"
-                  className="font-display text-calm-900 text-lg leading-tight font-bold"
+              <h3 className="font-display text-calm-900 mb-2 text-base font-semibold">
+                No reflections yet
+              </h3>
+              <p className="text-calm-600 mb-4 text-sm">
+                Start reading an article and let Reflexa guide you into mindful
+                reflection.
+              </p>
+              <p className="text-calm-500 font-serif text-xs italic">
+                Your journey begins with a single pause.
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Privacy Notice Modal */}
+      {showPrivacyNotice && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="privacy-notice-title"
+        >
+          <div
+            ref={privacyModalRef}
+            className="mx-6 max-w-sm rounded-xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-4 flex items-start gap-3">
+              <div className="bg-zen-100 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                <svg
+                  className="text-zen-600 h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  Reflexa AI
-                </h1>
-                <p className="text-calm-500 text-[11px]">
-                  Calm reflections, better focus
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h2
+                  id="privacy-notice-title"
+                  className="font-display text-calm-900 mb-2 text-lg font-semibold"
+                >
+                  Your Privacy Matters
+                </h2>
+                <p className="text-calm-700 mb-4 text-sm leading-relaxed">
+                  {PRIVACY_NOTICE}
+                </p>
+                <p className="text-calm-600 text-xs">
+                  All processing happens on your device. No data is ever sent to
+                  external servers.
                 </p>
               </div>
             </div>
             <button
-              onClick={() => setShowExportModal(true)}
-              className="border-calm-200 text-calm-800 hover:bg-calm-50 focus-visible:outline-zen-500 inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-              aria-label="Export reflections"
-              disabled={reflections.length === 0}
+              onClick={() => setShowPrivacyNotice(false)}
+              className="from-zen-500 to-zen-600 hover:from-zen-600 hover:to-zen-700 focus-visible:outline-zen-500 w-full rounded-lg bg-linear-to-r px-4 py-2.5 text-sm font-semibold text-white transition-all focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
+              Got it
             </button>
           </div>
-        </header>
+        </div>
+      )}
 
-        {/* Scrollable content */}
-        <main
-          id="main-content"
-          className="h-[calc(600px-48px)] overflow-y-auto px-5 py-4"
-          role="main"
-          aria-label="Reflection dashboard"
-        >
-          <div className="space-y-5">
-            {/* Top Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <h2 className="font-display text-calm-900 text-sm font-semibold">
-                    Daily Streak
-                  </h2>
-                  <img
-                    src={chrome.runtime.getURL('icons/reflexa.png')}
-                    alt=""
-                    className="h-4 w-4 rounded"
-                    aria-hidden
-                  />
-                </div>
-                <StreakCounter
-                  streak={streakData}
-                  onStreakIncrease={handleStreakIncrease}
-                />
-              </div>
-              <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
-                <CalmStats stats={calmStats} />
-              </div>
-            </div>
-
-            {/* Reflection List */}
-            {reflections.length > 0 ? (
-              <div className="space-y-4">
-                <h2 className="font-display text-calm-900 text-lg font-semibold">
-                  Your Reflections
-                </h2>
-                {/* Use virtual scrolling for lists with more than 10 items */}
-                {reflections.length > 10 ? (
-                  <VirtualList
-                    items={reflections}
-                    itemHeight={280}
-                    containerHeight={400}
-                    overscan={2}
-                    renderItem={(reflection) => (
-                      <ReflectionCard
-                        key={reflection.id}
-                        reflection={reflection}
-                        onDelete={handleDelete}
-                      />
-                    )}
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    {reflections.map((reflection) => (
-                      <ReflectionCard
-                        key={reflection.id}
-                        reflection={reflection}
-                        onDelete={handleDelete}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="border-calm-200 rounded-xl border bg-white p-8 text-center shadow-sm">
-                <img
-                  src={chrome.runtime.getURL('icons/reflexa.png')}
-                  alt="Reflexa"
-                  className="mx-auto mb-4 h-16 w-16 rounded-full shadow"
-                />
-                <h3 className="font-display text-calm-900 mb-2 text-base font-semibold">
-                  No reflections yet
-                </h3>
-                <p className="text-calm-600 mb-4 text-sm">
-                  Start reading an article and let Reflexa guide you into
-                  mindful reflection.
-                </p>
-                <p className="text-calm-500 font-serif text-xs italic">
-                  Your journey begins with a single pause.
-                </p>
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* Privacy Notice Modal */}
-        {showPrivacyNotice && (
-          <div
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="privacy-notice-title"
-          >
-            <div
-              ref={privacyModalRef}
-              className="mx-6 max-w-sm rounded-xl bg-white p-6 shadow-xl"
-            >
-              <div className="mb-4 flex items-start gap-3">
-                <div className="bg-zen-100 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                  <svg
-                    className="text-zen-600 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h2
-                    id="privacy-notice-title"
-                    className="font-display text-calm-900 mb-2 text-lg font-semibold"
-                  >
-                    Your Privacy Matters
-                  </h2>
-                  <p className="text-calm-700 mb-4 text-sm leading-relaxed">
-                    {PRIVACY_NOTICE}
-                  </p>
-                  <p className="text-calm-600 text-xs">
-                    All processing happens on your device. No data is ever sent
-                    to external servers.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowPrivacyNotice(false)}
-                className="from-zen-500 to-zen-600 hover:from-zen-600 hover:to-zen-700 focus-visible:outline-zen-500 w-full rounded-lg bg-linear-to-r px-4 py-2.5 text-sm font-semibold text-white transition-all focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Export Modal */}
-        <ExportModal
-          reflections={reflections}
-          isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
-        />
-      </div>
+      {/* Export Modal */}
+      <ExportModal
+        reflections={reflections}
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 };

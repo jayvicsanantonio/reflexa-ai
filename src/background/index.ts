@@ -19,6 +19,7 @@ import type {
   WriterOptions,
   UsageStats,
   AICapabilities,
+  StreakData,
 } from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
 import { ERROR_MESSAGES } from '../constants';
@@ -171,6 +172,15 @@ async function handleMessage(message: Message): Promise<AIResponse> {
     case 'load':
       return handleLoad(message.payload);
 
+    case 'getStreak':
+      return handleGetStreak();
+
+    case 'deleteReflection':
+      return handleDeleteReflection(message.payload);
+
+    case 'exportReflections':
+      return handleExportReflections(message.payload);
+
     case 'getSettings':
       return handleGetSettings();
 
@@ -179,6 +189,9 @@ async function handleMessage(message: Message): Promise<AIResponse> {
 
     case 'resetSettings':
       return handleResetSettings();
+
+    case 'openDashboardInActiveTab':
+      return handleOpenDashboardInActiveTab();
 
     default:
       return createErrorResponse(
@@ -1041,6 +1054,119 @@ async function handleGetSettings(): Promise<AIResponse<Settings>> {
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
       'storage'
+    );
+  }
+}
+
+/**
+ * Handle get streak request
+ */
+async function handleGetStreak(): Promise<AIResponse<StreakData>> {
+  const startTime = Date.now();
+  try {
+    const streak = await storageManager.getStreak();
+    return createSuccessResponse(streak, 'storage', Date.now() - startTime);
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
+  }
+}
+
+/** Delete a reflection by ID and update streak */
+async function handleDeleteReflection(
+  payload: unknown
+): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
+  try {
+    if (!payload || typeof payload !== 'string') {
+      return createErrorResponse(
+        'Invalid reflection id',
+        Date.now() - startTime,
+        'storage'
+      );
+    }
+    await storageManager.deleteReflection(payload);
+    return createSuccessResponse(true, 'storage', Date.now() - startTime);
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
+  }
+}
+
+/** Export reflections in given format */
+async function handleExportReflections(
+  payload: unknown
+): Promise<AIResponse<string>> {
+  const startTime = Date.now();
+  try {
+    const format = payload === 'markdown' ? 'markdown' : 'json';
+    const data = await storageManager.exportReflections(format);
+    return createSuccessResponse(data, 'storage', Date.now() - startTime);
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'storage'
+    );
+  }
+}
+
+/**
+ * Ask the active tab's content script to open the Dashboard modal.
+ */
+async function handleOpenDashboardInActiveTab(): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
+  try {
+    const delivered = await new Promise<boolean>((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        const tab = tabs[0];
+        const tabId = typeof tab?.id === 'number' ? tab.id : null;
+        const url = tab?.url ?? '';
+        // Guard against restricted pages (chrome://, edge://, chrome web store)
+        if (
+          !tabId ||
+          url.startsWith('chrome://') ||
+          url.startsWith('edge://') ||
+          url.includes('chrome.google.com/webstore')
+        ) {
+          resolve(false);
+          return;
+        }
+        try {
+          const resp: unknown = await chrome.tabs.sendMessage(tabId, {
+            type: 'openDashboard',
+          });
+          const ok =
+            resp && typeof resp === 'object' && 'success' in resp
+              ? Boolean((resp as { success?: boolean }).success)
+              : false;
+          resolve(ok);
+        } catch {
+          // No content script or cannot connect
+          resolve(false);
+        }
+      });
+    });
+
+    if (delivered) {
+      return createSuccessResponse(true, 'ui', Date.now() - startTime);
+    }
+    return createErrorResponse(
+      'Unable to open overlay on this page',
+      Date.now() - startTime,
+      'ui'
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'ui'
     );
   }
 }

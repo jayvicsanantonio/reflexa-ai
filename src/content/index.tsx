@@ -84,6 +84,10 @@ let isHelpModalVisible = false;
 let settingsModalContainer: HTMLDivElement | null = null;
 let settingsModalRoot: ReturnType<typeof createRoot> | null = null;
 let isSettingsModalVisible = false;
+// Dashboard modal UI state (content overlay)
+let dashboardModalContainer: HTMLDivElement | null = null;
+let dashboardModalRoot: ReturnType<typeof createRoot> | null = null;
+let isDashboardModalVisible = false;
 
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
@@ -782,7 +786,7 @@ const handleSaveReflection = async (
 
 /**
  * Handle cancel reflection action
- * Closes overlay without saving
+ * Closes overlay without saving and shows the nudge again
  */
 const handleCancelReflection = () => {
   console.log('Reflection cancelled');
@@ -795,6 +799,9 @@ const handleCancelReflection = () => {
   // Clean up and hide overlay
   hideReflectModeOverlay();
   resetReflectionState();
+
+  // Show the lotus nudge again so user can retry
+  showLotusNudge();
 };
 
 /**
@@ -1368,6 +1375,9 @@ const showLotusNudge = () => {
       visible={true}
       onClick={handleNudgeClick}
       position="bottom-left"
+      onDashboard={() => {
+        void showDashboardModal();
+      }}
       onHelp={() => {
         void showHelpModal();
       }}
@@ -1580,6 +1590,10 @@ const setupMessageListener = () => {
                 );
               }
             }
+          } else if (type === 'openDashboard') {
+            void showDashboardModal();
+            sendResponse({ success: true });
+            return true;
           }
         }
       } catch (e) {
@@ -1817,3 +1831,36 @@ window.addEventListener('beforeunload', () => {
 
 // Initialize the content script
 void initializeContentScript();
+
+/** Show Dashboard modal */
+async function showDashboardModal() {
+  if (isDashboardModalVisible) return;
+  dashboardModalContainer = document.createElement('div');
+  dashboardModalContainer.id = 'reflexa-dashboard-modal-container';
+  document.body.appendChild(dashboardModalContainer);
+
+  const shadowRoot = dashboardModalContainer.attachShadow({ mode: 'open' });
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = chrome.runtime.getURL('src/content/styles.css');
+  shadowRoot.appendChild(link);
+  const root = document.createElement('div');
+  shadowRoot.appendChild(root);
+  dashboardModalRoot = createRoot(root);
+  const { DashboardModal } = await import('./components/DashboardModal');
+  dashboardModalRoot.render(<DashboardModal onClose={hideDashboardModal} />);
+  isDashboardModalVisible = true;
+}
+
+function hideDashboardModal() {
+  if (!isDashboardModalVisible) return;
+  if (dashboardModalRoot) {
+    dashboardModalRoot.unmount();
+    dashboardModalRoot = null;
+  }
+  if (dashboardModalContainer?.parentNode) {
+    dashboardModalContainer.parentNode.removeChild(dashboardModalContainer);
+    dashboardModalContainer = null;
+  }
+  isDashboardModalVisible = false;
+}

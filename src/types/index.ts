@@ -44,7 +44,7 @@ export interface Reflection {
  * User settings and preferences
  */
 export interface Settings {
-  dwellThreshold: number; // 30-300 seconds, default 60
+  dwellThreshold: number; // 0–60 seconds, default 10
   enableSound: boolean; // default true
   reduceMotion: boolean; // default false
   proofreadEnabled: boolean; // default false
@@ -128,7 +128,11 @@ export type MessageType =
   | 'getUsageStats'
   | 'getPerformanceStats'
   | 'canTranslate'
-  | 'checkTranslationAvailability';
+  | 'checkTranslationAvailability'
+  | 'getStreak'
+  | 'deleteReflection'
+  | 'exportReflections'
+  | 'openDashboardInActiveTab';
 
 /**
  * Message structure for background worker communication

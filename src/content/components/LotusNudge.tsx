@@ -14,6 +14,7 @@ interface LotusNudgeProps {
   onAnimationComplete?: () => void;
   onHelp?: () => void;
   onSettings?: () => void;
+  onDashboard?: () => void;
 }
 
 /**
@@ -27,6 +28,7 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
   onAnimationComplete,
   onHelp,
   onSettings,
+  onDashboard,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -57,13 +59,17 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
   }, [onSettings]);
 
   const openDashboard = useCallback(() => {
+    if (onDashboard) {
+      onDashboard();
+      return;
+    }
     try {
-      const url = chrome.runtime.getURL('src/popup/index.html');
-      window.open(url, '_blank');
+      // Fallback: ask background to open in active tab
+      void chrome.runtime.sendMessage({ type: 'openDashboardInActiveTab' });
     } catch {
       // no-op
     }
-  }, []);
+  }, [onDashboard]);
 
   const openHelp = useCallback(() => {
     if (onHelp) onHelp();
@@ -197,8 +203,8 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
         tabIndex={0}
       >
         <svg
-          width="64"
-          height="64"
+          width="48"
+          height="48"
           viewBox="0 0 48 48"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
