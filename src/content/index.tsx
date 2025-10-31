@@ -727,34 +727,6 @@ const showReflectModeOverlay = async () => {
   // Render the ReflectModeOverlay component
   overlayRoot = createRoot(rootElement);
 
-  // Try to load a recent draft for this URL to resume the flow
-  let initialStep: number | undefined;
-  let initialAnswers: string[] | undefined;
-  try {
-    const draftWrap = await chrome.storage.local.get('reflexa_draft');
-    const draft = draftWrap?.reflexa_draft as
-      | { url?: string; step?: number; answers?: string[]; ts?: number }
-      | undefined;
-    const now = Date.now();
-    const withinHours = 6 * 60 * 60 * 1000;
-    if (
-      draft &&
-      typeof draft.ts === 'number' &&
-      now - draft.ts < withinHours &&
-      typeof draft.url === 'string' &&
-      draft.url === (currentExtractedContent?.url ?? window.location.href)
-    ) {
-      if (Array.isArray(draft.answers) && draft.answers.length === 2) {
-        initialAnswers = [draft.answers[0] ?? '', draft.answers[1] ?? ''];
-      }
-      if (typeof draft.step === 'number') {
-        initialStep = Math.min(Math.max(draft.step, 0), 3);
-      }
-    }
-  } catch {
-    // ignore
-  }
-
   overlayRoot.render(
     <MeditationFlowOverlay
       summary={currentSummary}
@@ -778,8 +750,6 @@ const showReflectModeOverlay = async () => {
         if (mute) void audioManager.stopAmbientLoopGracefully(400);
         else void audioManager.playAmbientLoopGracefully(400);
       }}
-      initialStep={initialStep}
-      initialAnswers={initialAnswers}
     />
   );
 

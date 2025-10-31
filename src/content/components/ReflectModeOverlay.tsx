@@ -885,6 +885,11 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
               currentFormat={currentFormat}
               onFormatChange={onFormatChange}
               isLoadingSummary={isLoadingSummary}
+              onGenerateDraft={
+                settings.experimentalMode ? handleDraftGenerated : undefined
+              }
+              generateDraftDisabled={false}
+              summary={summary}
               selectedTone={selectedTone}
               onToneSelect={
                 settings.experimentalMode && onRewrite
@@ -893,6 +898,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
               }
               tonesDisabled={reflections.every((r) => r.trim() === '')}
               isRewriting={isRewriting.some((r) => r)}
+              hasReflectionContent={reflections.some((r) => r.trim() !== '')}
               onProofread={
                 (settings.enableProofreading || settings.proofreadEnabled) &&
                 proofreaderAvailable

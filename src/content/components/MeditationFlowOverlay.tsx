@@ -8,9 +8,10 @@ import type {
   VoiceInputMetadata,
 } from '../../types';
 import { trapFocus } from '../../utils/accessibility';
-import { COMMON_LANGUAGES } from '../../constants';
+
 import { BreathingOrb } from './BreathingOrb';
 import { Notification } from './Notification';
+import { MoreToolsMenu } from './MoreToolsMenu';
 
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
@@ -45,8 +46,6 @@ interface MeditationFlowOverlayProps {
   proofreaderAvailable?: boolean;
   ambientMuted?: boolean;
   onToggleAmbient?: (mute: boolean) => void;
-  initialStep?: number;
-  initialAnswers?: string[];
 }
 
 export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
@@ -61,25 +60,16 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   languageDetection,
   onProofread,
   onTranslateToEnglish: _onTranslateToEnglish,
-  onTranslate,
-  isTranslating,
-  ambientMuted = false,
-  onToggleAmbient,
-  initialStep,
-  initialAnswers,
+  onTranslate: _onTranslate,
+  isTranslating: _isTranslating,
+  proofreaderAvailable = false,
+  ambientMuted: _ambientMuted = false,
+  onToggleAmbient: _onToggleAmbient,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState<number>(
-    typeof initialStep === 'number' ? Math.min(Math.max(initialStep, 0), 3) : 0
-  ); // 0: settle, 1: summary, 2: q1, 3: q2
-  const [answers, setAnswers] = useState<string[]>(
-    Array.isArray(initialAnswers) && initialAnswers.length === 2
-      ? [initialAnswers[0] ?? '', initialAnswers[1] ?? '']
-      : ['', '']
-  );
-  const [showMore, setShowMore] = useState<boolean>(false);
-  const [targetLang, setTargetLang] = useState<string>('en');
-  const [isMuted, setIsMuted] = useState<boolean>(ambientMuted);
+  const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
+  const [answers, setAnswers] = useState<string[]>(['', '']);
+
   const [breathCue, setBreathCue] = useState<'inhale' | 'hold' | 'exhale'>(
     'inhale'
   );
@@ -123,11 +113,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     false,
     false,
   ]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const [_selectedTone, setSelectedTone] = useState<TonePreset | undefined>(
     undefined
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const [_isRewriting, setIsRewriting] = useState<boolean[]>([false, false]);
 
   const audioManagerRef = useRef<AudioManager | null>(null);
@@ -520,12 +510,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   const prev = () => setStep((s) => Math.max(0, s - 1));
 
   const save = () => {
-    try {
-      void chrome.storage.local.remove('reflexa_draft');
-    } catch {
-      // ignore
-    }
-
     // Compute voice metadata for each answer
     const voiceMetadata: VoiceInputMetadata[] = answers.map((_, index) => {
       const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
@@ -618,21 +602,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     }
   }, [step, settings?.reduceMotion, isLoadingSummary]);
 
-  // Auto-save answers draft on step/answers change
-  useEffect(() => {
-    try {
-      void chrome.storage.local.set({
-        reflexa_draft: {
-          url: window.location.href,
-          step,
-          answers,
-          ts: Date.now(),
-        },
-      });
-    } catch {
-      // ignore
-    }
-  }, [step, answers]);
+  // Draft auto-save removed per request
 
   const Header = (
     <div
@@ -698,23 +668,61 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       </button>
       {step < 3 ? (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => setShowMore((s) => !s)}
-            aria-expanded={showMore}
-            aria-label="More options"
-            style={{
-              background: 'rgba(2,6,23,0.4)',
-              border: '1px solid rgba(226,232,240,0.25)',
-              color: '#e2e8f0',
-              borderRadius: 999,
-              padding: '8px 14px',
-              cursor: 'pointer',
-              fontSize: 12,
-            }}
-          >
-            ··· More
-          </button>
+          <MoreToolsMenu
+            currentScreen={step === 1 ? 'summary' : 'reflection'}
+            currentFormat={currentFormat}
+            onFormatChange={step === 1 ? onFormatChange : undefined}
+            isLoadingSummary={isLoadingSummary}
+            onGenerateDraft={
+              settings.experimentalMode &&
+              (step === 2 || step === 3) &&
+              !answers[step - 2]?.trim()
+                ? (draft) => {
+                    const idx = step - 2;
+                    setAnswers((prev) => {
+                      const next = [...prev];
+                      next[idx] = draft;
+                      return next;
+                    });
+                  }
+                : undefined
+            }
+            generateDraftDisabled={false}
+            summary={summary}
+            selectedTone={_selectedTone}
+            onToneSelect={
+              settings.experimentalMode && (step === 2 || step === 3)
+                ? handleToneSelect
+                : undefined
+            }
+            tonesDisabled={!answers[step - 2]?.trim()}
+            isRewriting={_isRewriting.some((r) => r)}
+            hasReflectionContent={answers.some((a) => a.trim() !== '')}
+            onProofread={
+              (settings.enableProofreading || settings.proofreadEnabled) &&
+              proofreaderAvailable &&
+              (step === 2 || step === 3)
+                ? async (_index) => {
+                    if (!onProofread) return;
+                    const idx = step === 2 ? 0 : 1;
+                    try {
+                      const result = await onProofread(answers[idx] ?? '', idx);
+                      setAnswers((prev) => {
+                        const next = [...prev];
+                        next[idx] = result.correctedText ?? prev[idx];
+                        return next;
+                      });
+                    } catch {
+                      // silent
+                    }
+                  }
+                : undefined
+            }
+            proofreadDisabled={!answers[step - 2]?.trim()}
+            isProofreading={false}
+            proofreaderAvailable={proofreaderAvailable}
+            activeReflectionIndex={step - 2}
+          />
           <button
             type="button"
             onClick={next}
@@ -1374,210 +1382,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
         {Nav}
 
-        {/* More panel (bottom-right) */}
-        {showMore && (
-          <div
-            style={{
-              position: 'absolute',
-              right: 24,
-              bottom: 72,
-              width: 340,
-              background: 'rgba(2,8,23,0.8)',
-              border: '1px solid rgba(226,232,240,0.18)',
-              borderRadius: 12,
-              boxShadow: '0 20px 50px rgba(0,0,0,0.45)',
-              color: '#e2e8f0',
-              padding: 14,
-              backdropFilter: 'blur(10px) saturate(110%)',
-            }}
-          >
-            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 10 }}>
-              Tools
-            </div>
-
-            {/* Summary format (only on Summary step) */}
-            <div style={{ marginBottom: 12, opacity: step === 1 ? 1 : 0.7 }}>
-              <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
-                Summary format
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
-                  disabled={!onFormatChange || step !== 1}
-                  onClick={() => {
-                    if (onFormatChange) void onFormatChange('bullets');
-                  }}
-                  style={{
-                    background:
-                      onFormatChange && currentFormat === 'bullets'
-                        ? 'rgba(59,130,246,0.25)'
-                        : 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor:
-                      onFormatChange && step === 1 ? 'pointer' : 'default',
-                  }}
-                >
-                  Bullets
-                </button>
-                <button
-                  type="button"
-                  disabled={!onFormatChange || step !== 1}
-                  onClick={() => {
-                    if (onFormatChange) void onFormatChange('paragraph');
-                  }}
-                  style={{
-                    background:
-                      onFormatChange && currentFormat === 'paragraph'
-                        ? 'rgba(59,130,246,0.25)'
-                        : 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor:
-                      onFormatChange && step === 1 ? 'pointer' : 'default',
-                  }}
-                >
-                  Paragraph
-                </button>
-                <button
-                  type="button"
-                  disabled={!onFormatChange || step !== 1}
-                  onClick={() => {
-                    if (onFormatChange) void onFormatChange('headline-bullets');
-                  }}
-                  style={{
-                    background:
-                      onFormatChange && currentFormat === 'headline-bullets'
-                        ? 'rgba(59,130,246,0.25)'
-                        : 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor:
-                      onFormatChange && step === 1 ? 'pointer' : 'default',
-                  }}
-                >
-                  Headline + Bullets
-                </button>
-              </div>
-            </div>
-
-            {/* Ambient sound */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
-                Ambient sound
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !isMuted;
-                    setIsMuted(next);
-                    onToggleAmbient?.(next);
-                  }}
-                  style={{
-                    background: isMuted
-                      ? 'transparent'
-                      : 'rgba(59,130,246,0.25)',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                  }}
-                >
-                  {isMuted ? 'Unmute' : 'Mute'}
-                </button>
-              </div>
-            </div>
-
-            {/* Translation */}
-            <div style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}>
-                Translate summary
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <select
-                  aria-label="Target language"
-                  value={targetLang}
-                  onChange={(e) => setTargetLang(e.target.value)}
-                  style={{
-                    flex: 1,
-                    background: 'rgba(2,6,23,0.35)',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#f8fafc',
-                    borderRadius: 8,
-                    padding: '6px 8px',
-                  }}
-                >
-                  {COMMON_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={!onTranslate || isTranslating}
-                  onClick={() => onTranslate && void onTranslate(targetLang)}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor: onTranslate ? 'pointer' : 'default',
-                  }}
-                >
-                  {isTranslating ? '…' : 'Translate'}
-                </button>
-              </div>
-            </div>
-
-            {/* Proofread current answer */}
-            {(step === 2 || step === 3) && (
-              <div>
-                <div
-                  style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 6 }}
-                >
-                  Proofread
-                </div>
-                <button
-                  type="button"
-                  disabled={!onProofread}
-                  onClick={async () => {
-                    if (!onProofread) return;
-                    const idx = step === 2 ? 0 : 1;
-                    try {
-                      const result = await onProofread(answers[idx] ?? '', idx);
-                      setAnswers((prev) => {
-                        const next = [...prev];
-                        next[idx] = result.correctedText ?? prev[idx];
-                        return next;
-                      });
-                    } catch {
-                      // silent
-                    }
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    cursor: onProofread ? 'pointer' : 'default',
-                  }}
-                >
-                  Proofread current answer
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Tools panel removed - now using MoreToolsMenu in navigation */}
 
         {/* Voice Input Error Notification */}
         {voiceError && (

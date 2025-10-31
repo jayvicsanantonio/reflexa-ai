@@ -11,13 +11,19 @@ interface MoreToolsMenuProps {
   onFormatChange?: (format: SummaryFormat) => Promise<void>;
   isLoadingSummary?: boolean;
 
-  // Tone presets (only shown in reflection screen)
+  // Generate Draft (only shown in reflection screen when no content)
+  onGenerateDraft?: (draft: string) => void;
+  generateDraftDisabled?: boolean;
+  summary?: string[];
+
+  // Tone presets (only shown in reflection screen when there's content)
   selectedTone?: TonePreset;
   onToneSelect?: (tone: TonePreset) => void;
   tonesDisabled?: boolean;
   isRewriting?: boolean;
+  hasReflectionContent?: boolean;
 
-  // Proofread (only shown in reflection screen)
+  // Proofread (only shown in reflection screen when there's content)
   onProofread?: (index: number) => void;
   proofreadDisabled?: boolean;
   isProofreading?: boolean;
@@ -92,10 +98,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   currentFormat = 'bullets',
   onFormatChange,
   isLoadingSummary = false,
+  onGenerateDraft,
+  generateDraftDisabled = false,
+  summary = [],
   selectedTone,
   onToneSelect,
   tonesDisabled = false,
   isRewriting = false,
+  hasReflectionContent = false,
   onProofread,
   proofreadDisabled = false,
   isProofreading = false,
@@ -103,6 +113,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   activeReflectionIndex = 0,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleToggle = useCallback(() => {
@@ -157,6 +168,26 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   const handleProofreadClick = () => {
     if (onProofread && !proofreadDisabled && !isProofreading) {
       onProofread(activeReflectionIndex);
+    }
+    handleClose();
+  };
+
+  const handleGenerateDraft = () => {
+    if (onGenerateDraft && !generateDraftDisabled && !isGenerating) {
+      setIsGenerating(true);
+      try {
+        // Use the Chrome AI Writer API to generate a draft
+        const summaryText = summary.join(' ');
+        const prompt = `Based on this summary: "${summaryText}", write a brief reflection about what you found most interesting.`;
+
+        // Call the generate draft handler
+        // The actual API call will be handled by the parent component
+        onGenerateDraft(prompt);
+      } catch (error) {
+        console.error('Failed to generate draft:', error);
+      } finally {
+        setIsGenerating(false);
+      }
     }
     handleClose();
   };
@@ -236,53 +267,92 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
             </div>
           )}
 
-          {/* Tone Presets (only in reflection screen) */}
-          {currentScreen === 'reflection' && onToneSelect && (
-            <div className="reflexa-more-tools__section">
-              <div className="reflexa-more-tools__section-title">
-                Rewrite Tone
-              </div>
-              {toneOptions.map((option) => (
+          {/* Generate Draft (only in reflection screen when no content) */}
+          {currentScreen === 'reflection' &&
+            onGenerateDraft &&
+            !hasReflectionContent && (
+              <div className="reflexa-more-tools__section">
+                <div className="reflexa-more-tools__section-title">
+                  Get Started
+                </div>
                 <button
-                  key={option.value}
                   type="button"
-                  className={`reflexa-more-tools__option ${
-                    selectedTone === option.value
-                      ? 'reflexa-more-tools__option--selected'
-                      : ''
-                  }`}
-                  onClick={() => handleToneSelect(option.value)}
-                  disabled={tonesDisabled || isRewriting}
+                  className="reflexa-more-tools__option"
+                  onClick={handleGenerateDraft}
+                  disabled={generateDraftDisabled || isGenerating}
                   role="menuitem"
-                  data-testid={`tone-option-${option.value}`}
+                  data-testid="generate-draft-option"
                 >
                   <div className="reflexa-more-tools__option-content">
-                    <span className="reflexa-more-tools__option-icon">
-                      {option.icon}
-                    </span>
+                    <span className="reflexa-more-tools__option-icon">✨</span>
                     <div>
                       <span className="reflexa-more-tools__option-label">
-                        {option.label}
+                        {isGenerating ? 'Generating...' : 'Generate Draft'}
                       </span>
                       <span className="reflexa-more-tools__option-description">
-                        {option.description}
+                        AI-powered starting point
                       </span>
                     </div>
                   </div>
-                  {selectedTone === option.value && isRewriting && (
+                  {isGenerating && (
                     <span className="reflexa-more-tools__option-spinner">
                       ⏳
                     </span>
                   )}
                 </button>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Proofread (only in reflection screen) */}
+          {/* Tone Presets (only in reflection screen when there's content) */}
+          {currentScreen === 'reflection' &&
+            onToneSelect &&
+            hasReflectionContent && (
+              <div className="reflexa-more-tools__section">
+                <div className="reflexa-more-tools__section-title">
+                  Rewrite Tone
+                </div>
+                {toneOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`reflexa-more-tools__option ${
+                      selectedTone === option.value
+                        ? 'reflexa-more-tools__option--selected'
+                        : ''
+                    }`}
+                    onClick={() => handleToneSelect(option.value)}
+                    disabled={tonesDisabled || isRewriting}
+                    role="menuitem"
+                    data-testid={`tone-option-${option.value}`}
+                  >
+                    <div className="reflexa-more-tools__option-content">
+                      <span className="reflexa-more-tools__option-icon">
+                        {option.icon}
+                      </span>
+                      <div>
+                        <span className="reflexa-more-tools__option-label">
+                          {option.label}
+                        </span>
+                        <span className="reflexa-more-tools__option-description">
+                          {option.description}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedTone === option.value && isRewriting && (
+                      <span className="reflexa-more-tools__option-spinner">
+                        ⏳
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+          {/* Proofread (only in reflection screen when there's content) */}
           {currentScreen === 'reflection' &&
             proofreaderAvailable &&
-            onProofread && (
+            onProofread &&
+            hasReflectionContent && (
               <>
                 {onToneSelect && (
                   <div className="reflexa-more-tools__divider" />

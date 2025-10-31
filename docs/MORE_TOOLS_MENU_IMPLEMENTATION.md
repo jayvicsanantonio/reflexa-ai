@@ -14,7 +14,11 @@ Created `src/content/components/MoreToolsMenu.tsx` - a context-aware dropdown me
 
 - Summary Format options (Bullets, Paragraph, Headline + Bullets)
 
-**Reflection Screen:**
+**Reflection Screen (No Content):**
+
+- Generate Draft option (AI-powered starting point using Chrome AI Writer API)
+
+**Reflection Screen (With Content):**
 
 - Rewrite Tone options (Calm, Concise, Empathetic, Academic)
 - Proofread option (when proofreader is available)
@@ -72,10 +76,13 @@ Added comprehensive styles in `src/content/styles.css`:
 ## User Experience Improvements
 
 1. **Cleaner Interface**: Tools are hidden until needed, reducing visual clutter
-2. **Context-Aware**: Only relevant tools are shown based on current screen
-3. **Consistent Layout**: All tools accessible from one location
-4. **Better Organization**: Related tools grouped together with clear labels
-5. **Improved Button Alignment**: Accept/Discard actions consistently positioned on the right
+2. **Context-Aware**: Only relevant tools are shown based on current screen and content state
+3. **Smart Tool Display**:
+   - Generate Draft appears when starting fresh (no content)
+   - Tone and Proofread options appear when there's content to work with
+4. **Consistent Layout**: All tools accessible from one location
+5. **Better Organization**: Related tools grouped together with clear labels
+6. **Improved Button Alignment**: Accept/Discard actions consistently positioned on the right
 
 ## Technical Details
 
@@ -121,3 +128,42 @@ The component automatically switches between `summary` and `reflection` screens:
 - `src/content/components/MoreToolsMenu.tsx` - New component
 - `src/content/components/MoreToolsMenu.test.tsx` - Test suite
 - `docs/MORE_TOOLS_MENU_IMPLEMENTATION.md` - This documentation
+
+## Latest Updates
+
+### Content-Aware Tool Display
+
+The More Tools menu now adapts based on whether there's content in the reflection fields:
+
+- **No Content** (`hasReflectionContent = false`): Shows "Generate Draft" option to help users get started
+- **Has Content** (`hasReflectionContent = true`): Shows "Rewrite Tone" and "Proofread" options for refining existing text
+
+This ensures users see the most relevant tools for their current task, reducing cognitive load and improving the writing flow.
+
+### Generate Draft Feature
+
+Added AI-powered draft generation to help users overcome writer's block:
+
+- Appears in the More Tools menu when reflection fields are empty
+- Uses the summary content to generate a contextual starting point
+- Integrates with the existing `StartReflectionButton` functionality
+- Only available when experimental mode is enabled
+
+### Updated Props
+
+The `MoreToolsMenu` component now accepts:
+
+- `onGenerateDraft`: Handler for generating AI drafts
+- `generateDraftDisabled`: Boolean to disable the generate option
+- `summary`: Array of summary points for context
+- `hasReflectionContent`: Boolean indicating if any reflection has content
+
+### Test Coverage
+
+Added comprehensive tests for the new functionality:
+
+- Generate draft option visibility when no content
+- Tone options visibility when there is content
+- Proofread option visibility when there is content
+- Conditional rendering based on content state
+- Generate draft click handler

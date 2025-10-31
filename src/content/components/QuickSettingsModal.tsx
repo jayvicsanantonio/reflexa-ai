@@ -360,7 +360,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
         onKeyDown={handleKeyDown}
         className="reflexa-modal-animate"
         style={{
-          width: 'min(720px, 92vw)',
+          width: 'min(640px, 92vw)',
           maxHeight: 'min(84vh, 760px)',
           background: '#ffffff',
           color: '#0f172a',

@@ -44,10 +44,32 @@ describe('MoreToolsMenu', () => {
     expect(screen.getByTestId('format-option-headline-bullets')).toBeTruthy();
   });
 
-  it('should show tone options in reflection screen', () => {
+  it('should show generate draft option in reflection screen when no content', () => {
+    const onGenerateDraft = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onGenerateDraft={onGenerateDraft}
+        hasReflectionContent={false}
+        summary={['Summary 1', 'Summary 2', 'Summary 3']}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('Get Started')).toBeTruthy();
+    expect(screen.getByTestId('generate-draft-option')).toBeTruthy();
+  });
+
+  it('should show tone options in reflection screen when there is content', () => {
     const onToneSelect = vi.fn();
     render(
-      <MoreToolsMenu currentScreen="reflection" onToneSelect={onToneSelect} />
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onToneSelect={onToneSelect}
+        hasReflectionContent={true}
+      />
     );
 
     const trigger = screen.getByTestId('more-tools-trigger');
@@ -60,7 +82,23 @@ describe('MoreToolsMenu', () => {
     expect(screen.getByTestId('tone-option-academic')).toBeTruthy();
   });
 
-  it('should show proofread option in reflection screen when available', () => {
+  it('should not show tone options when there is no content', () => {
+    const onToneSelect = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onToneSelect={onToneSelect}
+        hasReflectionContent={false}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.queryByText('Rewrite Tone')).toBeNull();
+  });
+
+  it('should show proofread option in reflection screen when available and has content', () => {
     const onProofread = vi.fn();
     render(
       <MoreToolsMenu
@@ -68,6 +106,7 @@ describe('MoreToolsMenu', () => {
         onToneSelect={vi.fn()}
         onProofread={onProofread}
         proofreaderAvailable={true}
+        hasReflectionContent={true}
       />
     );
 
@@ -75,6 +114,23 @@ describe('MoreToolsMenu', () => {
     fireEvent.click(trigger);
 
     expect(screen.getByTestId('proofread-option')).toBeTruthy();
+  });
+
+  it('should not show proofread option when there is no content', () => {
+    const onProofread = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onProofread={onProofread}
+        proofreaderAvailable={true}
+        hasReflectionContent={false}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    expect(screen.queryByTestId('proofread-option')).toBeNull();
   });
 
   it('should not show summary format in reflection screen', () => {
@@ -128,10 +184,34 @@ describe('MoreToolsMenu', () => {
     expect(onFormatChange).toHaveBeenCalledWith('paragraph');
   });
 
+  it('should call onGenerateDraft when generate draft is clicked', () => {
+    const onGenerateDraft = vi.fn();
+    render(
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onGenerateDraft={onGenerateDraft}
+        hasReflectionContent={false}
+        summary={['Summary 1', 'Summary 2', 'Summary 3']}
+      />
+    );
+
+    const trigger = screen.getByTestId('more-tools-trigger');
+    fireEvent.click(trigger);
+
+    const generateOption = screen.getByTestId('generate-draft-option');
+    fireEvent.click(generateOption);
+
+    expect(onGenerateDraft).toHaveBeenCalled();
+  });
+
   it('should call onToneSelect when tone is selected', () => {
     const onToneSelect = vi.fn();
     render(
-      <MoreToolsMenu currentScreen="reflection" onToneSelect={onToneSelect} />
+      <MoreToolsMenu
+        currentScreen="reflection"
+        onToneSelect={onToneSelect}
+        hasReflectionContent={true}
+      />
     );
 
     const trigger = screen.getByTestId('more-tools-trigger');
@@ -150,6 +230,7 @@ describe('MoreToolsMenu', () => {
         currentScreen="reflection"
         onProofread={onProofread}
         proofreaderAvailable={true}
+        hasReflectionContent={true}
         activeReflectionIndex={0}
       />
     );
