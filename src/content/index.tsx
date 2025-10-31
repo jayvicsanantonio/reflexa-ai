@@ -91,19 +91,7 @@ let dashboardModalContainer: HTMLDivElement | null = null;
 let dashboardModalRoot: ReturnType<typeof createRoot> | null = null;
 let isDashboardModalVisible = false;
 
-// Language code -> display name map (used for UI labels)
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: 'English',
-  es: 'Spanish',
-  fr: 'French',
-  de: 'German',
-  it: 'Italian',
-  pt: 'Portuguese',
-  zh: 'Chinese',
-  ja: 'Japanese',
-  ko: 'Korean',
-  ar: 'Arabic',
-};
+// Language names map removed (no longer shown in UI)
 
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
@@ -526,11 +514,6 @@ const initiateReflectionFlow = async () => {
             if (mute) void audioManager.stopAmbientLoopGracefully(400);
             else void audioManager.playAmbientLoopGracefully(400);
           }}
-          activeTargetLanguageName={
-            selectedTargetLanguage
-              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-              : undefined
-          }
         />
       );
     }
@@ -777,11 +760,6 @@ const showReflectModeOverlay = async () => {
         if (mute) void audioManager.stopAmbientLoopGracefully(400);
         else void audioManager.playAmbientLoopGracefully(400);
       }}
-      activeTargetLanguageName={
-        selectedTargetLanguage
-          ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-          : undefined
-      }
     />
   );
 
@@ -1046,11 +1024,6 @@ const handleTranslate = async (targetLanguage: string) => {
         onRewrite={handleRewrite}
         isRewriting={isRewritingArray}
         proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-        activeTargetLanguageName={
-          selectedTargetLanguage
-            ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-            : undefined
-        }
       />
     );
   }
@@ -1128,11 +1101,6 @@ const handleTranslate = async (targetLanguage: string) => {
           onRewrite={handleRewrite}
           isRewriting={isRewritingArray}
           proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-          activeTargetLanguageName={
-            selectedTargetLanguage
-              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-              : undefined
-          }
         />
       );
     }
@@ -1330,11 +1298,6 @@ const handleFormatChange = async (format: SummaryFormat) => {
           if (mute) void audioManager.stopAmbientLoopGracefully(400);
           else void audioManager.playAmbientLoopGracefully(400);
         }}
-        activeTargetLanguageName={
-          selectedTargetLanguage
-            ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-            : undefined
-        }
       />
     );
   }
@@ -1414,11 +1377,6 @@ const handleFormatChange = async (format: SummaryFormat) => {
             if (mute) void audioManager.stopAmbientLoopGracefully(400);
             else void audioManager.playAmbientLoopGracefully(400);
           }}
-          activeTargetLanguageName={
-            selectedTargetLanguage
-              ? LANGUAGE_NAMES[selectedTargetLanguage] || selectedTargetLanguage
-              : undefined
-          }
         />
       );
     }
@@ -1832,12 +1790,6 @@ const setupMessageListener = () => {
                     onFormatChange={handleFormatChange}
                     currentFormat={currentSummaryFormat}
                     isLoadingSummary={isLoadingSummary}
-                    activeTargetLanguageName={
-                      selectedTargetLanguage
-                        ? LANGUAGE_NAMES[selectedTargetLanguage] ||
-                          selectedTargetLanguage
-                        : undefined
-                    }
                   />
                 );
               }
