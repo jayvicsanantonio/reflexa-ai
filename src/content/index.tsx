@@ -63,7 +63,8 @@ let currentLanguageDetection: LanguageDetection | null = null;
 let isTranslating = false;
 // Persistent target language for current overlay session. When set, all
 // subsequent AI-generated outputs should appear in this language.
-let selectedTargetLanguage: string | null = null;
+// Default target language for formatting/rewrites
+let selectedTargetLanguage: string | null = 'en';
 // Remember the original detected language for reliable translations after
 // user changes target language.
 let originalDetectedLanguage: string | null = null;

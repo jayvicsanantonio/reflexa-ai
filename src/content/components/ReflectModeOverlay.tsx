@@ -144,7 +144,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       languageName: '',
     });
   const [currentScreen, setCurrentScreen] = useState<'summary' | 'reflection'>(
-    'summary'
+    'reflection'
   );
   const [activeReflectionIndex, setActiveReflectionIndex] = useState<number>(0);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);

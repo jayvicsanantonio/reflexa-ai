@@ -3406,9 +3406,7 @@ input[disabled] {
 /* Reflection input wrapper for voice button positioning */
 .reflexa-overlay__reflection-input-wrapper {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  display: block;
 }
 
 /* Recording state for textarea with enhanced visual feedback */
@@ -3496,14 +3494,23 @@ input[disabled] {
 
 /* Voice toggle button positioning */
 .reflexa-overlay__reflection-input-wrapper .reflexa-voice-toggle-button {
-  flex-shrink: 0;
-  margin-top: 4px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Ensure textarea takes full width minus button */
 .reflexa-overlay__reflection-input-wrapper .reflexa-overlay__reflection-input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
+  padding-right: 56px; /* space for mic */
 }
 
 /* Enhanced focus state when recording */

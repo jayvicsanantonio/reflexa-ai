@@ -964,6 +964,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                       : ''
                   }`}
                   aria-label="Reflection answer 1"
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
                   value={
                     voiceInputStates[0].interimText
                       ? answers[0]
@@ -1224,6 +1227,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                       : ''
                   }`}
                   aria-label="Reflection answer 2"
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
                   value={
                     voiceInputStates[1].interimText
                       ? answers[1]
