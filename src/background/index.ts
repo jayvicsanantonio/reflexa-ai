@@ -539,12 +539,17 @@ async function handleProofread(
   try {
     // Validate payload - support both string and object formats
     let text: string;
+    let expectedLanguage: string | undefined;
 
     if (typeof payload === 'string') {
       text = payload;
     } else if (payload && typeof payload === 'object' && 'text' in payload) {
-      const payloadObj = payload as { text: string };
+      const payloadObj = payload as {
+        text: string;
+        expectedLanguage?: string;
+      };
       text = payloadObj.text;
+      expectedLanguage = payloadObj.expectedLanguage;
     } else {
       return createErrorResponse(
         'Invalid text for proofreading',
@@ -578,8 +583,14 @@ async function handleProofread(
     let apiUsed: string;
 
     if (proofreaderAvailable) {
-      console.log('[Proofread] Using Proofreader API');
-      result = await aiService.proofreader.proofread(text);
+      // Determine expected input language
+      const languages = expectedLanguage ? [expectedLanguage] : ['en'];
+      console.log(
+        `[Proofread] Using Proofreader API with languages: ${languages.join(', ')}`
+      );
+      result = await aiService.proofreader.proofread(text, {
+        expectedInputLanguages: languages,
+      });
       apiUsed = 'proofreader';
     } else {
       // Fallback to Prompt API

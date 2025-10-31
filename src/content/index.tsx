@@ -997,9 +997,16 @@ const handleProofread = async (
   console.log(`Proofreading reflection ${index}...`);
 
   try {
+    // Determine expected language for proofreading
+    const expectedLanguage =
+      selectedTargetLanguage ?? originalDetectedLanguage ?? 'en';
+
     const proofreadResponse = await sendMessageToBackground<ProofreadResult>({
       type: 'proofread',
-      payload: text,
+      payload: {
+        text,
+        expectedLanguage,
+      },
     });
 
     if (proofreadResponse.success) {
