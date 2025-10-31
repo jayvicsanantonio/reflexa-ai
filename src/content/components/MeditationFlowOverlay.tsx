@@ -740,11 +740,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     });
                     try {
                       const result = await onProofread(answers[idx] ?? '', idx);
-                      setAnswers((prev) => {
-                        const next = [...prev];
-                        next[idx] = result.correctedText ?? prev[idx];
-                        return next;
-                      });
+                      // Only show preview, don't auto-apply
                       setProofreadResult({ index: idx, result });
                     } catch {
                       // silent
@@ -839,11 +835,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   return next;
                 });
                 const result = await onProofread(answers[1] ?? '', 1);
-                setAnswers((prev) => {
-                  const next = [...prev];
-                  next[1] = result.correctedText ?? prev[1];
-                  return next;
-                });
+                // Only show preview, don't auto-apply
                 setProofreadResult({ index: 1, result });
               } catch {
                 // silent
