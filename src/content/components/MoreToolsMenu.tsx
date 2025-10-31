@@ -2,6 +2,26 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { SummaryFormat, TonePreset } from '../../types';
 import '../styles.css';
 
+// Language options for translation
+interface LanguageOption {
+  code: string;
+  name: string;
+  nativeName: string;
+}
+
+const languageOptions: LanguageOption[] = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+];
+
 // Minimalist SVG Icons
 const VolumeIcon = () => (
   <svg
@@ -265,8 +285,10 @@ interface MoreToolsMenuProps {
   onToggleAmbient?: (mute: boolean) => void;
 
   // Translate Summary (available in all screens)
-  onTranslateSummary?: () => void;
+  onTranslateSummary?: (targetLanguage: string) => void;
   isTranslating?: boolean;
+  currentLanguage?: string;
+  unsupportedLanguages?: string[];
 }
 
 interface FormatOption {
@@ -353,7 +375,10 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   onToggleAmbient,
   onTranslateSummary,
   isTranslating = false,
+  currentLanguage,
+  unsupportedLanguages = [],
 }) => {
+  const [showTranslateDropdown, setShowTranslateDropdown] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -500,24 +525,81 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
 
               {/* Translate Summary */}
               {onTranslateSummary && (
-                <button
-                  type="button"
-                  className="reflexa-more-tools__tile"
-                  onClick={() => {
-                    onTranslateSummary();
-                    handleClose();
-                  }}
-                  disabled={isTranslating}
-                  role="menuitem"
-                  data-testid="translate-summary-option"
-                >
-                  <span className="reflexa-more-tools__tile-icon">
-                    {isTranslating ? <LoadingIcon /> : <TranslateIcon />}
-                  </span>
-                  <span className="reflexa-more-tools__tile-label">
-                    {isTranslating ? 'Translating...' : 'Translate'}
-                  </span>
-                </button>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <button
+                    type="button"
+                    className="reflexa-more-tools__tile"
+                    onClick={() =>
+                      setShowTranslateDropdown(!showTranslateDropdown)
+                    }
+                    disabled={isTranslating}
+                    role="menuitem"
+                    data-testid="translate-summary-option"
+                  >
+                    <span className="reflexa-more-tools__tile-icon">
+                      {isTranslating ? <LoadingIcon /> : <TranslateIcon />}
+                    </span>
+                    <span className="reflexa-more-tools__tile-label">
+                      {isTranslating ? 'Translating...' : 'Translate'}
+                    </span>
+                  </button>
+
+                  {/* Language Dropdown */}
+                  {showTranslateDropdown && !isTranslating && (
+                    <div className="reflexa-more-tools__language-dropdown">
+                      <div className="reflexa-more-tools__language-dropdown-title">
+                        Select Language
+                      </div>
+                      {languageOptions.map((lang) => {
+                        const isUnsupported = unsupportedLanguages.includes(
+                          lang.code
+                        );
+                        const isCurrent = lang.code === currentLanguage;
+
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            className={`reflexa-more-tools__language-option ${
+                              isUnsupported
+                                ? 'reflexa-more-tools__language-option--disabled'
+                                : ''
+                            } ${
+                              isCurrent
+                                ? 'reflexa-more-tools__language-option--current'
+                                : ''
+                            }`}
+                            onClick={() => {
+                              if (!isUnsupported && !isCurrent) {
+                                onTranslateSummary(lang.code);
+                                setShowTranslateDropdown(false);
+                                handleClose();
+                              }
+                            }}
+                            disabled={isUnsupported || isCurrent}
+                          >
+                            <span className="reflexa-more-tools__language-name">
+                              {lang.name}
+                            </span>
+                            <span className="reflexa-more-tools__language-native">
+                              {lang.nativeName}
+                            </span>
+                            {isCurrent && (
+                              <span className="reflexa-more-tools__language-badge">
+                                Current
+                              </span>
+                            )}
+                            {isUnsupported && (
+                              <span className="reflexa-more-tools__language-badge reflexa-more-tools__language-badge--unavailable">
+                                Unavailable
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

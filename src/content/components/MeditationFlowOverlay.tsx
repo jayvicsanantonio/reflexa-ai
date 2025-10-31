@@ -724,13 +724,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             activeReflectionIndex={step - 2}
             ambientMuted={_ambientMuted}
             onToggleAmbient={_onToggleAmbient}
-            onTranslateSummary={
-              _onTranslate
-                ? () =>
-                    _onTranslate(settings.preferredTranslationLanguage || 'en')
-                : undefined
-            }
+            onTranslateSummary={_onTranslate}
             isTranslating={_isTranslating}
+            currentLanguage={languageDetection?.detectedLanguage}
+            unsupportedLanguages={[]}
           />
           <button
             type="button"

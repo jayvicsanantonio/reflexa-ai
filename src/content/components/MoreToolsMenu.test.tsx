@@ -188,22 +188,28 @@ describe('MoreToolsMenu', () => {
     expect(onToggleAmbient).toHaveBeenCalledWith(true);
   });
 
-  it('should call onTranslateSummary when translate is clicked', () => {
+  it('should call onTranslateSummary when translate language is selected', () => {
     const onTranslateSummary = vi.fn();
     render(
       <MoreToolsMenu
         currentScreen="summary"
         onTranslateSummary={onTranslateSummary}
+        currentLanguage="en"
       />
     );
 
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
+    // Click the translate button to open dropdown
     const translateOption = screen.getByTestId('translate-summary-option');
     fireEvent.click(translateOption);
 
-    expect(onTranslateSummary).toHaveBeenCalled();
+    // Select a language from the dropdown
+    const spanishOption = screen.getByText('Spanish');
+    fireEvent.click(spanishOption);
+
+    expect(onTranslateSummary).toHaveBeenCalledWith('es');
   });
 
   it('should show correct ambient sound icon based on muted state', () => {

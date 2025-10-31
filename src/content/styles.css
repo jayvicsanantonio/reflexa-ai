@@ -1298,6 +1298,117 @@ input[disabled] {
   margin: 8px 0;
 }
 
+/* Language Dropdown */
+.reflexa-more-tools__language-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1001;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.reflexa-more-tools__language-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.reflexa-more-tools__language-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.reflexa-more-tools__language-dropdown::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+
+.reflexa-more-tools__language-dropdown-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-calm-400);
+  padding: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.reflexa-more-tools__language-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--color-calm-200);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 4px;
+}
+
+.reflexa-more-tools__language-option:last-child {
+  margin-bottom: 0;
+}
+
+.reflexa-more-tools__language-option:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(14, 165, 233, 0.4);
+  color: var(--color-zen-100);
+}
+
+.reflexa-more-tools__language-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reflexa-more-tools__language-option--current {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+.reflexa-more-tools__language-option--disabled {
+  opacity: 0.4;
+}
+
+.reflexa-more-tools__language-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.reflexa-more-tools__language-native {
+  font-size: 12px;
+  color: var(--color-calm-400);
+  margin-right: auto;
+}
+
+.reflexa-more-tools__language-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(14, 165, 233, 0.2);
+  color: var(--color-accent);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reflexa-more-tools__language-badge--unavailable {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
