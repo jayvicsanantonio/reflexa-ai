@@ -662,6 +662,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     _isRewriting.some((v) => v) || isProofreading.some((v) => v);
   const disableNext = (step === 0 && isLoadingSummary) || disableSave;
 
+  const busyHint = 'Action unavailable while AI is working';
   const Nav = (
     <div
       style={{
@@ -678,6 +679,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         type="button"
         onClick={prev}
         disabled={step === 0 || disableSave}
+        aria-disabled={step === 0 || disableSave}
+        title={step === 0 || disableSave ? busyHint : 'Back'}
         aria-label="Previous"
         style={{
           background: 'transparent',
@@ -771,6 +774,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             type="button"
             onClick={next}
             disabled={disableNext}
+            aria-disabled={disableNext}
+            title={disableNext ? busyHint : 'Next'}
             aria-label="Next"
             style={{
               background: disableNext
@@ -874,6 +879,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               cursor: disableSave ? 'not-allowed' : 'pointer',
             }}
             disabled={disableSave}
+            aria-disabled={disableSave}
+            title={disableSave ? busyHint : 'Save reflection'}
           >
             Save
           </button>
