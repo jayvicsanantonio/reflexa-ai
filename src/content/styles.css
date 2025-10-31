@@ -471,6 +471,12 @@ input[disabled] {
   outline-offset: 4px;
 }
 
+/* When expanded into pill, make SVG smaller */
+.reflexa-nudge-wrapper[data-open='true'] .reflexa-lotus-nudge svg {
+  width: 48px;
+  height: 48px;
+}
+
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .reflexa-lotus-nudge {

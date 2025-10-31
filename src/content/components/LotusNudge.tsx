@@ -197,8 +197,8 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
         tabIndex={0}
       >
         <svg
-          width="48"
-          height="48"
+          width="64"
+          height="64"
           viewBox="0 0 48 48"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"

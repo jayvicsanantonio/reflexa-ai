@@ -7,3 +7,17 @@
  * Component-specific styles for popup dashboard UI
  * Theme tokens are imported from ../styles/theme.css
  */
+
+/* Size the browser action popup to fit the card nicely */
+html,
+body,
+#root {
+  width: 720px;
+  height: 600px;
+  margin: 0;
+}
+
+body {
+  overflow: hidden; /* prevent default scrollbars around the modal card */
+  background: transparent;
+}
