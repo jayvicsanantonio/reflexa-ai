@@ -261,13 +261,18 @@ export class PromptManager {
    * Mimics Summarizer API behavior with specialized prompts
    * @param text - Content to summarize
    * @param format - Desired summary format (defaults to 'bullets' for backward compatibility)
+   * @param outputLanguage - Target language for summary output (optional)
    * @returns Array of summary strings
    */
   async summarize(
     text: string,
-    format: SummaryFormat = 'bullets'
+    format: SummaryFormat = 'bullets',
+    outputLanguage?: string
   ): Promise<string[]> {
-    const systemPrompt = this.buildSummarizationSystemPrompt(format);
+    const systemPrompt = this.buildSummarizationSystemPrompt(
+      format,
+      outputLanguage
+    );
     const userPrompt = this.buildSummarizationUserPrompt(text, format);
 
     const result = await this.prompt(userPrompt, {
@@ -281,21 +286,29 @@ export class PromptManager {
   /**
    * Build system prompt for summarization
    * @param format - Summary format
+   * @param outputLanguage - Target language for summary output (optional)
    * @returns System prompt string
    */
-  private buildSummarizationSystemPrompt(format: SummaryFormat): string {
+  private buildSummarizationSystemPrompt(
+    format: SummaryFormat,
+    outputLanguage?: string
+  ): string {
     const basePrompt =
       'You are a precise summarization assistant. Your task is to create concise, accurate summaries that capture the key information from the provided text.';
 
+    const languageInstruction = outputLanguage
+      ? ` Always respond in ${outputLanguage}.`
+      : ' Always respond in the same language as the input text.';
+
     switch (format) {
       case 'bullets':
-        return `${basePrompt} Always respond with exactly 3 bullet points, each containing no more than 20 words. Format each bullet point on a new line starting with a dash (-).`;
+        return `${basePrompt}${languageInstruction} Always respond with exactly 3 bullet points, each containing no more than 20 words. Format each bullet point on a new line starting with a dash (-).`;
       case 'paragraph':
-        return `${basePrompt} Always respond with a single paragraph of no more than 150 words that captures the main ideas.`;
+        return `${basePrompt}${languageInstruction} Always respond with a single paragraph of no more than 150 words that captures the main ideas.`;
       case 'headline-bullets':
-        return `${basePrompt} Always respond with a headline (maximum 10 words) on the first line, followed by exactly 3 bullet points (each no more than 20 words). Format bullet points starting with a dash (-).`;
+        return `${basePrompt}${languageInstruction} Always respond with a headline (maximum 10 words) on the first line, followed by exactly 3 bullet points (each no more than 20 words). Format bullet points starting with a dash (-).`;
       default:
-        return basePrompt;
+        return `${basePrompt}${languageInstruction}`;
     }
   }
 

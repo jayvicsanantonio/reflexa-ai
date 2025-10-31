@@ -50,6 +50,8 @@ export const StartReflectionButton: React.FC<StartReflectionButtonProps> = ({
 
       if (response.success) {
         const draft = response.data;
+        console.log('[StartReflectionButton] Draft received:', draft);
+        console.log('[StartReflectionButton] Draft type:', typeof draft);
 
         // Show success animation
         setShowSuccess(true);

@@ -292,9 +292,10 @@ export class WriterManager {
     const apiTone = this.mapTone(options.tone);
     const apiLength = this.mapLength(options.length);
 
-    // Don't use sharedContext - pass everything as the input to write()
-    // This ensures the Writer API generates content based on the full prompt
+    // Use sharedContext for providing background information
+    // The topic/prompt should be the actual writing task
     const session = await this.createSession({
+      sharedContext: context,
       tone: apiTone,
       format: 'plain-text',
       length: apiLength,
@@ -305,14 +306,32 @@ export class WriterManager {
       throw new Error('Failed to create writer session');
     }
 
-    // Build the full prompt to pass to write()
-    const fullPrompt = context ? `Context: ${context}\n\n${topic}` : topic;
+    // The topic is the actual writing instruction
+    const fullPrompt = topic;
 
     // Generate draft - pass the full prompt as input
+    console.log(
+      '[WriterManager] Calling session.write with prompt:',
+      fullPrompt
+    );
     const result = await session.write(fullPrompt);
+    console.log('[WriterManager] Raw result from Writer API:', result);
+    console.log('[WriterManager] Result type:', typeof result);
+    console.log(
+      '[WriterManager] Is result same as prompt?',
+      result === fullPrompt
+    );
 
     // Format response as clean paragraph text
     const cleanedText = result.trim();
+    console.log('[WriterManager] Cleaned text:', cleanedText);
+
+    // Check if the API just echoed back the prompt (which would be a bug)
+    if (cleanedText === fullPrompt.trim()) {
+      console.warn(
+        '[WriterManager] WARNING: Writer API returned the prompt unchanged!'
+      );
+    }
 
     // Validate word count based on length parameter
     const wordCount = cleanedText.split(/\s+/).length;

@@ -417,7 +417,7 @@ async function handleSummarize(
       }
 
       summary = await rateLimiter.executeWithRetry(
-        () => aiService.prompt.summarize(content, format),
+        () => aiService.prompt.summarize(content, format, outputLanguage),
         'summarizations'
       );
       apiUsed = 'prompt';
@@ -704,6 +704,9 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
     }
 
     console.log(`[Write] Success using ${apiUsed}`);
+    console.log(`[Write] Generated result:`, result);
+    console.log(`[Write] Result type:`, typeof result);
+    console.log(`[Write] Result length:`, result?.length);
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
     console.error('Error in handleWrite:', error);
