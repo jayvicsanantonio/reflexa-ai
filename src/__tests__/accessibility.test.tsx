@@ -500,12 +500,17 @@ describe('Accessibility Tests', () => {
           />
         );
 
-        // Type some text to make proofread button appear
+        // Type some text to enable proofread option
         const input = screen.getByLabelText('Question 1?');
         fireEvent.change(input, { target: { value: 'My reflection' } });
 
-        const proofreadButton = screen.getByLabelText('Proofread reflection 1');
-        expect(proofreadButton).toBeInTheDocument();
+        // Open More Tools menu
+        const moreButton = screen.getByTestId('more-tools-trigger');
+        fireEvent.click(moreButton);
+
+        // Check that proofread option is available in the menu
+        const proofreadOption = screen.getByTestId('proofread-option');
+        expect(proofreadOption).toBeInTheDocument();
       });
 
       it('should announce to screen reader on mount', async () => {

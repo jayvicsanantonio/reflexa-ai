@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BreathingOrb } from './BreathingOrb';
-import { SummaryFormatDropdown } from './SummaryFormatDropdown';
 import { LanguagePill } from './LanguagePill';
 import { TranslateDropdown } from './TranslateDropdown';
 import { StartReflectionButton } from './StartReflectionButton';
-import { TonePresetChips } from './TonePresetChips';
 import { ProofreadDiffView } from './ProofreadDiffView';
 import { VoiceToggleButton } from './VoiceToggleButton';
 import { Notification } from './Notification';
+import { MoreToolsMenu } from './MoreToolsMenu';
 import type {
   Settings,
   SummaryFormat,
@@ -144,6 +143,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       show: false,
       languageName: '',
     });
+  const [currentScreen, setCurrentScreen] = useState<'summary' | 'reflection'>(
+    'summary'
+  );
+  const [activeReflectionIndex, setActiveReflectionIndex] = useState<number>(0);
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const audioManagerRef = useRef<AudioManager | null>(null);
@@ -347,12 +350,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
     voiceInput1.languageName,
   ]);
 
-  const handleFormatChange = async (format: SummaryFormat) => {
-    if (onFormatChange) {
-      await onFormatChange(format);
-    }
-  };
-
   // Initialize audio manager
   useEffect(() => {
     audioManagerRef.current = new AudioManager(settings);
@@ -477,6 +474,14 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
 
   const handleReflectionChange = useCallback(
     (index: number, value: string) => {
+      // Switch to reflection screen when user starts typing
+      if (currentScreen === 'summary' && value.trim().length > 0) {
+        setCurrentScreen('reflection');
+      }
+
+      // Track active reflection index
+      setActiveReflectionIndex(index);
+
       const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
       const lastValue = lastTextValueRef.current[index];
 
@@ -531,7 +536,7 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
       });
       lastTextValueRef.current[index] = value;
     },
-    [voiceInput0, voiceInput1]
+    [voiceInput0, voiceInput1, currentScreen]
   );
 
   const handleDraftGenerated = (draft: string) => {
@@ -677,17 +682,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           </div>
         )}
 
-        {/* Summary Format Dropdown */}
-        {onFormatChange && (
-          <div className="reflexa-overlay__format-selector">
-            <SummaryFormatDropdown
-              selectedFormat={currentFormat}
-              onFormatChange={handleFormatChange}
-              disabled={isLoadingSummary}
-            />
-          </div>
-        )}
-
         {/* Three-Bullet Summary */}
         <section
           className="reflexa-overlay__summary"
@@ -760,18 +754,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           className="reflexa-overlay__reflections"
           aria-label="Reflection Questions"
         >
-          {/* Tone Preset Chips */}
-          {settings.experimentalMode && onRewrite && (
-            <div className="reflexa-overlay__tone-section">
-              <TonePresetChips
-                selectedTone={selectedTone}
-                onToneSelect={handleToneSelect}
-                disabled={reflections.every((r) => r.trim() === '')}
-                isLoading={isRewriting.some((r) => r)}
-              />
-            </div>
-          )}
-
           {/* Rewrite Preview */}
           {rewritePreview && (
             <div className="reflexa-overlay__rewrite-preview">
@@ -785,14 +767,14 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                     className="reflexa-overlay__rewrite-preview-button reflexa-overlay__rewrite-preview-button--accept"
                     onClick={handleAcceptRewrite}
                   >
-                    Accept
+                    ✓ Accept
                   </button>
                   <button
                     type="button"
                     className="reflexa-overlay__rewrite-preview-button reflexa-overlay__rewrite-preview-button--discard"
                     onClick={handleDiscardRewrite}
                   >
-                    Discard
+                    ✕ Discard
                   </button>
                 </div>
               </div>
@@ -877,20 +859,6 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
                     />
                   )}
                 </div>
-                {(settings.enableProofreading || settings.proofreadEnabled) &&
-                  proofreaderAvailable &&
-                  reflections[index].trim() && (
-                    <button
-                      type="button"
-                      className="reflexa-overlay__proofread-button"
-                      onClick={() => handleProofread(index)}
-                      disabled={isProofreading[index]}
-                      aria-label={`Proofread reflection ${index + 1}`}
-                      data-testid={`proofread-button-${index}`}
-                    >
-                      {isProofreading[index] ? 'Proofreading...' : 'Proofread'}
-                    </button>
-                  )}
               </div>
             );
           })}
@@ -910,27 +878,58 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
 
         {/* Action Buttons */}
         <div className="reflexa-overlay__actions">
-          <button
-            type="button"
-            className="reflexa-overlay__button reflexa-overlay__button--cancel"
-            onClick={onCancel}
-            data-testid="cancel-button"
-          >
-            Cancel
-            <span className="reflexa-overlay__button-hint">Esc</span>
-          </button>
-          <button
-            type="button"
-            className="reflexa-overlay__button reflexa-overlay__button--save"
-            onClick={handleSave}
-            disabled={isLoadingSummary}
-            data-testid="save-button"
-          >
-            {isLoadingSummary ? 'Preparing...' : 'Save Reflection'}
-            <span className="reflexa-overlay__button-hint">
-              {isMacOS() ? '⌘' : 'Ctrl'}+Enter
-            </span>
-          </button>
+          <div className="reflexa-overlay__actions-left">
+            {/* More Tools Menu */}
+            <MoreToolsMenu
+              currentScreen={currentScreen}
+              currentFormat={currentFormat}
+              onFormatChange={onFormatChange}
+              isLoadingSummary={isLoadingSummary}
+              selectedTone={selectedTone}
+              onToneSelect={
+                settings.experimentalMode && onRewrite
+                  ? handleToneSelect
+                  : undefined
+              }
+              tonesDisabled={reflections.every((r) => r.trim() === '')}
+              isRewriting={isRewriting.some((r) => r)}
+              onProofread={
+                (settings.enableProofreading || settings.proofreadEnabled) &&
+                proofreaderAvailable
+                  ? handleProofread
+                  : undefined
+              }
+              proofreadDisabled={!reflections[activeReflectionIndex]?.trim()}
+              isProofreading={isProofreading[activeReflectionIndex]}
+              proofreaderAvailable={proofreaderAvailable}
+              activeReflectionIndex={activeReflectionIndex}
+            />
+
+            <button
+              type="button"
+              className="reflexa-overlay__button reflexa-overlay__button--cancel"
+              onClick={onCancel}
+              data-testid="cancel-button"
+            >
+              Cancel
+              <span className="reflexa-overlay__button-hint">Esc</span>
+            </button>
+          </div>
+
+          <div className="reflexa-overlay__actions-right">
+            <button
+              type="button"
+              className="reflexa-overlay__button reflexa-overlay__button--save"
+              onClick={handleSave}
+              disabled={isLoadingSummary}
+              data-testid="save-button"
+            >
+              {isLoadingSummary ? 'Preparing...' : 'Save Reflection'}
+              <span className="reflexa-overlay__button-hint">
+                {isMacOS() ? '⌘' : 'Ctrl'}+Enter
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Voice Input Error Notification */}

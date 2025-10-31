@@ -84,13 +84,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     'inhale'
   );
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState<number>(0);
-  const [resumePromptOpen, setResumePromptOpen] = useState<boolean>(
-    typeof initialStep === 'number' ||
-      (Array.isArray(initialAnswers) &&
-        Boolean(initialAnswers[0] || initialAnswers[1]))
-      ? true
-      : false
-  );
+  // Resume silently if initial step/answers exist (popup removed)
   const [voiceInputStates, setVoiceInputStates] = useState<
     { isRecording: boolean; interimText: string }[]
   >([
@@ -790,85 +784,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       >
         {Header}
 
-        {resumePromptOpen && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Resume draft"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 2,
-            }}
-          >
-            <div
-              style={{
-                background: 'rgba(2,8,23,0.85)',
-                border: '1px solid rgba(226,232,240,0.18)',
-                borderRadius: 16,
-                boxShadow: '0 20px 50px rgba(0,0,0,0.45)',
-                color: '#e2e8f0',
-                padding: 16,
-                width: 360,
-                textAlign: 'center',
-                backdropFilter: 'blur(10px) saturate(110%)',
-              }}
-            >
-              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>
-                Resume draft?
-              </div>
-              <div style={{ color: '#cbd5e1', fontSize: 13, marginBottom: 12 }}>
-                A saved reflection exists for this page.
-              </div>
-              <div
-                style={{ display: 'flex', gap: 8, justifyContent: 'center' }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setResumePromptOpen(false)}
-                  style={{
-                    background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#fff',
-                    borderRadius: 999,
-                    padding: '8px 14px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Resume
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAnswers(['', '']);
-                    setStep(0);
-                    try {
-                      void chrome.storage.local.remove('reflexa_draft');
-                    } catch {
-                      // ignore
-                    }
-                    setResumePromptOpen(false);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(226,232,240,0.25)',
-                    color: '#e2e8f0',
-                    borderRadius: 999,
-                    padding: '8px 14px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Start fresh
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Resume draft popup removed per request */}
 
         {/* Center content per step */}
         <div
