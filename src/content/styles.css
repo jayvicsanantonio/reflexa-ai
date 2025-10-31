@@ -2745,6 +2745,86 @@ input[disabled] {
   }
 }
 
+/* ===== TONE PRESET CHIPS COMPONENT ===== */
+
+.reflexa-tone-preset-chips {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.reflexa-tone-preset-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid rgba(226, 232, 240, 0.2);
+  border-radius: 8px;
+  color: rgba(226, 232, 240, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.reflexa-tone-preset-chip:hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.05);
+}
+
+.reflexa-tone-preset-chip--selected {
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.reflexa-tone-preset-chip--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reflexa-tone-preset-chip__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.reflexa-tone-preset-chip__label {
+  line-height: 1;
+}
+
+.reflexa-tone-preset-chip__spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+}
+
+.reflexa-tone-preset-chip__spinner-svg {
+  width: 100%;
+  height: 100%;
+  animation: spin 1s linear infinite;
+}
+
+.reflexa-tone-preset-chip__spinner-circle {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 25;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ===== VOICE INDICATOR COMPONENT ===== */
 
 .reflexa-voice-indicator {

@@ -12,9 +12,11 @@ import { COMMON_LANGUAGES } from '../../constants';
 import { BreathingOrb } from './BreathingOrb';
 import { VoiceToggleButton } from './VoiceToggleButton';
 import { Notification } from './Notification';
+import { TonePresetChips } from './TonePresetChips';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
 import { AudioManager } from '../../utils/audioManager';
+import type { AIResponse } from '../../types';
 import '../styles.css';
 
 interface MeditationFlowOverlayProps {
@@ -98,6 +100,25 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
   const [autoStopNotification, setAutoStopNotification] =
     useState<boolean>(false);
+  const [isDraftGenerating, setIsDraftGenerating] = useState<boolean[]>([
+    false,
+    false,
+  ]);
+  const [selectedTone, setSelectedTone] = useState<TonePreset | undefined>(
+    undefined
+  );
+  const [isRewriting, setIsRewriting] = useState<boolean[]>([false, false]);
+  const [rewritePreview, setRewritePreview] = useState<{
+    index: number;
+    original: string;
+    rewritten: string;
+  } | null>(null);
+  const [writerAvailable, setWriterAvailable] = useState<boolean>(false);
+  const [rewriterAvailable, setRewriterAvailable] = useState<boolean>(false);
+  const [showVoiceEnhancePrompt, setShowVoiceEnhancePrompt] = useState<{
+    show: boolean;
+    index: number;
+  }>({ show: false, index: 0 });
   const [languageFallbackNotification, setLanguageFallbackNotification] =
     useState<{ show: boolean; languageName: string }>({
       show: false,
@@ -132,31 +153,41 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   ];
 
   // Voice input handlers for answer field 0
-  const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
-      setAnswers((prev) => {
-        const newAnswers = [...prev];
-        const currentText = newAnswers[0] || '';
-        newAnswers[0] = currentText
-          ? `${currentText} ${text.trim()}`
-          : text.trim();
-        lastTextValueRef.current[0] = newAnswers[0];
-        return newAnswers;
-      });
+  const handleTranscript0 = useCallback(
+    (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        setAnswers((prev) => {
+          const newAnswers = [...prev];
+          const currentText = newAnswers[0] || '';
+          newAnswers[0] = currentText
+            ? `${currentText} ${text.trim()}`
+            : text.trim();
+          lastTextValueRef.current[0] = newAnswers[0];
+          return newAnswers;
+        });
 
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = '';
-        return newStates;
-      });
-    } else {
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = text;
-        return newStates;
-      });
-    }
-  }, []);
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[0].interimText = '';
+          return newStates;
+        });
+
+        // Show voice enhancement prompt if rewriter is available
+        if (rewriterAvailable && text.trim().length > 30) {
+          setTimeout(() => {
+            setShowVoiceEnhancePrompt({ show: true, index: 0 });
+          }, 1000);
+        }
+      } else {
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[0].interimText = text;
+          return newStates;
+        });
+      }
+    },
+    [rewriterAvailable]
+  );
 
   const handleVoiceError0 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 0):', error);
@@ -186,31 +217,41 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   });
 
   // Voice input handlers for answer field 1
-  const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
-      setAnswers((prev) => {
-        const newAnswers = [...prev];
-        const currentText = newAnswers[1] || '';
-        newAnswers[1] = currentText
-          ? `${currentText} ${text.trim()}`
-          : text.trim();
-        lastTextValueRef.current[1] = newAnswers[1];
-        return newAnswers;
-      });
+  const handleTranscript1 = useCallback(
+    (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        setAnswers((prev) => {
+          const newAnswers = [...prev];
+          const currentText = newAnswers[1] || '';
+          newAnswers[1] = currentText
+            ? `${currentText} ${text.trim()}`
+            : text.trim();
+          lastTextValueRef.current[1] = newAnswers[1];
+          return newAnswers;
+        });
 
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = '';
-        return newStates;
-      });
-    } else {
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = text;
-        return newStates;
-      });
-    }
-  }, []);
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[1].interimText = '';
+          return newStates;
+        });
+
+        // Show voice enhancement prompt if rewriter is available
+        if (rewriterAvailable && text.trim().length > 30) {
+          setTimeout(() => {
+            setShowVoiceEnhancePrompt({ show: true, index: 1 });
+          }, 1000);
+        }
+      } else {
+        setVoiceInputStates((prev) => {
+          const newStates = [...prev];
+          newStates[1].interimText = text;
+          return newStates;
+        });
+      }
+    },
+    [rewriterAvailable]
+  );
 
   const handleVoiceError1 = useCallback((error: VoiceInputError) => {
     console.error('Voice input error (field 1):', error);
@@ -305,6 +346,165 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       }
     };
   }, [settings]);
+
+  // Check Writer and Rewriter API availability
+  useEffect(() => {
+    const checkAPIs = async () => {
+      try {
+        const writerResponse: AIResponse<boolean> =
+          await chrome.runtime.sendMessage({
+            type: 'checkAI',
+            payload: { api: 'writer' },
+          });
+        setWriterAvailable(writerResponse.success && writerResponse.data);
+
+        const rewriterResponse: AIResponse<boolean> =
+          await chrome.runtime.sendMessage({
+            type: 'checkAI',
+            payload: { api: 'rewriter' },
+          });
+        setRewriterAvailable(rewriterResponse.success && rewriterResponse.data);
+      } catch (error) {
+        console.error('Error checking API availability:', error);
+      }
+    };
+
+    void checkAPIs();
+  }, []);
+
+  // Generate draft using Writer API
+  const handleGenerateDraft = useCallback(
+    async (index: 0 | 1) => {
+      if (!writerAvailable) return;
+
+      setIsDraftGenerating((prev) => {
+        const next = [...prev];
+        next[index] = true;
+        return next;
+      });
+
+      try {
+        const prompt = prompts[index];
+        const summaryContext = summary.join('\n');
+
+        const response: AIResponse<string> = await chrome.runtime.sendMessage({
+          type: 'write',
+          payload: {
+            prompt: `${prompt}\n\nContext: ${summaryContext}`,
+            options: { tone: 'neutral', length: 'short' },
+          },
+        });
+
+        if (response.success) {
+          setAnswers((prev) => {
+            const next = [...prev];
+            next[index] = response.data;
+            lastTextValueRef.current[index] = response.data;
+            return next;
+          });
+        }
+      } catch (error) {
+        console.error('Error generating draft:', error);
+      } finally {
+        setIsDraftGenerating((prev) => {
+          const next = [...prev];
+          next[index] = false;
+          return next;
+        });
+      }
+    },
+    [writerAvailable, prompts, summary]
+  );
+
+  // Rewrite with selected tone
+  const handleToneSelect = useCallback(
+    async (tone: TonePreset) => {
+      if (!rewriterAvailable) return;
+
+      const index = step === 2 ? 0 : 1;
+      const text = answers[index];
+
+      if (!text || text.trim().length === 0) return;
+
+      setSelectedTone(tone);
+      setIsRewriting((prev) => {
+        const next = [...prev];
+        next[index] = true;
+        return next;
+      });
+
+      try {
+        const response: AIResponse<{ original: string; rewritten: string }> =
+          await chrome.runtime.sendMessage({
+            type: 'rewrite',
+            payload: {
+              text,
+              preset: tone,
+              context: summary.join('\n'),
+            },
+          });
+
+        if (response.success) {
+          setRewritePreview({
+            index,
+            original: response.data.original,
+            rewritten: response.data.rewritten,
+          });
+        }
+      } catch (error) {
+        console.error('Error rewriting:', error);
+      } finally {
+        setIsRewriting((prev) => {
+          const next = [...prev];
+          next[index] = false;
+          return next;
+        });
+      }
+    },
+    [rewriterAvailable, step, answers, summary]
+  );
+
+  // Accept rewrite
+  const handleAcceptRewrite = useCallback(() => {
+    if (!rewritePreview) return;
+
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[rewritePreview.index] = rewritePreview.rewritten;
+      lastTextValueRef.current[rewritePreview.index] = rewritePreview.rewritten;
+      return next;
+    });
+
+    setRewritePreview(null);
+    setSelectedTone(undefined);
+  }, [rewritePreview]);
+
+  // Discard rewrite
+  const handleDiscardRewrite = useCallback(() => {
+    setRewritePreview(null);
+    setSelectedTone(undefined);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + G = Generate draft
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.key === 'g' &&
+        (step === 2 || step === 3)
+      ) {
+        e.preventDefault();
+        const index = step === 2 ? 0 : 1;
+        if (!answers[index] && writerAvailable) {
+          void handleGenerateDraft(index);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [step, answers, writerAvailable, handleGenerateDraft]);
 
   const next = () => {
     // Don't advance from step 0 if still loading summary
@@ -835,6 +1035,144 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Unified Toolbar */}
+              {(writerAvailable || rewriterAvailable) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginTop: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {writerAvailable && !answers[0] && (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateDraft(0)}
+                      disabled={isDraftGenerating[0]}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(96,165,250,0.3)',
+                        color: '#60a5fa',
+                        borderRadius: 8,
+                        padding: '7px 12px',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: isDraftGenerating[0] ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        opacity: isDraftGenerating[0] ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      <span>
+                        {isDraftGenerating[0] ? 'Generating...' : 'Generate'}
+                      </span>
+                    </button>
+                  )}
+
+                  {rewriterAvailable &&
+                    answers[0] &&
+                    answers[0].trim().length > 20 && (
+                      <>
+                        <div
+                          style={{
+                            width: 1,
+                            height: 20,
+                            background: 'rgba(226,232,240,0.15)',
+                          }}
+                        />
+                        <TonePresetChips
+                          selectedTone={selectedTone}
+                          onToneSelect={handleToneSelect}
+                          disabled={isRewriting[0]}
+                          isLoading={isRewriting[0]}
+                        />
+                      </>
+                    )}
+                </div>
+              )}
+
+              {/* Rewrite Preview */}
+              {rewritePreview?.index === 0 && (
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: 14,
+                    background: 'rgba(59,130,246,0.08)',
+                    border: '1px solid rgba(59,130,246,0.25)',
+                    borderRadius: 12,
+                    maxWidth: 720,
+                    margin: '16px auto 0',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#60a5fa',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Rewrite Preview
+                  </div>
+                  <div
+                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
+                  >
+                    {rewritePreview.rewritten}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleAcceptRewrite}
+                      style={{
+                        background: 'rgba(34,197,94,0.15)',
+                        border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#4ade80',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDiscardRewrite}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.25)',
+                        color: '#cbd5e1',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      × Discard
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -934,6 +1272,144 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Unified Toolbar */}
+              {(writerAvailable || rewriterAvailable) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginTop: 12,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {writerAvailable && !answers[1] && (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateDraft(1)}
+                      disabled={isDraftGenerating[1]}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(96,165,250,0.3)',
+                        color: '#60a5fa',
+                        borderRadius: 8,
+                        padding: '7px 12px',
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: isDraftGenerating[1] ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        opacity: isDraftGenerating[1] ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      <span>
+                        {isDraftGenerating[1] ? 'Generating...' : 'Generate'}
+                      </span>
+                    </button>
+                  )}
+
+                  {rewriterAvailable &&
+                    answers[1] &&
+                    answers[1].trim().length > 20 && (
+                      <>
+                        <div
+                          style={{
+                            width: 1,
+                            height: 20,
+                            background: 'rgba(226,232,240,0.15)',
+                          }}
+                        />
+                        <TonePresetChips
+                          selectedTone={selectedTone}
+                          onToneSelect={handleToneSelect}
+                          disabled={isRewriting[1]}
+                          isLoading={isRewriting[1]}
+                        />
+                      </>
+                    )}
+                </div>
+              )}
+
+              {/* Rewrite Preview */}
+              {rewritePreview?.index === 1 && (
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: 14,
+                    background: 'rgba(59,130,246,0.08)',
+                    border: '1px solid rgba(59,130,246,0.25)',
+                    borderRadius: 12,
+                    maxWidth: 720,
+                    margin: '16px auto 0',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#60a5fa',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Rewrite Preview
+                  </div>
+                  <div
+                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
+                  >
+                    {rewritePreview.rewritten}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={handleAcceptRewrite}
+                      style={{
+                        background: 'rgba(34,197,94,0.15)',
+                        border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#4ade80',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDiscardRewrite}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(226,232,240,0.25)',
+                        color: '#cbd5e1',
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      × Discard
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1178,6 +1654,104 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               setLanguageFallbackNotification({ show: false, languageName: '' })
             }
           />
+        )}
+
+        {/* Voice Enhancement Prompt */}
+        {showVoiceEnhancePrompt.show && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 80,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(2,8,23,0.95)',
+              border: '1px solid rgba(59,130,246,0.4)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(10px)',
+              zIndex: 10001,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              maxWidth: 400,
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#60a5fa',
+                  marginBottom: 4,
+                }}
+              >
+                Enhance your reflection?
+              </div>
+              <div style={{ fontSize: 12, color: '#cbd5e1' }}>
+                Make it clearer or adjust the tone
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleToneSelect('concise');
+                  setShowVoiceEnhancePrompt({ show: false, index: 0 });
+                }}
+                style={{
+                  background: 'rgba(59,130,246,0.15)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  color: '#60a5fa',
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✂️ Concise
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleToneSelect('empathetic');
+                  setShowVoiceEnhancePrompt({ show: false, index: 0 });
+                }}
+                style={{
+                  background: 'rgba(59,130,246,0.15)',
+                  border: '1px solid rgba(59,130,246,0.4)',
+                  color: '#60a5fa',
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                💙 Warmth
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setShowVoiceEnhancePrompt({ show: false, index: 0 })
+                }
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(226,232,240,0.25)',
+                  color: '#94a3b8',
+                  borderRadius: 6,
+                  padding: '6px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

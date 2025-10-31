@@ -276,7 +276,11 @@ export const useVoiceInput = (
 
   const isLanguageFallback = useMemo(() => {
     if (!language) return false;
-    return effectiveLanguage !== language;
+    // Only consider it a fallback if the language prefix changed
+    // e.g., 'en' -> 'en-US' is NOT a fallback, but 'xyz' -> 'en-US' IS
+    const requestedPrefix = language.split('-')[0];
+    const effectivePrefix = effectiveLanguage.split('-')[0];
+    return requestedPrefix !== effectivePrefix;
   }, [language, effectiveLanguage]);
 
   const languageName = useMemo(() => {
