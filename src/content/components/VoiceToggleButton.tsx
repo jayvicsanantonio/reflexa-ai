@@ -63,23 +63,30 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
       onKeyDown={handleKeyDown}
       disabled={disabled}
       aria-label={ariaLabel}
-      title={tooltipText}
+      title={isRecording ? 'Click to stop recording' : tooltipText}
       data-testid="voice-toggle-button"
     >
-      {isRecording ? (
-        <>
-          <span
-            className="reflexa-voice-toggle-button__indicator"
-            aria-hidden="true"
-          />
-          <span className="reflexa-voice-toggle-button__text">
-            Recording...
-          </span>
-        </>
-      ) : (
-        <span className="reflexa-voice-toggle-button__icon" aria-hidden="true">
-          🎤
-        </span>
+      <svg
+        className="reflexa-voice-toggle-button__icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="22" />
+      </svg>
+      {isRecording && (
+        <span
+          className="reflexa-voice-toggle-button__indicator"
+          aria-hidden="true"
+        />
       )}
     </button>
   );

@@ -10,6 +10,11 @@ import type {
 import { trapFocus } from '../../utils/accessibility';
 import { COMMON_LANGUAGES } from '../../constants';
 import { BreathingOrb } from './BreathingOrb';
+import { VoiceToggleButton } from './VoiceToggleButton';
+import { Notification } from './Notification';
+import { useVoiceInput } from '../hooks/useVoiceInput';
+import type { VoiceInputError } from '../hooks/useVoiceInput';
+import { AudioManager } from '../../utils/audioManager';
 import '../styles.css';
 
 interface MeditationFlowOverlayProps {
@@ -84,6 +89,23 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       ? true
       : false
   );
+  const [voiceInputStates, setVoiceInputStates] = useState<
+    { isRecording: boolean; interimText: string }[]
+  >([
+    { isRecording: false, interimText: '' },
+    { isRecording: false, interimText: '' },
+  ]);
+  const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
+  const [autoStopNotification, setAutoStopNotification] =
+    useState<boolean>(false);
+  const [languageFallbackNotification, setLanguageFallbackNotification] =
+    useState<{ show: boolean; languageName: string }>({
+      show: false,
+      languageName: '',
+    });
+  const audioManagerRef = useRef<AudioManager | null>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTextValueRef = useRef<string[]>(['', '']);
 
   // Meditative phrases that rotate during loading
   const meditativePhrases = [
@@ -109,6 +131,142 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     'Trusting the process...',
   ];
 
+  // Voice input handlers for answer field 0
+  const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      setAnswers((prev) => {
+        const newAnswers = [...prev];
+        const currentText = newAnswers[0] || '';
+        newAnswers[0] = currentText
+          ? `${currentText} ${text.trim()}`
+          : text.trim();
+        lastTextValueRef.current[0] = newAnswers[0];
+        return newAnswers;
+      });
+
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = '';
+        return newStates;
+      });
+    } else {
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[0].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
+
+  const handleVoiceError0 = useCallback((error: VoiceInputError) => {
+    console.error('Voice input error (field 0):', error);
+    setVoiceError(error);
+  }, []);
+
+  const handleAutoStop0 = useCallback(() => {
+    console.log('Auto-stop triggered for field 0');
+    setAutoStopNotification(true);
+
+    if (settings.enableSound && audioManagerRef.current) {
+      audioManagerRef.current.playVoiceStopCue().catch((err) => {
+        console.error('Failed to play voice stop audio cue:', err);
+      });
+    }
+  }, [settings.enableSound]);
+
+  const voiceInput0 = useVoiceInput({
+    language:
+      settings.voiceLanguage ??
+      settings.preferredTranslationLanguage ??
+      navigator.language,
+    onTranscript: handleTranscript0,
+    onError: handleVoiceError0,
+    onAutoStop: handleAutoStop0,
+    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
+  });
+
+  // Voice input handlers for answer field 1
+  const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
+    if (isFinal) {
+      setAnswers((prev) => {
+        const newAnswers = [...prev];
+        const currentText = newAnswers[1] || '';
+        newAnswers[1] = currentText
+          ? `${currentText} ${text.trim()}`
+          : text.trim();
+        lastTextValueRef.current[1] = newAnswers[1];
+        return newAnswers;
+      });
+
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = '';
+        return newStates;
+      });
+    } else {
+      setVoiceInputStates((prev) => {
+        const newStates = [...prev];
+        newStates[1].interimText = text;
+        return newStates;
+      });
+    }
+  }, []);
+
+  const handleVoiceError1 = useCallback((error: VoiceInputError) => {
+    console.error('Voice input error (field 1):', error);
+    setVoiceError(error);
+  }, []);
+
+  const handleAutoStop1 = useCallback(() => {
+    console.log('Auto-stop triggered for field 1');
+    setAutoStopNotification(true);
+
+    if (settings.enableSound && audioManagerRef.current) {
+      audioManagerRef.current.playVoiceStopCue().catch((err) => {
+        console.error('Failed to play voice stop audio cue:', err);
+      });
+    }
+  }, [settings.enableSound]);
+
+  const voiceInput1 = useVoiceInput({
+    language:
+      settings.voiceLanguage ??
+      settings.preferredTranslationLanguage ??
+      navigator.language,
+    onTranscript: handleTranscript1,
+    onError: handleVoiceError1,
+    onAutoStop: handleAutoStop1,
+    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
+  });
+
+  // Update voice input recording states
+  useEffect(() => {
+    setVoiceInputStates((prev) => {
+      const newStates = [...prev];
+      newStates[0].isRecording = voiceInput0.isRecording;
+      newStates[1].isRecording = voiceInput1.isRecording;
+      return newStates;
+    });
+  }, [voiceInput0.isRecording, voiceInput1.isRecording]);
+
+  // Show notification if language fallback is detected
+  useEffect(() => {
+    if (voiceInput0.isLanguageFallback || voiceInput1.isLanguageFallback) {
+      const languageName = voiceInput0.isLanguageFallback
+        ? voiceInput0.languageName
+        : voiceInput1.languageName;
+      setLanguageFallbackNotification({
+        show: true,
+        languageName,
+      });
+    }
+  }, [
+    voiceInput0.isLanguageFallback,
+    voiceInput0.languageName,
+    voiceInput1.isLanguageFallback,
+    voiceInput1.languageName,
+  ]);
+
   // Keyboard navigation (arrows, esc, enter)
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -133,6 +291,21 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     return trapFocus(contentRef.current, onCancel);
   }, [onCancel]);
 
+  // Initialize audio manager
+  useEffect(() => {
+    audioManagerRef.current = new AudioManager(settings);
+    audioManagerRef.current.loadAudioFiles();
+
+    return () => {
+      if (audioManagerRef.current) {
+        audioManagerRef.current.cleanup();
+      }
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+    };
+  }, [settings]);
+
   const next = () => {
     // Don't advance from step 0 if still loading summary
     if (step === 0 && isLoadingSummary) return;
@@ -146,7 +319,35 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     } catch {
       // ignore
     }
-    onSave(answers);
+
+    // Compute voice metadata for each answer
+    const voiceMetadata: VoiceInputMetadata[] = answers.map((_, index) => {
+      const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
+      const hasVoiceTranscription =
+        voiceInputStates[index].isRecording ||
+        (lastTextValueRef.current[index] !== '' &&
+          voiceInput.hasPermission === true);
+
+      if (!hasVoiceTranscription) {
+        return {
+          isVoiceTranscribed: false,
+        };
+      }
+
+      const wordCount = (lastTextValueRef.current[index] || '')
+        .trim()
+        .split(/\s+/)
+        .filter((word) => word.length > 0).length;
+
+      return {
+        isVoiceTranscribed: true,
+        transcriptionLanguage: voiceInput.effectiveLanguage,
+        transcriptionTimestamp: Date.now(),
+        wordCount,
+      };
+    });
+
+    onSave(answers, voiceMetadata);
   };
 
   // Track previous loading state to detect when loading completes
@@ -301,7 +502,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               border: '1px solid rgba(226,232,240,0.25)',
               color: '#e2e8f0',
               borderRadius: 999,
-              padding: '8px 12px',
+              padding: '8px 14px',
               cursor: 'pointer',
               fontSize: 12,
             }}
@@ -546,24 +747,94 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               <p style={{ color: '#cbd5e1', marginTop: 0, marginBottom: 10 }}>
                 {prompts[0] ?? 'What did you find most interesting?'}
               </p>
-              <textarea
-                aria-label="Reflection answer 1"
-                value={answers[0]}
-                onChange={(e) =>
-                  setAnswers((prev) => [e.target.value, prev[1] ?? ''])
-                }
+              <div
                 style={{
-                  width: '100%',
+                  position: 'relative',
                   maxWidth: 720,
-                  minHeight: 120,
-                  background: 'rgba(2,6,23,0.35)',
-                  border: '1px solid rgba(226,232,240,0.25)',
-                  borderRadius: 12,
-                  color: '#f8fafc',
-                  padding: 12,
-                  fontSize: 14,
+                  margin: '0 auto',
                 }}
-              />
+              >
+                <textarea
+                  aria-label="Reflection answer 1"
+                  value={
+                    voiceInputStates[0].interimText
+                      ? answers[0]
+                        ? `${answers[0]} ${voiceInputStates[0].interimText}`
+                        : voiceInputStates[0].interimText
+                      : answers[0]
+                  }
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    const lastValue = lastTextValueRef.current[0];
+
+                    // Detect typing and pause voice if recording
+                    if (
+                      newValue !== lastValue &&
+                      voiceInput0.isRecording &&
+                      !voiceInput0.isPaused
+                    ) {
+                      voiceInput0.pauseRecording();
+
+                      if (typingTimerRef.current) {
+                        clearTimeout(typingTimerRef.current);
+                      }
+
+                      typingTimerRef.current = setTimeout(() => {
+                        if (voiceInput0.isRecording && voiceInput0.isPaused) {
+                          voiceInput0.resumeRecording();
+                        }
+                      }, 2000);
+                    }
+
+                    setAnswers((prev) => [newValue, prev[1] ?? '']);
+                    lastTextValueRef.current[0] = newValue;
+                  }}
+                  style={{
+                    width: '100%',
+                    minHeight: 120,
+                    background: voiceInput0.isRecording
+                      ? 'rgba(59,130,246,0.1)'
+                      : 'rgba(2,6,23,0.35)',
+                    border: voiceInput0.isRecording
+                      ? '1px solid rgba(59,130,246,0.4)'
+                      : '1px solid rgba(226,232,240,0.25)',
+                    borderRadius: 12,
+                    color: '#f8fafc',
+                    padding: 12,
+                    fontSize: 14,
+                    transition: 'background 0.3s ease, border 0.3s ease',
+                  }}
+                />
+                {voiceInput0.isSupported && (
+                  <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                    <VoiceToggleButton
+                      isRecording={voiceInput0.isRecording}
+                      onToggle={async () => {
+                        if (voiceInput0.isRecording) {
+                          voiceInput0.stopRecording();
+                          if (settings.enableSound && audioManagerRef.current) {
+                            audioManagerRef.current
+                              .playVoiceStopCue()
+                              .catch((err) => {
+                                console.error(
+                                  'Failed to play voice stop audio cue:',
+                                  err
+                                );
+                              });
+                          }
+                        } else {
+                          await voiceInput0.startRecording();
+                        }
+                      }}
+                      disabled={false}
+                      language={voiceInput0.effectiveLanguage}
+                      languageName={voiceInput0.languageName}
+                      isLanguageFallback={voiceInput0.isLanguageFallback}
+                      reduceMotion={settings.reduceMotion}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -575,24 +846,94 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               <p style={{ color: '#cbd5e1', marginTop: 0, marginBottom: 10 }}>
                 {prompts[1] ?? 'How might you apply this?'}
               </p>
-              <textarea
-                aria-label="Reflection answer 2"
-                value={answers[1]}
-                onChange={(e) =>
-                  setAnswers((prev) => [prev[0] ?? '', e.target.value])
-                }
+              <div
                 style={{
-                  width: '100%',
+                  position: 'relative',
                   maxWidth: 720,
-                  minHeight: 120,
-                  background: 'rgba(2,6,23,0.35)',
-                  border: '1px solid rgba(226,232,240,0.25)',
-                  borderRadius: 12,
-                  color: '#f8fafc',
-                  padding: 12,
-                  fontSize: 14,
+                  margin: '0 auto',
                 }}
-              />
+              >
+                <textarea
+                  aria-label="Reflection answer 2"
+                  value={
+                    voiceInputStates[1].interimText
+                      ? answers[1]
+                        ? `${answers[1]} ${voiceInputStates[1].interimText}`
+                        : voiceInputStates[1].interimText
+                      : answers[1]
+                  }
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    const lastValue = lastTextValueRef.current[1];
+
+                    // Detect typing and pause voice if recording
+                    if (
+                      newValue !== lastValue &&
+                      voiceInput1.isRecording &&
+                      !voiceInput1.isPaused
+                    ) {
+                      voiceInput1.pauseRecording();
+
+                      if (typingTimerRef.current) {
+                        clearTimeout(typingTimerRef.current);
+                      }
+
+                      typingTimerRef.current = setTimeout(() => {
+                        if (voiceInput1.isRecording && voiceInput1.isPaused) {
+                          voiceInput1.resumeRecording();
+                        }
+                      }, 2000);
+                    }
+
+                    setAnswers((prev) => [prev[0] ?? '', newValue]);
+                    lastTextValueRef.current[1] = newValue;
+                  }}
+                  style={{
+                    width: '100%',
+                    minHeight: 120,
+                    background: voiceInput1.isRecording
+                      ? 'rgba(59,130,246,0.1)'
+                      : 'rgba(2,6,23,0.35)',
+                    border: voiceInput1.isRecording
+                      ? '1px solid rgba(59,130,246,0.4)'
+                      : '1px solid rgba(226,232,240,0.25)',
+                    borderRadius: 12,
+                    color: '#f8fafc',
+                    padding: 12,
+                    fontSize: 14,
+                    transition: 'background 0.3s ease, border 0.3s ease',
+                  }}
+                />
+                {voiceInput1.isSupported && (
+                  <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                    <VoiceToggleButton
+                      isRecording={voiceInput1.isRecording}
+                      onToggle={async () => {
+                        if (voiceInput1.isRecording) {
+                          voiceInput1.stopRecording();
+                          if (settings.enableSound && audioManagerRef.current) {
+                            audioManagerRef.current
+                              .playVoiceStopCue()
+                              .catch((err) => {
+                                console.error(
+                                  'Failed to play voice stop audio cue:',
+                                  err
+                                );
+                              });
+                          }
+                        } else {
+                          await voiceInput1.startRecording();
+                        }
+                      }}
+                      disabled={false}
+                      language={voiceInput1.effectiveLanguage}
+                      languageName={voiceInput1.languageName}
+                      isLanguageFallback={voiceInput1.isLanguageFallback}
+                      reduceMotion={settings.reduceMotion}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -802,6 +1143,41 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               </div>
             )}
           </div>
+        )}
+
+        {/* Voice Input Error Notification */}
+        {voiceError && (
+          <Notification
+            title="Voice Input Error"
+            message={voiceError.message}
+            type="error"
+            duration={5000}
+            onClose={() => setVoiceError(null)}
+          />
+        )}
+
+        {/* Auto-Stop Notification */}
+        {autoStopNotification && (
+          <Notification
+            title="Voice Input Stopped"
+            message="Recording stopped after silence detected"
+            type="info"
+            duration={3000}
+            onClose={() => setAutoStopNotification(false)}
+          />
+        )}
+
+        {/* Language Fallback Notification */}
+        {languageFallbackNotification.show && (
+          <Notification
+            title="Language Not Supported"
+            message={`The selected language is not supported. Using ${languageFallbackNotification.languageName} instead.`}
+            type="warning"
+            duration={5000}
+            onClose={() =>
+              setLanguageFallbackNotification({ show: false, languageName: '' })
+            }
+          />
         )}
       </div>
     </div>
