@@ -694,29 +694,54 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
           aria-label="Article Summary"
         >
           {/* Translation Dropdown */}
-          {settings.enableTranslation && languageDetection && onTranslate && (
-            <div className="reflexa-overlay__translate-section">
-              <TranslateDropdown
-                currentLanguage={languageDetection.detectedLanguage}
-                onTranslate={onTranslate}
-                loading={isTranslating}
-                disabled={isTranslating}
-              />
-            </div>
-          )}
-
-          {summary.map((bullet, index) => (
-            <div
-              key={index}
-              className="reflexa-overlay__summary-item"
-              data-testid="summary-bullet"
-            >
-              <div className="reflexa-overlay__summary-label">
-                {summaryLabels[index]}
+          {!isLoadingSummary &&
+            settings.enableTranslation &&
+            languageDetection &&
+            onTranslate && (
+              <div className="reflexa-overlay__translate-section">
+                <TranslateDropdown
+                  currentLanguage={languageDetection.detectedLanguage}
+                  onTranslate={onTranslate}
+                  loading={isTranslating}
+                  disabled={isTranslating}
+                />
               </div>
-              <p className="reflexa-overlay__summary-text">{bullet}</p>
+            )}
+
+          {isLoadingSummary ? (
+            <div className="reflexa-overlay__summary-loading">
+              <div className="reflexa-overlay__summary-loading-orb">
+                <BreathingOrb
+                  enabled={!settings.reduceMotion}
+                  duration={7}
+                  mode="pulse"
+                />
+              </div>
+              <h3 className="reflexa-overlay__summary-loading-title">
+                Crafting your insights...
+              </h3>
+              <p className="reflexa-overlay__summary-loading-message">
+                Take a moment to breathe. Let the rhythm of the orb guide you
+                into a state of calm presence.
+              </p>
+              <p className="reflexa-overlay__summary-loading-submessage">
+                Your personalized summary will appear shortly.
+              </p>
             </div>
-          ))}
+          ) : (
+            summary.map((bullet, index) => (
+              <div
+                key={index}
+                className="reflexa-overlay__summary-item"
+                data-testid="summary-bullet"
+              >
+                <div className="reflexa-overlay__summary-label">
+                  {summaryLabels[index]}
+                </div>
+                <p className="reflexa-overlay__summary-text">{bullet}</p>
+              </div>
+            ))
+          )}
         </section>
 
         {/* Start Reflection Button */}
@@ -898,9 +923,10 @@ export const ReflectModeOverlay: React.FC<ReflectModeOverlayProps> = ({
             type="button"
             className="reflexa-overlay__button reflexa-overlay__button--save"
             onClick={handleSave}
+            disabled={isLoadingSummary}
             data-testid="save-button"
           >
-            Save Reflection
+            {isLoadingSummary ? 'Preparing...' : 'Save Reflection'}
             <span className="reflexa-overlay__button-hint">
               {isMacOS() ? '⌘' : 'Ctrl'}+Enter
             </span>

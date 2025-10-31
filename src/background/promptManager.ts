@@ -12,14 +12,16 @@ import type { AILanguageModel } from '../types/chrome-ai';
 import { capabilityDetector } from './capabilityDetector';
 
 /**
- * Timeout duration for prompt operations (5 seconds)
+ * Timeout duration for prompt operations (30 seconds)
+ * Increased to accommodate model download and initialization
  */
-const PROMPT_TIMEOUT = 5000;
+const PROMPT_TIMEOUT = 30000;
 
 /**
- * Extended timeout for retry attempts (8 seconds)
+ * Extended timeout for retry attempts (60 seconds)
+ * Allows for slower systems or large content processing
  */
-const RETRY_TIMEOUT = 8000;
+const RETRY_TIMEOUT = 60000;
 
 /**
  * Temperature settings for different task types

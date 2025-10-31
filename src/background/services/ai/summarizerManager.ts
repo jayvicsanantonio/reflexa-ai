@@ -12,14 +12,16 @@ import type {
 import { capabilityDetector } from '../capabilities/capabilityDetector';
 
 /**
- * Timeout duration for summarization operations (5 seconds)
+ * Timeout duration for summarization operations (30 seconds)
+ * Increased to accommodate model download and initialization
  */
-const SUMMARIZE_TIMEOUT = 5000;
+const SUMMARIZE_TIMEOUT = 30000;
 
 /**
- * Extended timeout for retry attempts (8 seconds)
+ * Extended timeout for retry attempts (60 seconds)
+ * Allows for slower systems or large content processing
  */
-const RETRY_TIMEOUT = 8000;
+const RETRY_TIMEOUT = 60000;
 
 /**
  * SummarizerManager class

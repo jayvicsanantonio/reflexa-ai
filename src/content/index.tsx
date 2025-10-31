@@ -407,7 +407,16 @@ const initiateReflectionFlow = async () => {
       return;
     }
 
-    // Request AI summarization with retry logic
+    // Show the Reflect Mode overlay immediately with loading state
+    isLoadingSummary = true;
+    currentSummary = [];
+    currentPrompts = [
+      'What did you find most interesting?',
+      'How might you apply this?',
+    ];
+    void showReflectModeOverlay();
+
+    // Request AI summarization with retry logic in the background
     console.log('Requesting AI summarization...');
 
     // Use default format from settings or fallback to bullets
@@ -424,40 +433,25 @@ const initiateReflectionFlow = async () => {
 
     if (!summaryResponse.success) {
       console.error('Summarization failed:', summaryResponse.error);
+      isLoadingSummary = false;
 
       // Check if it's a timeout error
       if (summaryResponse.error.includes('timeout')) {
-        showErrorModal(
-          'AI Timeout',
-          ERROR_MESSAGES.AI_TIMEOUT,
-          'ai-timeout',
-          () => {
-            hideErrorModal();
-            // Proceed with manual mode
-            currentSummary = ['', '', ''];
-            currentPrompts = [
-              'What did you find most interesting?',
-              'How might you apply this?',
-            ];
-            void showReflectModeOverlay();
-          },
-          'Enter Summary Manually'
-        );
+        // Update overlay with error state
+        currentSummary = ['', '', ''];
+        void showReflectModeOverlay();
         return;
       }
 
       // Fall back to manual mode with empty summary
       currentSummary = ['', '', ''];
-      currentPrompts = [
-        'What did you find most interesting?',
-        'How might you apply this?',
-      ];
       void showReflectModeOverlay();
       return;
     }
 
     currentSummary = summaryResponse.data;
     console.log('Summary received:', currentSummary);
+    isLoadingSummary = false;
 
     // Detect language when content is extracted
     // Pass page URL for per-page caching
@@ -506,7 +500,7 @@ const initiateReflectionFlow = async () => {
       console.log('Prompts received:', currentPrompts);
     }
 
-    // Show the Reflect Mode overlay
+    // Update the overlay with prompts
     void showReflectModeOverlay();
   } catch (error) {
     console.error('Error in reflection flow:', error);
