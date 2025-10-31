@@ -2,12 +2,8 @@ import './styles.css';
 import { createRoot } from 'react-dom/client';
 import { DwellTracker } from './features/dwellTracking';
 import { ContentExtractor } from './features/contentExtraction/contentExtractor';
-import {
-  LotusNudge,
-  ReflectModeOverlay,
-  ErrorModal,
-  Notification,
-} from './components';
+import { LotusNudge, ErrorModal, Notification } from './components';
+import { MeditationFlowOverlay } from './components/MeditationFlowOverlay';
 import { AudioManager } from '../utils/audioManager';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import type {
@@ -617,14 +613,42 @@ const showReflectModeOverlay = async () => {
 
   // Render the ReflectModeOverlay component
   overlayRoot = createRoot(rootElement);
+
+  // Try to load a recent draft for this URL to resume the flow
+  let initialStep: number | undefined;
+  let initialAnswers: string[] | undefined;
+  try {
+    const draftWrap = await chrome.storage.local.get('reflexa_draft');
+    const draft = draftWrap?.reflexa_draft as
+      | { url?: string; step?: number; answers?: string[]; ts?: number }
+      | undefined;
+    const now = Date.now();
+    const withinHours = 6 * 60 * 60 * 1000;
+    if (
+      draft &&
+      typeof draft.ts === 'number' &&
+      now - draft.ts < withinHours &&
+      typeof draft.url === 'string' &&
+      draft.url === (currentExtractedContent?.url ?? window.location.href)
+    ) {
+      if (Array.isArray(draft.answers) && draft.answers.length === 2) {
+        initialAnswers = [draft.answers[0] ?? '', draft.answers[1] ?? ''];
+      }
+      if (typeof draft.step === 'number') {
+        initialStep = Math.min(Math.max(draft.step, 0), 3);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   overlayRoot.render(
-    <ReflectModeOverlay
+    <MeditationFlowOverlay
       summary={currentSummary}
       prompts={currentPrompts}
       onSave={handleSaveReflection}
       onCancel={handleCancelReflection}
       settings={currentSettings ?? getDefaultSettings()}
-      onProofread={handleProofread}
       onFormatChange={handleFormatChange}
       currentFormat={currentSummaryFormat}
       isLoadingSummary={isLoadingSummary}
@@ -632,9 +656,17 @@ const showReflectModeOverlay = async () => {
       onTranslateToEnglish={handleTranslateToEnglish}
       onTranslate={handleTranslate}
       isTranslating={isTranslating}
-      onRewrite={handleRewrite}
-      isRewriting={isRewritingArray}
-      proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+      onProofread={handleProofread}
+      ambientMuted={
+        audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+      }
+      onToggleAmbient={(mute) => {
+        if (!audioManager) return;
+        if (mute) void audioManager.stopAmbientLoopGracefully(400);
+        else void audioManager.playAmbientLoopGracefully(400);
+      }}
+      initialStep={initialStep}
+      initialAnswers={initialAnswers}
     />
   );
 
@@ -848,7 +880,7 @@ const handleTranslate = async (targetLanguage: string) => {
   // Re-render with loading state
   if (overlayRoot && overlayContainer) {
     overlayRoot.render(
-      <ReflectModeOverlay
+      <MeditationFlowOverlay
         summary={currentSummary}
         prompts={currentPrompts}
         onSave={handleSaveReflection}
@@ -932,7 +964,7 @@ const handleTranslate = async (targetLanguage: string) => {
     // Re-render overlay with translated content
     if (overlayRoot && overlayContainer) {
       overlayRoot.render(
-        <ReflectModeOverlay
+        <MeditationFlowOverlay
           summary={currentSummary}
           prompts={currentPrompts}
           onSave={handleSaveReflection}
@@ -1001,7 +1033,7 @@ const handleTranslateToEnglish = async () => {
     // Re-render overlay with translated content
     if (overlayRoot && overlayContainer) {
       overlayRoot.render(
-        <ReflectModeOverlay
+        <MeditationFlowOverlay
           summary={currentSummary}
           prompts={currentPrompts}
           onSave={handleSaveReflection}
@@ -1093,13 +1125,12 @@ const handleFormatChange = async (format: SummaryFormat) => {
   // Re-render overlay with loading state
   if (overlayRoot && overlayContainer) {
     overlayRoot.render(
-      <ReflectModeOverlay
+      <MeditationFlowOverlay
         summary={currentSummary}
         prompts={currentPrompts}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
         settings={currentSettings ?? getDefaultSettings()}
-        onProofread={handleProofread}
         onFormatChange={handleFormatChange}
         currentFormat={currentSummaryFormat}
         isLoadingSummary={true}
@@ -1107,9 +1138,15 @@ const handleFormatChange = async (format: SummaryFormat) => {
         onTranslateToEnglish={handleTranslateToEnglish}
         onTranslate={handleTranslate}
         isTranslating={isTranslating}
-        onRewrite={handleRewrite}
-        isRewriting={isRewritingArray}
-        proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        onProofread={handleProofread}
+        ambientMuted={
+          audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+        }
+        onToggleAmbient={(mute) => {
+          if (!audioManager) return;
+          if (mute) void audioManager.stopAmbientLoopGracefully(400);
+          else void audioManager.playAmbientLoopGracefully(400);
+        }}
       />
     );
   }
@@ -1149,13 +1186,12 @@ const handleFormatChange = async (format: SummaryFormat) => {
     // Re-render overlay with updated summary
     if (overlayRoot && overlayContainer) {
       overlayRoot.render(
-        <ReflectModeOverlay
+        <MeditationFlowOverlay
           summary={currentSummary}
           prompts={currentPrompts}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
           settings={currentSettings ?? getDefaultSettings()}
-          onProofread={handleProofread}
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
@@ -1163,9 +1199,15 @@ const handleFormatChange = async (format: SummaryFormat) => {
           onTranslateToEnglish={handleTranslateToEnglish}
           onTranslate={handleTranslate}
           isTranslating={isTranslating}
-          onRewrite={handleRewrite}
-          isRewriting={isRewritingArray}
-          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          onProofread={handleProofread}
+          ambientMuted={
+            audioManager ? !audioManager.isAmbientLoopPlayingNow() : false
+          }
+          onToggleAmbient={(mute) => {
+            if (!audioManager) return;
+            if (mute) void audioManager.stopAmbientLoopGracefully(400);
+            else void audioManager.playAmbientLoopGracefully(400);
+          }}
         />
       );
     }
@@ -1375,6 +1417,7 @@ const showLotusNudge = () => {
       visible={true}
       onClick={handleNudgeClick}
       position="bottom-left"
+      quickActionsCount={3}
       onDashboard={() => {
         void showDashboardModal();
       }}
@@ -1569,23 +1612,15 @@ const setupMessageListener = () => {
               // If overlay is mounted, re-render with updated settings to reflect toggles immediately
               if (isOverlayVisible && overlayRoot && overlayContainer) {
                 overlayRoot.render(
-                  <ReflectModeOverlay
+                  <MeditationFlowOverlay
                     summary={currentSummary}
                     prompts={currentPrompts}
                     onSave={handleSaveReflection}
                     onCancel={handleCancelReflection}
                     settings={currentSettings ?? getDefaultSettings()}
-                    onProofread={handleProofread}
                     onFormatChange={handleFormatChange}
                     currentFormat={currentSummaryFormat}
                     isLoadingSummary={isLoadingSummary}
-                    languageDetection={currentLanguageDetection ?? undefined}
-                    onTranslateToEnglish={handleTranslateToEnglish}
-                    onTranslate={handleTranslate}
-                    isTranslating={isTranslating}
-                    onRewrite={handleRewrite}
-                    isRewriting={isRewritingArray}
-                    proofreaderAvailable={aiCapabilities?.proofreader ?? false}
                   />
                 );
               }

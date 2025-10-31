@@ -1,128 +1,97 @@
-# Reflexa AI – Room for Improvement
+# Reflexa AI — Room for Improvement
 
-A focused assessment of the current Chrome extension UI/UX with prioritized opportunities to refine visual design, motion, interaction patterns, and clarity. This builds on the recent lotus nudge overhaul, quick actions, and centered Help/Settings modals.
+This document compiles UI/UX opportunities and actionable recommendations across the extension surfaces (Lotus Nudge, Quick Actions, Meditative Reflect Flow, AI Status, Quick Settings, Dashboard Overlay, and Toolbar Popup). It balances visual polish, interaction quality, accessibility, and implementation maintainability.
 
-## Executive Summary
-- Strengths: Elegant nudge concept, fluid hover → pill interaction, sticky quick actions, and accessible centered modals. Build is green and performance is solid.
-- Opportunities: Unify visual system, reduce inline styling, refine micro‑interactions and iconography, clarify language, and tighten accessibility and resilience across edge cases.
+## Quick Wins (High Impact, Low Effort)
+- Improve settings micro-icons consistency
+  - Use a compact, consistent 16px icon grid for all rows; keep color tints aligned with the surface (blue tints on light cards, neutral on dark).
+  - Extract icons to a small `icons.tsx` to avoid inline duplication and ensure consistency.
+- Normalize modal spacing and typography
+  - Adopt a shared modal class scale for header (18–20px/700), body (14–15px/400–500), footer spacing (12–16px).
+  - Keep accent bars and subtle dividers consistent across Settings, AI Status, and Dashboard Overlay.
+- Strengthen toast visibility and elegance
+  - Current toast is above the backdrop; keep it visually compact with a calm fade and remove “Saved/Saving” text in favor of a short “Settings updated.”
+  - Add safe-areas at view edges to avoid overlap with site-fixed elements.
+- Make quick-actions hover rail adaptive
+  - Pad the wrapper based on the number of quick actions so the rail never collapses when moving vertically (implemented). Keep constants co-located with the component.
 
-## What’s Working
-- Lotus nudge now expands to a pill with “Reflect” and stacks quick actions (Dashboard, Settings, Help) above it; hover hit area prevents flicker.
-- Help and Settings open in centered, rounded modals with dark surface and gentle pop‑in animation; content is clear and actionable.
-- Keyboard support: focus/hover states, ARIA roles on dialogs and switches, ESC to close, and focus trapping.
-- Build quality: type checks, linting, tests, and Vite build pass; overlay render performance is excellent.
+## Lotus Nudge & Quick Actions
+- Placement & interaction
+  - Default position is bottom-left; keep expansion to a pill with “Reflect”.
+  - Maintain a stable hover/focus area so the stacked actions don’t collapse when moving upward.
+- Action ordering
+  - From bottom to top (nearest to lotus → farthest): Settings, AI Status, Dashboard. This matches frequency of use.
+- Accessibility & affordance
+  - Ensure tooltips use `role="tooltip"`, appear on focus, and don’t trap focus.
+  - Add keyboard shortcuts: Enter/Space (Reflect), ArrowUp/ArrowDown (cycle quick actions when open).
 
-## Key Improvements
-1) Visual System and Consistency
-- Problem: Help/Settings rely on inline styles; component tokens are partially duplicated.
-- Impact: Harder to maintain; subtle inconsistencies (spacing, borders, radii, shadows) creep in.
-- Recommendation:
-  - Extract shared modal layout into CSS classes (title bar, accent bar, body, footer) in `src/content/styles.css`.
-  - Centralize spacing, radii, shadow tokens and apply consistently across overlays and quick actions.
+## Meditative Reflect Flow
+- Flow structure
+  - Longer breathing intro with gentle cue changes (Inhale/Hold/Exhale).
+  - Summary → Q1 → Q2 with bottom nav and progress dots; Left/Right/Enter to navigate, ESC to exit.
+- Calm visuals & contrast
+  - Dark, high-contrast backdrop with soft saturation blur; large, calm typography; focus outlines are visible.
+- More panel
+  - Tucked tools for translation and proofreading to keep the main flow serene.
+  - Respect “Reduce motion”; avoid aggressive transitions.
+- Draft resilience
+  - Autosave drafts (implemented) and resume on re-open for the same URL when recent (implemented). Consider adding “Resume draft?” micro-prompt in future.
 
-2) Settings Modal Polish
-- Problem: Rows lack small leading icons and clear section grouping; inspiration screenshot implies richer hierarchy.
-- Impact: Scannability and perceived quality can improve.
-- Recommendation:
-  - Add 16–20px brand micro‑icons per row (sound, motion, proofreading, translation, experimental).
-  - Group into sections (e.g., “Experience”, “AI Features”), optionally with subtle section headers.
+## AI Status (Help Replacement)
+- Visual consistency
+  - Light card, rounded corners, subtle header badge, and crisp section dividers for better scannability.
+- Capability icons & labels
+  - Use appropriate icons for Summarizer, Writer, Rewriter, Proofreader, Language Detector, Translator, and Prompt API.
+  - Checkmark color for “Available” uses a deep blue for better contrast.
+- Setup Chrome AI
+  - Friendly checklist with per-flag copy buttons right-aligned; consistent spacing so buttons never touch the modal edge.
+  - Remove “Refresh” button; re-open panel to re-check.
+  - Add a subdued “Tip” line about updating Chrome if flags don’t appear.
 
-3) Micro‑interactions & Motion
-- Problem: Some elements lack subtle state feedback (tap/press, toggle spring), and durations vary.
-- Impact: Slightly “stiff” feel versus a cohesive, calm motion language.
-- Recommendation:
-  - Standardize easing/durations (200–240ms) and apply to quick actions, tooltips, and toggles.
-  - Consider a softer press effect on the Reflect pill and a micro‑spring on toggles (respect reduced motion).
+## Quick Settings
+- Structure & defaults
+  - Sections: Behavior, Experience, AI Features, Privacy, Voice; defaults match product direction (e.g., Experimental Mode on, Dwell/Auto-stop 0–60s step 10, default 10s).
+  - Show all options (even if disabled) with clear “info” hints; avoid hidden dependencies.
+- Live updates + toast
+  - Settings propagate via background broadcast and apply immediately (audio, dwell threshold, overlay re-render) with an elegant toast.
+- Micro-UX polish
+  - Keep scroll position on toggle to prevent jump-to-top (implemented).
+  - Align colors with AI Status for a cohesive system.
 
-4) Hover Target Resilience
-- Problem: Wrapper padding for the vertical quick actions is fixed (160px).
-- Impact: If quick actions change, hover stability may regress.
-- Recommendation:
-  - Compute padding dynamically based on number/size of quick actions, or position using an invisible hover rail container sized to content.
+## Dashboard Overlay (In-Page)
+- CalmStats parity
+  - Share the same stats visuals between popup and overlay to avoid drift; extract to a lightweight shared component when time permits.
+- Actions
+  - Keep export actions in the header only; remove per-item export. Provide JSON and Markdown.
+- Streak and list polish
+  - Present streak with a mini weekly bar and badges; improve empty state with brand and guidance.
 
-5) Copy and Clarity
-- Problem: “Pause nudges on this” can be ambiguous.
-- Impact: Users may hesitate to use it or misinterpret scope.
-- Recommendation:
-  - Replace with explicit options: “Pause on this page”, “Pause on this site”, “Pause for 30 min…”. Persist choice and provide a toast with “Undo”.
+## Toolbar Popup
+- Minimalist hero
+  - Compact outer gradient box (matches lotus vibe) with a white pill card inside: logo, label, tagline, and a large “Reflect” CTA.
+  - Height trimmed to feel snug; CTA behaves like quick action “Reflect” and starts the in-page meditative flow.
 
-6) Help Content Placement
-- Problem: AI setup guidance currently lives in Help (good), but entry points could be more discoverable.
-- Impact: Users may miss setup guidance if they skip Help.
-- Recommendation:
-  - Add a “Status: AI Ready/Not Ready” line within Settings with a “Learn how” link to open Help.
+## Accessibility & Tests
+- Access roles
+  - All modals are `role="dialog"` with `aria-modal`, labeled headers, ESC close, and focus traps.
+- Keyboard flows
+  - Verify Left/Right/Enter navigation across Reflect flow; ensure tooltips are accessible.
+- Tests to add or enhance
+  - Meditation flow resume from draft and translation/proofread in More panel.
+  - AI Status dialog and per-flag copy alignment.
+  - Quick actions hover rail stability and keyboard operation.
 
-7) Accessibility Tightening
-- Problem: Great baseline, but there’s room for refinement.
-- Impact: Improves keyboard/screen reader experience.
-- Recommendation:
-  - Ensure all quick action buttons have visible focus outlines in the shadow DOM.
-  - Confirm dialog titles are correctly associated via `aria-labelledby`; add `aria-describedby` for summaries.
-  - Verify switches support Space/Enter and announce state; ensure ESC always closes modals.
+## Maintainability
+- Inline → CSS classes
+  - Several inline styles (AI Status, Settings, Dashboard tiles) can be gradually migrated to shared classes in `src/content/styles.css` for easier maintenance.
+- Shared components
+  - Promote CalmStatsLite and modal shells to shared components to avoid drift between surfaces.
 
-8) Internationalization Readiness
-- Problem: Strings are inline and not yet organized for i18n.
-- Impact: Harder to localize later.
-- Recommendation:
-  - Centralize user‑visible strings (e.g., `src/content/i18n/en.ts`). Keep copy concise and consistent.
-
-9) Discoverability & Guidance
-- Problem: First‑time users might not know what the lotus does.
-- Impact: Delayed activation of value.
-- Recommendation:
-  - Optional first‑run coach mark: brief tooltip “Reflect on this page” near the pill that dismisses on first use.
-
-10) Empty/Error States and Edge Cases
-- Problem: Errors are handled, but empty content and constrained viewports could be gentler.
-- Impact: Perceived polish.
-- Recommendation:
-  - Add friendly empty states for reflection when extraction yields little content.
-  - Cap modal size on ultra‑small windows and ensure content scroll remains comfortable.
-
-## Proposed Visual Tweaks (Quick Wins)
-- Reflect pill: slightly increase horizontal padding when expanded; ensure text tracking is consistent.
-- Quick actions: unify tooltip offset and fade timing; ensure tooltips never clip inside the shadow root.
-- Modals: use a consistent 24px corner radius and 1px translucent border; keep accent bar height uniform.
-- Icons: adopt a single set (stroke width and style) for dashboard/gear/help and settings rows.
-
-## Information Architecture
-- Settings
-  - Experience: Enable sound, Reduce motion.
-  - AI Features: Proofreading, Translation, Experimental.
-  - Advanced (optional future): Voice input language, auto‑stop delay, default summary format.
-- Help
-  - AI Status: Ready/Not Ready with inline explanation.
-  - Setup Guide: Flags and restart note (already present).
-  - Troubleshooting: Common issues and links.
-
-## Interaction Specs (Acceptance Criteria)
-- Lotus Nudge
-  - Position: lower‑left by default; responsive to viewport changes.
-  - Hover → pill: 220ms, ease‑out. Label “Reflect” fades in after width expands.
-  - Quick actions: remain visible while the cursor is within a vertical hover rail; keyboard accessible via Tab.
-- Help/Settings Modals
-  - Centered; never touch screen edges; ESC closes; focus trapped; role="dialog" with `aria-modal="true"`.
-  - Pop‑in animation 220ms; disabled under reduced motion.
-- Copy
-  - Replace “Pause nudges on this” with explicit scope options.
-
-## Implementation Plan (Phased)
-- Phase 1 (Polish)
-  - Add shared modal classes; apply to Help/Settings.
-  - Add `reflexa-modal-animate` to Settings (done). Add row icons.
-  - Standardize motion tokens and tooltip timing.
-- Phase 2 (Clarity & IA)
-  - Update “Pause” controls and toast.
-  - Add Settings sections; AI Status entry with Help link.
-  - Introduce i18n string module.
-- Phase 3 (Resilience & Tests)
-  - Compute quick action hover rail size dynamically.
-  - Add tests: modal a11y (roles, focus‑trap, ESC), settings toggles → message payload, quick‑action hover stability.
-
-## Open Questions
-- Should “Dashboard” open in a new tab or a side panel when available?
-- Do we want a global hotkey to open Reflect Mode without hovering?
-- Should the lotus be hideable per site by default after N dismissals?
+## Roadmap Candidates
+- Optional “Resume draft?” nudge when opening Reflect with a saved draft.
+- Per-API brand icons in AI Status with micro-helpers.
+- Configurable toast location (top-right, bottom-left) to avoid site header collisions.
+- Optional skip on breathing intro (“Start now”) respecting reduce motion.
 
 ---
-Status: Build passes (`npm run build`). Small animation consistency fix shipped for Settings modal. The rest are design-guided refinements ready for prioritization.
+If you want, I can turn any section above into tickets with acceptance criteria and estimates, or extract a checklist for the next milestone.

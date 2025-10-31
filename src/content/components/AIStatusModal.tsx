@@ -871,7 +871,7 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
                         border: '1px solid rgba(15, 23, 42, 0.08)',
                         borderRadius: 10,
                         width: '100%',
-                        marginRight: 6,
+                        paddingRight: 8,
                       }}
                     >
                       <code

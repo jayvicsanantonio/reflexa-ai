@@ -15,6 +15,7 @@ interface LotusNudgeProps {
   onHelp?: () => void;
   onSettings?: () => void;
   onDashboard?: () => void;
+  quickActionsCount?: number;
 }
 
 /**
@@ -29,6 +30,7 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
   onHelp,
   onSettings,
   onDashboard,
+  quickActionsCount = 3,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -78,6 +80,17 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
 
   if (!visible) return null;
 
+  // Compute wrapper padding to keep hover stable across the quick actions column
+  const quickSize = 44; // px
+  const quickGap = 12; // px
+  const hoverPad = Math.max(
+    0,
+    quickActionsCount * quickSize + (quickActionsCount - 1) * quickGap
+  );
+  const wrapperPadStyle: React.CSSProperties = position.startsWith('top')
+    ? { paddingBottom: `${hoverPad}px` }
+    : { paddingTop: `${hoverPad}px` };
+
   return (
     <div
       className={`reflexa-nudge-wrapper reflexa-nudge-wrapper--${position}`}
@@ -86,6 +99,7 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
       onFocus={handleFocus}
       onBlur={handleBlur}
       data-open={open ? 'true' : 'false'}
+      style={wrapperPadStyle}
     >
       {/* Quick circular actions shown above the pill */}
       <div

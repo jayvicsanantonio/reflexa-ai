@@ -323,75 +323,91 @@ export const App: React.FC = () => {
         style={{
           width: '100%',
           height: '100%',
-          background: bgGradient,
+          background: 'transparent',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 12,
+          padding: 8,
         }}
       >
-        {/* Backdrop keyword removed for a lighter look */}
-
-        {/* Center card */}
+        {/* Compact outer gradient box matching lotus vibe */}
         <div
           style={{
             position: 'relative',
-            width: 'min(480px, 92%)',
-            borderRadius: 9999,
-            background: '#ffffff',
-            border: '1px solid rgba(15, 23, 42, 0.08)',
-            boxShadow: '0 12px 36px rgba(2,8,23,0.18)',
-            padding: '12px 16px',
+            width: 'min(460px, 96%)',
+            height: 120,
+            background: bgGradient,
+            borderRadius: 20,
+            boxShadow: '0 12px 30px rgba(2,8,23,0.18)',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            justifyContent: 'center',
+            padding: 10,
           }}
         >
-          <img
-            src={chrome.runtime.getURL('icons/reflexa.png')}
-            alt="Reflexa AI"
-            width={40}
-            height={40}
-            style={{ borderRadius: 999, flexShrink: 0 }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                color: '#0f172a',
-                fontWeight: 800,
-                fontSize: 18,
-                marginBottom: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-              title="Reflexa AI"
-            >
-              Reflexa AI
-            </div>
-            <div style={{ color: '#334155', fontSize: 12 }}>
-              Calm reflections, better focus
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleReflectClick}
-            aria-label="Start reflecting"
+          {/* Inner white pill card */}
+          <div
             style={{
-              border: '1px solid rgba(15,23,42,0.12)',
-              color: '#0f172a',
+              position: 'relative',
+              width: 'min(440px, 95%)',
+              borderRadius: 9999,
               background: '#ffffff',
-              borderRadius: 999,
-              padding: '8px 12px',
-              fontWeight: 700,
-              cursor: 'pointer',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
+              boxShadow: '0 10px 28px rgba(2,8,23,0.14)',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
             }}
           >
-            Reflect
-          </button>
+            <img
+              src={chrome.runtime.getURL('icons/reflexa.png')}
+              alt="Reflexa AI"
+              width={40}
+              height={40}
+              style={{ borderRadius: 999, flexShrink: 0 }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  color: '#0f172a',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  marginBottom: 2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title="Reflexa AI"
+              >
+                Reflexa AI
+              </div>
+              <div style={{ color: '#334155', fontSize: 12 }}>
+                Calm reflections, better focus
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReflectClick}
+              aria-label="Start reflecting"
+              style={{
+                border: '1px solid rgba(15,23,42,0.12)',
+                color: '#0f172a',
+                background: '#ffffff',
+                borderRadius: 999,
+                padding: '10px 18px',
+                fontWeight: 900,
+                fontSize: 18,
+                cursor: 'pointer',
+                boxShadow: '0 6px 16px rgba(2,8,23,0.08)',
+              }}
+            >
+              Reflect
+            </button>
+          </div>
         </div>
       </div>
     );
