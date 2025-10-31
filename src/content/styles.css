@@ -357,6 +357,8 @@ input[disabled] {
   margin-left: 6px;
 }
 
+/* (moved AI Status setup helpers inline for Prettier compliance) */
+
 .reflexa-info__icon {
   width: 16px;
   height: 16px;

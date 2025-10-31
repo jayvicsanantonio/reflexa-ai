@@ -10,8 +10,7 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [capabilities, setCapabilities] = useState<AICapabilities | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -46,44 +45,15 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
       });
   }, []);
 
-  const refreshStatus = async () => {
-    setRefreshing(true);
-    try {
-      const resp: unknown = await chrome.runtime.sendMessage({
-        type: 'getCapabilities',
-        payload: {
-          refresh: true,
-          experimentalMode: settings?.experimentalMode,
-        },
-      });
-      const r = resp as { success?: boolean; data?: unknown } | undefined;
-      if (r?.success && r.data) {
-        setCapabilities(r.data as AICapabilities);
-      }
-    } catch {
-      // no-op
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  // Refresh button removed per design; status updates on reopen
 
-  const copyFlagsList = async () => {
-    const flags = [
-      'chrome://flags/#optimization-guide-on-device-model (Enable + BypassPerfRequirement)',
-      'chrome://flags/#prompt-api-for-gemini-nano (Enable)',
-      'chrome://flags/#summarization-api-for-gemini-nano (Enable)',
-      'chrome://flags/#writer-api (Enable)',
-      'chrome://flags/#rewriter-api (Enable)',
-      'chrome://flags/#proofreader-api (Enable)',
-      'chrome://flags/#translator-api (Enable)',
-      'chrome://flags/#language-detection-api (Enable)',
-    ].join('\n');
+  const copyFlag = async (flagUrl: string) => {
     try {
-      await navigator.clipboard.writeText(flags);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(flagUrl);
+      setCopiedKey(flagUrl);
+      setTimeout(() => setCopiedKey(null), 1200);
     } catch {
-      setCopied(false);
+      setCopiedKey(null);
     }
   };
 
@@ -263,8 +233,35 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
         >
           {label}
         </div>
-        <div style={{ color: '#1f2937', fontSize: 13 }}>
-          {ok ? '✓ Available' : '• Unavailable'}
+        <div
+          style={{
+            color: '#1f2937',
+            fontSize: 13,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {ok ? (
+            <>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#2563eb"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span>Available</span>
+            </>
+          ) : (
+            <span>• Unavailable</span>
+          )}
         </div>
       </div>
     </div>
@@ -344,69 +341,6 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              onClick={refreshStatus}
-              disabled={refreshing}
-              aria-label="Refresh AI status"
-              className="reflexa-btn reflexa-btn--ghost"
-              style={{
-                padding: '8px 10px',
-                border: '1px solid rgba(15,23,42,0.15)',
-                color: '#0f172a',
-                background: '#ffffff',
-              }}
-            >
-              {refreshing ? (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                    style={{ animation: 'spin 1s linear infinite' }}
-                  >
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                  Checking…
-                </span>
-              ) : (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M3 12a9 9 0 1 0 9-9" />
-                    <polyline points="3 3 3 9 9 9" />
-                  </svg>
-                  Refresh status
-                </span>
-              )}
-            </button>
             <button
               type="button"
               aria-label="Close"
@@ -542,50 +476,449 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
               <li>
                 Use the search field to find each of the items below and set
                 them to <strong>Enabled</strong>:
-                <ul style={{ marginTop: 8, marginBottom: 8 }}>
-                  <li>
-                    <code>#optimization-guide-on-device-model</code> — Enable +
-                    BypassPerfRequirement
+                <ul
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 8,
+                    paddingLeft: 0,
+                    listStyle: 'none',
+                  }}
+                >
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #optimization-guide-on-device-model
+                      </code>
+                      <span style={{ color: '#475569', fontSize: 12 }}>
+                        (Enable + BypassPerfRequirement)
+                      </span>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag(
+                            'chrome://flags/#optimization-guide-on-device-model'
+                          )
+                        }
+                        aria-label="Copy optimization guide flag URL"
+                      >
+                        {copiedKey ===
+                        'chrome://flags/#optimization-guide-on-device-model'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #prompt-api-for-gemini-nano
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag('chrome://flags/#prompt-api-for-gemini-nano')
+                        }
+                        aria-label="Copy prompt api flag URL"
+                      >
+                        {copiedKey ===
+                        'chrome://flags/#prompt-api-for-gemini-nano'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #summarization-api-for-gemini-nano
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag(
+                            'chrome://flags/#summarization-api-for-gemini-nano'
+                          )
+                        }
+                        aria-label="Copy summarization api flag URL"
+                      >
+                        {copiedKey ===
+                        'chrome://flags/#summarization-api-for-gemini-nano'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #writer-api
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() => copyFlag('chrome://flags/#writer-api')}
+                        aria-label="Copy writer api flag URL"
+                      >
+                        {copiedKey === 'chrome://flags/#writer-api'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #rewriter-api
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() => copyFlag('chrome://flags/#rewriter-api')}
+                        aria-label="Copy rewriter api flag URL"
+                      >
+                        {copiedKey === 'chrome://flags/#rewriter-api'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #proofreader-api
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag('chrome://flags/#proofreader-api')
+                        }
+                        aria-label="Copy proofreader api flag URL"
+                      >
+                        {copiedKey === 'chrome://flags/#proofreader-api'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
+                  </li>
+                  <li style={{ marginBottom: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        paddingRight: 8,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #translator-api
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag('chrome://flags/#translator-api')
+                        }
+                        aria-label="Copy translator api flag URL"
+                      >
+                        {copiedKey === 'chrome://flags/#translator-api'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
                   </li>
                   <li>
-                    <code>#prompt-api-for-gemini-nano</code>
-                  </li>
-                  <li>
-                    <code>#summarization-api-for-gemini-nano</code>
-                  </li>
-                  <li>
-                    <code>#writer-api</code>
-                  </li>
-                  <li>
-                    <code>#rewriter-api</code>
-                  </li>
-                  <li>
-                    <code>#proofreader-api</code>
-                  </li>
-                  <li>
-                    <code>#translator-api</code>
-                  </li>
-                  <li>
-                    <code>#language-detection-api</code>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        borderRadius: 10,
+                        width: '100%',
+                        marginRight: 6,
+                      }}
+                    >
+                      <code
+                        style={{
+                          fontFamily:
+                            'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                          fontSize: 12,
+                          background: '#f1f5f9',
+                          color: '#0f172a',
+                          border: '1px solid rgba(15, 23, 42, 0.12)',
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                        }}
+                      >
+                        #language-detection-api
+                      </code>
+                      <button
+                        type="button"
+                        style={{
+                          padding: '6px 10px',
+                          border: '1px solid rgba(15, 23, 42, 0.15)',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          borderRadius: 8,
+                          fontFamily: 'var(--font-sans)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        onClick={() =>
+                          copyFlag('chrome://flags/#language-detection-api')
+                        }
+                        aria-label="Copy language detection api flag URL"
+                      >
+                        {copiedKey === 'chrome://flags/#language-detection-api'
+                          ? 'Copied ✓'
+                          : 'Copy'}
+                      </button>
+                    </div>
                   </li>
                 </ul>
               </li>
               <li>Click the Relaunch button to restart Chrome.</li>
-              <li>
-                Return here and click <em>Refresh status</em> to verify
-                everything is available.
-              </li>
+              <li>Return here to verify everything is available.</li>
             </ol>
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button
-                type="button"
-                onClick={copyFlagsList}
-                className="reflexa-btn reflexa-btn--ghost"
-                aria-label="Copy flags list"
-              >
-                {copied ? 'Copied ✓' : 'Copy flags list'}
-              </button>
-            </div>
+            {/* Per-flag copy buttons are provided above; no list copy needed */}
             <div style={{ color: '#334155', fontSize: 12, marginTop: 8 }}>
               Tip: If some flags don’t appear, make sure Chrome is up to date.
             </div>
