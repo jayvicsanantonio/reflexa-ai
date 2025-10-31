@@ -725,11 +725,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             }
             tonesDisabled={!answers[step - 2]?.trim()}
             isRewriting={_isRewriting[step === 2 ? 0 : 1]}
-            hasReflectionContent={answers.some((a) => a.trim() !== '')}
+            hasReflectionContent={
+              step === 2 || step === 3 ? !!answers[step - 2]?.trim() : false
+            }
             onProofread={
-              (settings.enableProofreading || settings.proofreadEnabled) &&
-              proofreaderAvailable &&
-              (step === 2 || step === 3)
+              step === 2 || step === 3
                 ? async (_index) => {
                     if (!onProofread) return;
                     const idx = step === 2 ? 0 : 1;
@@ -829,37 +829,32 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             }
             tonesDisabled={!answers[1]?.trim()}
             isRewriting={_isRewriting[1]}
-            hasReflectionContent={answers.some((a) => a.trim() !== '')}
-            onProofread={
-              (settings.enableProofreading || settings.proofreadEnabled) &&
-              proofreaderAvailable
-                ? async (_index) => {
-                    if (!onProofread) return;
-                    try {
-                      setIsProofreading((prev) => {
-                        const next = [...prev];
-                        next[1] = true;
-                        return next;
-                      });
-                      const result = await onProofread(answers[1] ?? '', 1);
-                      setAnswers((prev) => {
-                        const next = [...prev];
-                        next[1] = result.correctedText ?? prev[1];
-                        return next;
-                      });
-                      setProofreadResult({ index: 1, result });
-                    } catch {
-                      // silent
-                    } finally {
-                      setIsProofreading((prev) => {
-                        const next = [...prev];
-                        next[1] = false;
-                        return next;
-                      });
-                    }
-                  }
-                : undefined
-            }
+            hasReflectionContent={!!answers[1]?.trim()}
+            onProofread={async (_index) => {
+              if (!onProofread) return;
+              try {
+                setIsProofreading((prev) => {
+                  const next = [...prev];
+                  next[1] = true;
+                  return next;
+                });
+                const result = await onProofread(answers[1] ?? '', 1);
+                setAnswers((prev) => {
+                  const next = [...prev];
+                  next[1] = result.correctedText ?? prev[1];
+                  return next;
+                });
+                setProofreadResult({ index: 1, result });
+              } catch {
+                // silent
+              } finally {
+                setIsProofreading((prev) => {
+                  const next = [...prev];
+                  next[1] = false;
+                  return next;
+                });
+              }
+            }}
             proofreadDisabled={!answers[1]?.trim()}
             isProofreading={isProofreading[1]}
             proofreaderAvailable={proofreaderAvailable}
