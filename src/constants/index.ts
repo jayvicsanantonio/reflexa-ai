@@ -16,12 +16,12 @@ export const DEFAULT_SETTINGS: Settings = {
   // New AI API settings
   useNativeSummarizer: false, // Use Summarizer API instead of Prompt API
   useNativeProofreader: false, // Use Proofreader API instead of Prompt API
-  translationEnabled: false,
+  translationEnabled: true,
   targetLanguage: 'en',
   // Chrome AI APIs integration settings
   defaultSummaryFormat: 'bullets',
   enableProofreading: false,
-  enableTranslation: false,
+  enableTranslation: true,
   preferredTranslationLanguage: 'en',
   experimentalMode: true,
   autoDetectLanguage: true,

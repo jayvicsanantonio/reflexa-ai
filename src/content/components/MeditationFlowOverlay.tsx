@@ -922,42 +922,60 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               className="reflexa-meditation-slide"
               style={{ position: 'relative' }}
             >
-              {/* Subtle language badge - only show if foreign language detected */}
-              {languageDetection &&
-                languageDetection.detectedLanguage !==
-                  navigator.language.split('-')[0] && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: -8,
-                      right: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '4px 10px',
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid rgba(226, 232, 240, 0.12)',
-                      borderRadius: 999,
-                      fontSize: 11,
-                      color: 'rgba(226, 232, 240, 0.6)',
-                      backdropFilter: 'blur(8px)',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        'rgba(255, 255, 255, 0.1)';
-                      e.currentTarget.style.color = 'rgba(226, 232, 240, 0.8)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background =
-                        'rgba(255, 255, 255, 0.06)';
-                      e.currentTarget.style.color = 'rgba(226, 232, 240, 0.6)';
-                    }}
-                  >
-                    <span style={{ fontSize: 13 }}>🌐</span>
-                    <span>{languageDetection.languageName}</span>
-                  </div>
-                )}
+              {/* Subtle language badge - show when language is detected */}
+              {(() => {
+                console.log(
+                  '[Badge Debug] languageDetection:',
+                  languageDetection
+                );
+                console.log('[Badge Debug] step:', step);
+                return null;
+              })()}
+              {languageDetection && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: -8,
+                    right: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '4px 10px',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(226, 232, 240, 0.12)',
+                    borderRadius: 999,
+                    fontSize: 11,
+                    color: 'rgba(226, 232, 240, 0.6)',
+                    backdropFilter: 'blur(8px)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.color = 'rgba(226, 232, 240, 0.8)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      'rgba(255, 255, 255, 0.06)';
+                    e.currentTarget.style.color = 'rgba(226, 232, 240, 0.6)';
+                  }}
+                >
+                  <span style={{ fontSize: 13 }}>🌐</span>
+                  <span>{languageDetection.languageName}</span>
+                  {languageDetection.detectedLanguage !==
+                    navigator.language.split('-')[0] && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        opacity: 0.5,
+                        marginLeft: 4,
+                      }}
+                    >
+                      (translated)
+                    </span>
+                  )}
+                </div>
+              )}
 
               <h2 style={{ fontSize: 22, margin: '0 0 12px', fontWeight: 800 }}>
                 Summary

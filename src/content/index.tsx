@@ -815,7 +815,7 @@ const getDefaultSettings = (): Settings => ({
   targetLanguage: 'en',
   defaultSummaryFormat: 'bullets',
   enableProofreading: false,
-  enableTranslation: false,
+  enableTranslation: true,
   preferredTranslationLanguage: 'en',
   experimentalMode: false,
   autoDetectLanguage: true,
