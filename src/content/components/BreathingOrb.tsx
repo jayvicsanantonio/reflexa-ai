@@ -30,8 +30,8 @@ export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
         aria-hidden="true"
         data-testid="breathing-orb"
       >
-        <div
-          className={`reflexa-breathing-orb ${
+        {(() => {
+          const cls = `reflexa-breathing-orb ${
             enabled
               ? mode === 'box'
                 ? 'reflexa-breathing-orb--box'
@@ -39,15 +39,21 @@ export const BreathingOrb: React.FC<BreathingOrbProps> = React.memo(
                   ? 'reflexa-breathing-orb--pulse'
                   : 'reflexa-breathing-orb--animated'
               : ''
-          }`}
-          style={{
+          }`;
+          const styleVars: React.CSSProperties & {
+            ['--orbDur']?: string;
+            ['--orbIter']?: string;
+          } = {
             width: `${size}px`,
             height: `${size}px`,
             animationDuration: enabled ? `${duration}s` : undefined,
             animationIterationCount:
               enabled && iterations ? String(iterations) : undefined,
-          }}
-        />
+            '--orbDur': enabled ? `${duration}s` : undefined,
+            '--orbIter': enabled ? String(iterations ?? 2) : undefined,
+          };
+          return <div className={cls} style={styleVars} />;
+        })()}
       </div>
     );
   }

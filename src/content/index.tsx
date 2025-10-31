@@ -417,7 +417,7 @@ const initiateReflectionFlow = async () => {
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
       payload: {
-        text: currentExtractedContent.text,
+        content: currentExtractedContent.text,
         format: defaultFormat,
       },
     });
@@ -1156,7 +1156,7 @@ const handleFormatChange = async (format: SummaryFormat) => {
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
       payload: {
-        text: currentExtractedContent.text,
+        content: currentExtractedContent.text,
         format: format,
       },
     });

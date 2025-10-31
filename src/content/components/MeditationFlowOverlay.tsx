@@ -579,6 +579,27 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 >
                   Paragraph
                 </button>
+                <button
+                  type="button"
+                  disabled={!onFormatChange || step !== 1}
+                  onClick={() => {
+                    if (onFormatChange) void onFormatChange('headline-bullets');
+                  }}
+                  style={{
+                    background:
+                      onFormatChange && currentFormat === 'headline-bullets'
+                        ? 'rgba(59,130,246,0.25)'
+                        : 'transparent',
+                    border: '1px solid rgba(226,232,240,0.25)',
+                    color: '#e2e8f0',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    cursor:
+                      onFormatChange && step === 1 ? 'pointer' : 'default',
+                  }}
+                >
+                  Headline + Bullets
+                </button>
               </div>
             </div>
 

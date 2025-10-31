@@ -93,7 +93,39 @@
 }
 
 .reflexa-breathing-orb--pulse {
-  animation: breathingPulse 8s ease-in-out 2 both;
+  /* faster perceived grow/shrink with snappier easing; duration/iterations via CSS vars */
+  animation: breathingPulse var(--orbDur, 8s) cubic-bezier(0.22, 0.9, 0.2, 1)
+    var(--orbIter, 2) both;
+}
+
+/* Highlight ring at peak inhale */
+.reflexa-breathing-orb {
+  position: relative;
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.25);
+  }
+}
+
+.reflexa-breathing-orb--pulse::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(96, 165, 250, 0.9); /* #60a5fa */
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  animation: ringPulse var(--orbDur, 8s) cubic-bezier(0.22, 0.9, 0.2, 1)
+    var(--orbIter, 2) both;
 }
 
 /* Respect reduced motion preferences */
