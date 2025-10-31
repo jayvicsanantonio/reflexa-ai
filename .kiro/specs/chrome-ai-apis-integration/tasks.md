@@ -38,7 +38,7 @@
   - [x] 3.2 Create summarize method with format support
     - Implement bullets format (3 bullet points, max 20 words each)
     - Implement paragraph format (max 150 words)
-    - Implement headline + bullets format (10-word headline + 3 bullets)
+    - Implement Headline format (10-word headline + 3 bullets)
     - Parse API responses into standardized array format
     - _Requirements: 2.2, 2.3, 2.4, 2.5_
     - _Implementation: `src/background/services/ai/summarizerManager.ts`_
@@ -199,7 +199,7 @@
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
 - [x] 12. Create Summary Format Dropdown component
-  - Build React component with three format options (Bullets, Paragraph, Headline + Bullets)
+  - Build React component with three format options (Bullets, Paragraph, Headline)
   - Add icons for each format type
   - Implement smooth transition animation when format changes
   - Add disabled state during AI processing
@@ -308,7 +308,7 @@
 
 - [x] 20. Update Settings page with new AI options
   - [x] 20.1 Add default summary format setting
-    - Create dropdown for selecting default format (Bullets, Paragraph, Headline + Bullets)
+    - Create dropdown for selecting default format (Bullets, Paragraph, Headline)
     - Save preference to chrome.storage
     - _Requirements: 2.1_
 

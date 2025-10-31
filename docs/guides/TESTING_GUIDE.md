@@ -368,7 +368,7 @@ You should now see:
 1. Trigger Reflect Mode (see Test 5)
 2. Wait for AI to generate summary
 3. Read the generated content
-4. Try changing summary format (Bullets, Paragraph, Headline + Bullets)
+4. Try changing summary format (Bullets, Paragraph, Headline)
 
 **Expected Results**:
 

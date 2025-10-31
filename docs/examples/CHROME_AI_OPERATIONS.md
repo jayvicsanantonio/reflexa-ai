@@ -86,7 +86,7 @@ const bullets = await aiService.summarizer.summarize(content, 'bullets');
 const paragraph = await aiService.summarizer.summarize(content, 'paragraph');
 // Returns: ["A concise paragraph summary (max 150 words)"]
 
-// Headline + Bullets format
+// Headline format
 const headlineBullets = await aiService.summarizer.summarize(
   content,
   'headline-bullets'

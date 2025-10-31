@@ -30,7 +30,7 @@ All emoji icons have been replaced with clean, monotone SVG icons using Lucide-s
   - Before: ¶
   - After: Aligned text lines icon
 
-- **Headline + Bullets**:
+- **Headline**:
   - Before: ⚡
   - After: "H" headline icon
 

@@ -84,7 +84,7 @@
 
 - • Bullets
 - ¶ Paragraph
-- ⚡ Headline + Bullets
+- ⚡ Headline
 
 ### Tone Presets
 

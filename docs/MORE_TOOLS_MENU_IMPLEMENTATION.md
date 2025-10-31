@@ -12,7 +12,7 @@ Created `src/content/components/MoreToolsMenu.tsx` - a context-aware dropdown me
 
 **Summary Screen:**
 
-- Summary Format options (Bullets, Paragraph, Headline + Bullets)
+- Summary Format options (Bullets, Paragraph, Headline)
 
 **Reflection Screen (No Content):**
 

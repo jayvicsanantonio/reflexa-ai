@@ -116,7 +116,7 @@ The AI generates a summary in your chosen format:
 
 - A concise paragraph (max 150 words) capturing the essence
 
-**Headline + Bullets Format**:
+**Headline Format**:
 
 - A 10-word headline followed by three key points
 
@@ -315,7 +315,7 @@ Access settings by clicking the gear icon in the dashboard.
 
 #### Default Summary Format
 
-- **Options**: Bullets, Paragraph, Headline + Bullets
+- **Options**: Bullets, Paragraph, Headline
 - **Default**: Bullets
 - **Purpose**: Choose your preferred summary format
 - **Note**: Can be changed per-reflection in Reflect Mode
@@ -658,6 +658,7 @@ We'd love to hear from you!
 - 📧 **General feedback**: Email feedback@reflexa-ai.com
 
 Thank you for using Reflexa AI! Happy reflecting! 🌸
+
 #### Voice Input
 
 - Enable voice input to dictate reflections instead of typing.

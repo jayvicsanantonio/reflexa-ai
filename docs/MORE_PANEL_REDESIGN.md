@@ -35,7 +35,7 @@ The More panel should show different tools based on `step`:
   <div style={{ display: 'flex', gap: 6 }}>
     <button onClick={() => onFormatChange('bullets')}>Bullets</button>
     <button onClick={() => onFormatChange('paragraph')}>Paragraph</button>
-    <button onClick={() => onFormatChange('headline-bullets')}>Headline + Bullets</button>
+    <button onClick={() => onFormatChange('headline-bullets')}>Headline</button>
   </div>
 </div>
 

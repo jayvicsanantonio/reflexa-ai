@@ -45,7 +45,7 @@ Redesigned with minimalist icons:
 
 - Bullets: `•`
 - Paragraph: `¶`
-- Headline + Bullets: `⚡`
+- Headline: `⚡`
 
 ### 5. Tone Presets (Reflection Screen)
 

@@ -45,11 +45,11 @@ This feature enhances Reflexa AI to fully integrate all seven Chrome Built-in AI
 
 #### Acceptance Criteria
 
-1. THE Reflect_Mode overlay SHALL display a dropdown menu with three summary format options: "Bullets", "Paragraph", and "Headline + Bullets".
+1. THE Reflect_Mode overlay SHALL display a dropdown menu with three summary format options: "Bullets", "Paragraph", and "Headline".
 2. WHEN the user selects a summary format, THE Unified_AI_Service SHALL call the Summarizer_API with the selected format parameter.
 3. THE Summarizer_API SHALL generate summaries with a maximum length of 150 words for paragraph format.
 4. THE Summarizer_API SHALL generate exactly three bullet points for bullets format with each bullet containing no more than 20 words.
-5. THE Summarizer_API SHALL generate one headline (maximum 10 words) followed by three bullet points for headline + bullets format.
+5. THE Summarizer_API SHALL generate one headline (maximum 10 words) followed by three bullet points for Headline format.
 
 ### Requirement 3
 

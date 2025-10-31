@@ -34,7 +34,7 @@ These on-device APIs (powered by Gemini Nano) enable Reflexa AI to provide a **m
 
 **Purpose:** Generate concise summaries of any webpage or selected text.
 **Integration:** Replaces existing “Quick Summary” feature.
-**UI Element:** Dropdown to choose summary format (`Bullets`, `Paragraph`, `Headline + Bullets`).
+**UI Element:** Dropdown to choose summary format (`Bullets`, `Paragraph`, `Headline`).
 
 ```js
 const summary = await ai.summarizer.summarize(text, { format: 'bullets' });

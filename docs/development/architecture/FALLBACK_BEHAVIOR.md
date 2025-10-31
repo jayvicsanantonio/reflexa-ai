@@ -87,7 +87,7 @@ ${content}
 Provide only the summary paragraph, no additional text.
 `;
 
-// Headline + Bullets format
+// Headline format
 const headlinePrompt = `
 Summarize the following article with:
 1. A 10-word headline
