@@ -730,11 +730,10 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
               </div>
             )}
 
-          {/* Proofread (only in reflection screen when there's content) */}
+          {/* Proofread (shown in reflection screen when proofreader is available) */}
           {currentScreen === 'reflection' &&
             proofreaderAvailable &&
-            onProofread &&
-            hasReflectionContent && (
+            onProofread && (
               <div className="reflexa-more-tools__section">
                 <div className="reflexa-more-tools__section-title">Polish</div>
                 <button
@@ -746,7 +745,9 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                     handleProofreadClick();
                     handleClose();
                   }}
-                  disabled={proofreadDisabled || isProofreading}
+                  disabled={
+                    proofreadDisabled || isProofreading || !hasReflectionContent
+                  }
                   role="menuitem"
                   data-testid="proofread-option"
                 >

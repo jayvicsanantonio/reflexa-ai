@@ -137,7 +137,7 @@ describe('MoreToolsMenu', () => {
     expect(screen.getByTestId('proofread-option')).toBeTruthy();
   });
 
-  it('should not show proofread option when there is no content', () => {
+  it('should show proofread option but disabled when there is no content', () => {
     const onProofread = vi.fn();
     render(
       <MoreToolsMenu
@@ -151,7 +151,9 @@ describe('MoreToolsMenu', () => {
     const trigger = screen.getByTestId('more-tools-trigger');
     fireEvent.click(trigger);
 
-    expect(screen.queryByTestId('proofread-option')).toBeNull();
+    const proofreadOption = screen.getByTestId('proofread-option');
+    expect(proofreadOption).toBeInTheDocument();
+    expect(proofreadOption).toBeDisabled();
   });
 
   it('should not show summary format in reflection screen', () => {
