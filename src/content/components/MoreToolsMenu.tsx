@@ -392,51 +392,92 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
   }, []);
 
   // Close menu when clicking outside
+  // Note: When rendered inside a Shadow DOM, document-level listeners can
+  // misidentify clicks inside the menu as outside due to event retargeting.
+  // Use the component's root node and composedPath() for reliable detection.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    if (!isOpen) return;
+
+    const root = (menuRef.current?.getRootNode?.() ?? document) as
+      | Document
+      | ShadowRoot;
+
+    const handleClickOutside = (event: Event) => {
+      const e = event as Event & { composedPath?: () => EventTarget[] };
+      const targetPath = e.composedPath ? e.composedPath() : undefined;
+
+      // If composedPath is available, prefer it for Shadow DOM correctness
+      if (targetPath && menuRef.current) {
+        if (!targetPath.includes(menuRef.current)) {
+          handleClose();
+        }
+        return;
+      }
+
+      // Fallback: standard contains check
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         handleClose();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () =>
-        document.removeEventListener('mousedown', handleClickOutside);
-    }
+    const handleClickOutsideListener: EventListener =
+      handleClickOutside as EventListener;
+    root.addEventListener('mousedown', handleClickOutsideListener);
+    return () => {
+      root.removeEventListener('mousedown', handleClickOutsideListener);
+    };
   }, [isOpen, handleClose]);
 
   // Close menu on Escape key
+  // Bind to ShadowRoot when available so the listener works reliably inside shadow DOM
   useEffect(() => {
+    const root = (menuRef.current?.getRootNode?.() ?? document) as
+      | Document
+      | ShadowRoot;
+
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
         handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    root.addEventListener('keydown', handleEscape as EventListener);
+    return () =>
+      root.removeEventListener('keydown', handleEscape as EventListener);
   }, [isOpen, handleClose]);
 
   const handleFormatSelect = async (format: SummaryFormat) => {
+    console.log(
+      '[MoreToolsMenu] Format selected:',
+      format,
+      'Current:',
+      currentFormat
+    );
+    console.log('[MoreToolsMenu] onFormatChange exists:', !!onFormatChange);
     if (format !== currentFormat && onFormatChange) {
+      console.log('[MoreToolsMenu] Calling onFormatChange...');
       await onFormatChange(format);
+      console.log('[MoreToolsMenu] onFormatChange completed');
+    } else {
+      console.log('[MoreToolsMenu] Skipping - same format or no handler');
     }
-    handleClose();
   };
 
   const handleToneSelect = (tone: TonePreset) => {
+    console.log('[MoreToolsMenu] Tone selected:', tone);
+    console.log('[MoreToolsMenu] onToneSelect exists:', !!onToneSelect);
     if (onToneSelect && !tonesDisabled && !isRewriting) {
+      console.log('[MoreToolsMenu] Calling onToneSelect...');
       onToneSelect(tone);
+    } else {
+      console.log('[MoreToolsMenu] Skipping - disabled or no handler');
     }
-    handleClose();
   };
 
   const handleProofreadClick = () => {
     if (onProofread && !proofreadDisabled && !isProofreading) {
       onProofread(activeReflectionIndex);
     }
-    handleClose();
   };
 
   const handleGenerateDraft = () => {
@@ -456,7 +497,6 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
         setIsGenerating(false);
       }
     }
-    handleClose();
   };
 
   return (
@@ -468,7 +508,11 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
       <button
         type="button"
         className="reflexa-more-tools__trigger"
-        onClick={handleToggle}
+        onClick={(e) => {
+          console.log('[MoreToolsMenu] Trigger clicked, isOpen:', isOpen);
+          e.stopPropagation();
+          handleToggle();
+        }}
         aria-label="More tools"
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -508,8 +552,12 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                   type="button"
                   className="reflexa-more-tools__tile"
                   onClick={() => {
+                    console.log(
+                      '[MoreToolsMenu] Ambient toggle clicked, current muted:',
+                      ambientMuted
+                    );
                     onToggleAmbient(!ambientMuted);
-                    handleClose();
+                    console.log('[MoreToolsMenu] Ambient toggle called');
                   }}
                   role="menuitem"
                   data-testid="ambient-sound-toggle"
@@ -569,11 +617,15 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                                 ? 'reflexa-more-tools__language-option--current'
                                 : ''
                             }`}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log(
+                                '[MoreToolsMenu] Language selected:',
+                                lang.code
+                              );
                               if (!isUnsupported && !isCurrent) {
                                 onTranslateSummary(lang.code);
                                 setShowTranslateDropdown(false);
-                                handleClose();
                               }
                             }}
                             disabled={isUnsupported || isCurrent}
@@ -618,7 +670,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                         ? 'reflexa-more-tools__tile--selected'
                         : ''
                     }`}
-                    onClick={() => handleFormatSelect(option.value)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log(
+                        '[MoreToolsMenu] Format tile clicked:',
+                        option.value
+                      );
+                      void handleFormatSelect(option.value);
+                    }}
                     disabled={isLoadingSummary}
                     role="menuitem"
                     data-testid={`format-option-${option.value}`}
@@ -652,7 +711,11 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 <button
                   type="button"
                   className="reflexa-more-tools__option"
-                  onClick={handleGenerateDraft}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[MoreToolsMenu] Generate draft clicked');
+                    handleGenerateDraft();
+                  }}
                   disabled={generateDraftDisabled || isGenerating}
                   role="menuitem"
                   data-testid="generate-draft-option"
@@ -697,7 +760,14 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                           ? 'reflexa-more-tools__tile--selected'
                           : ''
                       }`}
-                      onClick={() => handleToneSelect(option.value)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log(
+                          '[MoreToolsMenu] Tone tile clicked:',
+                          option.value
+                        );
+                        handleToneSelect(option.value);
+                      }}
                       disabled={tonesDisabled || isRewriting}
                       role="menuitem"
                       data-testid={`tone-option-${option.value}`}
@@ -737,7 +807,11 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
                 <button
                   type="button"
                   className="reflexa-more-tools__option"
-                  onClick={handleProofreadClick}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[MoreToolsMenu] Proofread clicked');
+                    handleProofreadClick();
+                  }}
                   disabled={proofreadDisabled || isProofreading}
                   role="menuitem"
                   data-testid="proofread-option"

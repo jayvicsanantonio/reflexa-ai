@@ -339,7 +339,7 @@ describe('MoreToolsMenu', () => {
     expect(onProofread).toHaveBeenCalledWith(0);
   });
 
-  it('should close menu after selecting an option', async () => {
+  it('should keep menu open after selecting an option', async () => {
     const onFormatChange = vi.fn().mockResolvedValue(undefined);
     render(
       <MoreToolsMenu
@@ -355,9 +355,9 @@ describe('MoreToolsMenu', () => {
     const paragraphOption = screen.getByTestId('format-option-paragraph');
     fireEvent.click(paragraphOption);
 
-    // Wait for async operation to complete
+    // Menu should stay open
     await vi.waitFor(() => {
-      expect(screen.queryByTestId('more-tools-dropdown')).toBeNull();
+      expect(screen.getByTestId('more-tools-dropdown')).toBeTruthy();
     });
   });
 
