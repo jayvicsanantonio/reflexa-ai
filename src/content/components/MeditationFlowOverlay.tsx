@@ -23,6 +23,7 @@ import '../styles.css';
 
 interface MeditationFlowOverlayProps {
   summary: string[];
+  summaryDisplay?: string[];
   prompts: string[];
   onSave: (
     reflections: string[],
@@ -55,6 +56,7 @@ interface MeditationFlowOverlayProps {
 
 export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   summary,
+  summaryDisplay,
   prompts,
   onSave,
   onCancel,
@@ -73,6 +75,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   reduceMotion: _reduceMotion = false,
   onToggleReduceMotion: _onToggleReduceMotion,
 }) => {
+  const renderedSummary = summaryDisplay ?? summary;
   const contentRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
   const [answers, setAnswers] = useState<string[]>(['', '']);
@@ -103,6 +106,13 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     show: boolean;
     index: number;
   }>({ show: false, index: 0 });
+  type CleanupFn = (() => void) | undefined;
+  const writerStreamCleanupRef = useRef<CleanupFn[]>([]);
+  const writerTargetTextRef = useRef<string[]>(['', '']);
+  const writerDisplayIndexRef = useRef<number[]>([0, 0]);
+  const writerAnimationTimerRef = useRef<number[]>([0, 0]);
+  const WRITER_CHAR_STEP = 2;
+  const WRITER_FRAME_DELAY = 24;
 
   const [proofreadResult, setProofreadResult] = useState<{
     index: number;
@@ -292,6 +302,71 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     });
   }, [voiceInput0.isRecording, voiceInput1.isRecording]);
 
+  useEffect(() => {
+    const cleanupRef = [...writerStreamCleanupRef.current];
+    const timersSnapshot = [...writerAnimationTimerRef.current];
+    return () => {
+      cleanupRef.forEach((cleanup) => {
+        cleanup?.();
+      });
+      timersSnapshot.forEach((timer, index) => {
+        if (timer) {
+          window.clearTimeout(timer);
+          timersSnapshot[index] = 0;
+        }
+      });
+      writerAnimationTimerRef.current = timersSnapshot;
+    };
+  }, []);
+
+  const startWriterAnimation = useCallback(
+    (index: 0 | 1, forceRestart = false) => {
+      const existingTimer = writerAnimationTimerRef.current[index];
+      if (existingTimer) {
+        if (!forceRestart) {
+          return;
+        }
+        window.clearTimeout(existingTimer);
+        writerAnimationTimerRef.current[index] = 0;
+      }
+
+      const run = () => {
+        const target = writerTargetTextRef.current[index] ?? '';
+        const currentPos = writerDisplayIndexRef.current[index] ?? 0;
+
+        if (currentPos >= target.length) {
+          writerAnimationTimerRef.current[index] = 0;
+          setAnswers((prev) => {
+            const next = [...prev];
+            next[index] = target;
+            return next;
+          });
+          lastTextValueRef.current[index] = target;
+          return;
+        }
+
+        const nextPos = Math.min(currentPos + WRITER_CHAR_STEP, target.length);
+        writerDisplayIndexRef.current[index] = nextPos;
+
+        const textToShow = target.slice(0, nextPos);
+        setAnswers((prev) => {
+          const next = [...prev];
+          next[index] = textToShow;
+          return next;
+        });
+        lastTextValueRef.current[index] = textToShow;
+
+        writerAnimationTimerRef.current[index] = window.setTimeout(
+          run,
+          WRITER_FRAME_DELAY
+        );
+      };
+
+      writerAnimationTimerRef.current[index] = window.setTimeout(run, 0);
+    },
+    [setAnswers]
+  );
+
   // Show notification if language fallback is detected
   useEffect(() => {
     if (voiceInput0.isLanguageFallback || voiceInput1.isLanguageFallback) {
@@ -379,35 +454,184 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     async (index: 0 | 1) => {
       if (!writerAvailable) return;
 
+      const existingCleanup = writerStreamCleanupRef.current[index];
+      if (existingCleanup) {
+        existingCleanup();
+        writerStreamCleanupRef.current[index] = undefined;
+      }
+
       setIsDraftGenerating((prev) => {
         const next = [...prev];
         next[index] = true;
         return next;
       });
 
-      try {
-        const prompt = prompts[index];
-        const summaryContext = summary.join('\n');
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[index] = '';
+        return next;
+      });
+      lastTextValueRef.current[index] = '';
+      writerTargetTextRef.current[index] = '';
+      writerDisplayIndexRef.current[index] = 0;
+      if (writerAnimationTimerRef.current[index]) {
+        window.clearTimeout(writerAnimationTimerRef.current[index]);
+        writerAnimationTimerRef.current[index] = 0;
+      }
 
-        const response: AIResponse<string> = await chrome.runtime.sendMessage({
-          type: 'write',
-          payload: {
-            prompt: `${prompt}\n\nContext: ${summaryContext}`,
-            options: { tone: 'neutral', length: 'short' },
-          },
+      const prompt = prompts[index];
+      const summaryContext = summary.join('\n');
+      const writerPrompt = `${prompt}\n\nContext: ${summaryContext}`;
+
+      const attemptStreaming = () =>
+        new Promise<string>((resolve, reject) => {
+          let aggregated = '';
+          const port = chrome.runtime.connect({ name: 'ai-stream' });
+          const requestId = `writer-stream-${Date.now()}-${Math.random()
+            .toString(16)
+            .slice(2)}`;
+          let closed = false;
+
+          const cleanup = () => {
+            if (closed) return;
+            closed = true;
+            try {
+              port.disconnect();
+            } catch (disconnectError) {
+              console.warn(
+                'Writer stream disconnect warning:',
+                disconnectError
+              );
+            }
+          };
+
+          writerStreamCleanupRef.current[index] = () => {
+            cleanup();
+            writerStreamCleanupRef.current[index] = undefined;
+          };
+
+          port.onDisconnect.addListener(() => {
+            if (closed) return;
+            closed = true;
+            writerStreamCleanupRef.current[index] = undefined;
+            reject(new Error('Writer stream disconnected'));
+          });
+
+          port.onMessage.addListener((rawMessage) => {
+            if (!rawMessage || typeof rawMessage !== 'object') return;
+
+            const message = rawMessage as {
+              requestId?: string;
+              event?: string;
+              data?: unknown;
+              error?: unknown;
+            };
+
+            if (message.requestId !== requestId) return;
+
+            switch (message.event) {
+              case 'chunk': {
+                const chunk =
+                  typeof message.data === 'string' ? message.data : '';
+                if (!chunk) return;
+                aggregated += chunk;
+                writerTargetTextRef.current[index] = aggregated;
+                if (!writerAnimationTimerRef.current[index]) {
+                  writerDisplayIndexRef.current[index] = (
+                    lastTextValueRef.current[index] ?? ''
+                  ).length;
+                  startWriterAnimation(index);
+                }
+                break;
+              }
+              case 'complete': {
+                const finalData =
+                  typeof message.data === 'string' && message.data.length > 0
+                    ? message.data
+                    : aggregated;
+                aggregated = finalData;
+                writerTargetTextRef.current[index] = aggregated;
+                startWriterAnimation(index);
+                cleanup();
+                writerStreamCleanupRef.current[index] = undefined;
+                resolve(aggregated);
+                break;
+              }
+              case 'error': {
+                const errorMessage =
+                  typeof message.error === 'string'
+                    ? message.error
+                    : 'Writer stream error';
+                cleanup();
+                writerStreamCleanupRef.current[index] = undefined;
+                reject(new Error(errorMessage));
+                break;
+              }
+              default:
+                break;
+            }
+          });
+
+          try {
+            port.postMessage({
+              type: 'writer-stream',
+              requestId,
+              payload: {
+                prompt: writerPrompt,
+                options: { tone: 'neutral', length: 'short' },
+              },
+            });
+          } catch (error) {
+            cleanup();
+            writerStreamCleanupRef.current[index] = undefined;
+            reject(
+              new Error(
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to start writer stream'
+              )
+            );
+          }
         });
 
-        if (response.success) {
-          setAnswers((prev) => {
-            const next = [...prev];
-            next[index] = response.data;
-            lastTextValueRef.current[index] = response.data;
-            return next;
-          });
+      try {
+        await attemptStreaming();
+      } catch (streamError) {
+        console.warn(
+          'Writer streaming failed, falling back to batch mode:',
+          streamError
+        );
+        const cleanupAfterStream = writerStreamCleanupRef.current[index];
+        if (cleanupAfterStream) {
+          cleanupAfterStream();
+          writerStreamCleanupRef.current[index] = undefined;
         }
-      } catch (error) {
-        console.error('Error generating draft:', error);
+
+        try {
+          const response: AIResponse<string> = await chrome.runtime.sendMessage(
+            {
+              type: 'write',
+              payload: {
+                prompt: writerPrompt,
+                options: { tone: 'neutral', length: 'short' },
+              },
+            }
+          );
+
+          if (response.success) {
+            writerTargetTextRef.current[index] = response.data;
+            writerDisplayIndexRef.current[index] = 0;
+            startWriterAnimation(index, true);
+          }
+        } catch (error) {
+          console.error('Error generating draft:', error);
+        }
       } finally {
+        const finalCleanup = writerStreamCleanupRef.current[index];
+        if (finalCleanup) {
+          finalCleanup();
+          writerStreamCleanupRef.current[index] = undefined;
+        }
         setIsDraftGenerating((prev) => {
           const next = [...prev];
           next[index] = false;
@@ -415,7 +639,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         });
       }
     },
-    [writerAvailable, prompts, summary]
+    [writerAvailable, prompts, summary, startWriterAnimation]
   );
 
   // Rewrite with selected tone
@@ -1042,7 +1266,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   <div style={{ color: '#cbd5e1' }}>Generating…</div>
                 ) : currentFormat === 'bullets' ? (
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {summary.map((s, i) => (
+                    {renderedSummary.map((s, i) => (
                       <li
                         key={i}
                         style={{ marginBottom: 8 }}
@@ -1061,11 +1285,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                         margin: '0 0 16px',
                       }}
                       dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(summary[0] || ''),
+                        __html: renderMarkdown(renderedSummary[0] || ''),
                       }}
                     />
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {summary.slice(1).map((s, i) => (
+                      {renderedSummary.slice(1).map((s, i) => (
                         <li
                           key={i}
                           style={{ marginBottom: 8 }}
@@ -1080,7 +1304,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   <p
                     style={{ margin: 0 }}
                     dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(summary.join(' ')),
+                      __html: renderMarkdown(renderedSummary.join(' ')),
                     }}
                   />
                 )}

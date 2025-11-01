@@ -55,9 +55,16 @@ let isNotificationVisible = false;
 // Current reflection data
 let currentExtractedContent: ExtractedContent | null = null;
 let currentSummary: string[] = [];
+let currentSummaryDisplay: string[] = [];
 let currentPrompts: string[] = [];
 let currentSummaryFormat: SummaryFormat = 'bullets';
 let isLoadingSummary = false;
+let currentSummaryBuffer = '';
+let summaryAnimationIndex = 0;
+let summaryAnimationTimer: number | null = null;
+let summaryAnimationFormat: SummaryFormat = 'bullets';
+let summaryStreamComplete = false;
+let activeSummaryStreamCleanup: (() => void) | null = null;
 
 // Language detection state
 let currentLanguageDetection: LanguageDetection | null = null;
@@ -409,6 +416,7 @@ const initiateReflectionFlow = async () => {
           hideErrorModal();
           // Proceed with manual mode
           currentSummary = ['', '', ''];
+          currentSummaryDisplay = currentSummary;
           currentPrompts = [
             'What did you find most interesting?',
             'How might you apply this?',
@@ -423,6 +431,7 @@ const initiateReflectionFlow = async () => {
     // Show the Reflect Mode overlay immediately with loading state
     isLoadingSummary = true;
     currentSummary = [];
+    currentSummaryDisplay = [];
     currentPrompts = [
       'What did you find most interesting?',
       'How might you apply this?',
@@ -462,35 +471,61 @@ const initiateReflectionFlow = async () => {
     const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
     currentSummaryFormat = defaultFormat;
 
-    const summaryResponse = await sendMessageToBackground<string[]>({
-      type: 'summarize',
-      payload: {
-        content: currentExtractedContent.text,
-        format: defaultFormat,
-        detectedLanguage: detectedLanguageCode,
-      },
-    });
+    let summaryStreamed = false;
+    if (currentSettings?.useNativeSummarizer) {
+      try {
+        summaryStreamed = await summarizeWithStreaming(
+          currentExtractedContent.text,
+          defaultFormat,
+          detectedLanguageCode
+        );
+      } catch (streamError) {
+        console.warn('Streaming summarization unavailable:', streamError);
+        currentSummaryBuffer = '';
+        currentSummary = [];
+        currentSummaryDisplay = [];
+        isLoadingSummary = true;
+      }
+    }
 
-    if (!summaryResponse.success) {
-      console.error('Summarization failed:', summaryResponse.error);
-      isLoadingSummary = false;
+    let summaryResponse: AIResponse<string[]> | null = null;
 
-      // Check if it's a timeout error
-      if (summaryResponse.error.includes('timeout')) {
-        // Update overlay with error state
+    if (!summaryStreamed) {
+      summaryResponse = await sendMessageToBackground<string[]>({
+        type: 'summarize',
+        payload: {
+          content: currentExtractedContent.text,
+          format: defaultFormat,
+          detectedLanguage: detectedLanguageCode,
+        },
+      });
+
+      if (!summaryResponse.success) {
+        console.error('Summarization failed:', summaryResponse.error);
+        isLoadingSummary = false;
+
+        if (summaryResponse.error.includes('timeout')) {
+          currentSummary = ['', '', ''];
+          currentSummaryDisplay = currentSummary;
+          void showReflectModeOverlay();
+          return;
+        }
+
         currentSummary = ['', '', ''];
+        currentSummaryDisplay = currentSummary;
         void showReflectModeOverlay();
         return;
       }
 
-      // Fall back to manual mode with empty summary
-      currentSummary = ['', '', ''];
-      void showReflectModeOverlay();
-      return;
+      currentSummary = summaryResponse.data;
+      currentSummaryDisplay = summaryResponse.data;
+      summaryStreamComplete = true;
+      stopSummaryAnimation();
+      console.log('Summary received:', currentSummary);
+      isLoadingSummary = false;
+    } else {
+      console.log('Summary received (streaming):', currentSummary);
     }
-
-    currentSummary = summaryResponse.data;
-    console.log('Summary received:', currentSummary);
 
     // Store original detected language for later use
     if (currentLanguageDetection) {
@@ -504,8 +539,6 @@ const initiateReflectionFlow = async () => {
       }
     }
 
-    isLoadingSummary = false;
-
     // Re-render overlay with summary loaded
     if (overlayRoot && overlayContainer) {
       const soundEnabled = Boolean(
@@ -515,6 +548,9 @@ const initiateReflectionFlow = async () => {
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
           prompts={currentPrompts}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
@@ -636,6 +672,9 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
       if (age < 24 * 60 * 60 * 1000) {
         console.log('Using cached translation');
         currentSummary = cachedData.summary;
+        currentSummaryDisplay = cachedData.summary;
+        stopSummaryAnimation();
+        summaryStreamComplete = true;
         selectedTargetLanguage = targetLang;
         currentLanguageDetection = {
           detectedLanguage: targetLang,
@@ -674,6 +713,16 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
 
     // Update summary
     currentSummary = translatedSummary;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
+    currentSummary = translatedSummary;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
 
     if (successCount === translatedSummary.length) {
       selectedTargetLanguage = targetLang;
@@ -726,6 +775,233 @@ const sendMessageToBackground = <T,>(
   });
 };
 
+interface AIStreamHandlers {
+  onChunk?: (chunk: string) => void;
+  onComplete?: (finalData?: string) => void;
+  onError?: (error: string) => void;
+}
+
+const startAIStream = (
+  type: string,
+  payload: unknown,
+  handlers: AIStreamHandlers
+): { requestId: string; cancel: () => void } => {
+  const port = chrome.runtime.connect({ name: 'ai-stream' });
+  const requestId = `${type}-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+  let closed = false;
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    try {
+      port.disconnect();
+    } catch (disconnectError) {
+      console.warn('AI stream disconnect warning:', disconnectError);
+    }
+  };
+
+  port.onDisconnect.addListener(() => {
+    if (closed) return;
+    closed = true;
+    handlers.onError?.('Stream disconnected');
+  });
+
+  port.onMessage.addListener((rawMessage) => {
+    if (!rawMessage || typeof rawMessage !== 'object') return;
+
+    const message = rawMessage as {
+      requestId?: string;
+      event?: string;
+      data?: unknown;
+      error?: unknown;
+    };
+
+    if (message.requestId !== requestId) return;
+
+    switch (message.event) {
+      case 'chunk':
+        handlers.onChunk?.(
+          typeof message.data === 'string' ? message.data : ''
+        );
+        break;
+      case 'complete':
+        handlers.onComplete?.(
+          typeof message.data === 'string' ? message.data : undefined
+        );
+        cleanup();
+        break;
+      case 'error': {
+        const errorMessage =
+          typeof message.error === 'string'
+            ? message.error
+            : 'Unknown streaming error';
+        handlers.onError?.(errorMessage);
+        cleanup();
+        break;
+      }
+      default:
+        break;
+    }
+  });
+
+  try {
+    port.postMessage({
+      type,
+      requestId,
+      payload,
+    });
+  } catch (error) {
+    cleanup();
+    handlers.onError?.(
+      error instanceof Error ? error.message : 'Failed to start stream'
+    );
+  }
+
+  return { requestId, cancel: cleanup };
+};
+
+const parseSummaryBuffer = (
+  buffer: string,
+  format: SummaryFormat
+): string[] => {
+  const normalized = buffer.replace(/\r/g, '');
+  if (!normalized.trim()) {
+    return [];
+  }
+
+  if (format === 'paragraph') {
+    return [normalized.trim()];
+  }
+
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => line.replace(/^[*•-]\s*/, '').trim());
+
+  return lines;
+};
+
+const stopSummaryAnimation = () => {
+  if (summaryAnimationTimer !== null) {
+    window.clearTimeout(summaryAnimationTimer);
+    summaryAnimationTimer = null;
+  }
+};
+
+const stepSummaryAnimation = () => {
+  const targetLength = currentSummaryBuffer.length;
+  if (summaryAnimationIndex >= targetLength) {
+    summaryAnimationTimer = null;
+    if (summaryStreamComplete) {
+      currentSummaryDisplay = parseSummaryBuffer(
+        currentSummaryBuffer,
+        summaryAnimationFormat
+      );
+      renderOverlay();
+    }
+    return;
+  }
+
+  summaryAnimationIndex = Math.min(summaryAnimationIndex + 3, targetLength);
+
+  const partial = currentSummaryBuffer.slice(0, summaryAnimationIndex);
+  currentSummaryDisplay = parseSummaryBuffer(partial, summaryAnimationFormat);
+  renderOverlay();
+
+  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 20);
+};
+
+const startSummaryAnimation = (format: SummaryFormat) => {
+  summaryAnimationFormat = format;
+  if (summaryAnimationTimer !== null) return;
+  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 0);
+};
+
+const summarizeWithStreaming = async (
+  content: string,
+  format: SummaryFormat,
+  detectedLanguage?: string
+): Promise<boolean> => {
+  if (format === 'headline-bullets') {
+    return false;
+  }
+
+  return new Promise<boolean>((resolve, reject) => {
+    currentSummaryBuffer = '';
+    currentSummary = [];
+    currentSummaryDisplay = [];
+    summaryAnimationIndex = 0;
+    summaryStreamComplete = false;
+    stopSummaryAnimation();
+    let receivedChunk = false;
+    let completed = false;
+
+    if (activeSummaryStreamCleanup) {
+      activeSummaryStreamCleanup();
+      activeSummaryStreamCleanup = null;
+    }
+
+    const { cancel } = startAIStream(
+      'summarize-stream',
+      {
+        content,
+        format,
+        detectedLanguage,
+      },
+      {
+        onChunk: (chunk) => {
+          if (!chunk) return;
+          receivedChunk = true;
+          currentSummaryBuffer += chunk;
+          if (isLoadingSummary) {
+            isLoadingSummary = false;
+          }
+          startSummaryAnimation(format);
+        },
+        onComplete: (finalData) => {
+          completed = true;
+          if (typeof finalData === 'string' && finalData.length > 0) {
+            currentSummaryBuffer = finalData;
+          }
+          const finalSummary = parseSummaryBuffer(currentSummaryBuffer, format);
+          currentSummary = finalSummary;
+          summaryStreamComplete = true;
+          if (!receivedChunk) {
+            startSummaryAnimation(format);
+          } else if (summaryAnimationTimer === null) {
+            currentSummaryDisplay = finalSummary;
+            renderOverlay();
+          }
+          isLoadingSummary = false;
+          activeSummaryStreamCleanup = null;
+          resolve(parseSummaryBuffer(currentSummaryBuffer, format).length > 0);
+        },
+        onError: (error) => {
+          console.warn('Summarize stream error:', error);
+          if (!completed) {
+            currentSummaryBuffer = '';
+          }
+          activeSummaryStreamCleanup = null;
+          summaryStreamComplete = true;
+          if (receivedChunk) {
+            resolve(false);
+          } else {
+            reject(new Error(error));
+          }
+        },
+      }
+    );
+
+    activeSummaryStreamCleanup = () => {
+      cancel();
+      activeSummaryStreamCleanup = null;
+    };
+  });
+};
+
 /**
  * Helper function to render the overlay with current state
  * Used for initial render and re-renders when state changes
@@ -752,6 +1028,9 @@ const renderOverlay = () => {
   overlayRoot.render(
     <MeditationFlowOverlay
       summary={currentSummary}
+      summaryDisplay={
+        currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+      }
       prompts={currentPrompts}
       onSave={handleSaveReflection}
       onCancel={handleCancelReflection}
@@ -1098,6 +1377,9 @@ const handleTranslate = async (targetLanguage: string) => {
     overlayRoot.render(
       <MeditationFlowOverlay
         summary={currentSummary}
+        summaryDisplay={
+          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+        }
         prompts={currentPrompts}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
@@ -1211,6 +1493,9 @@ const handleTranslate = async (targetLanguage: string) => {
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
           prompts={currentPrompts}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
@@ -1314,6 +1599,9 @@ const handleTranslateToEnglish = async () => {
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
           prompts={currentPrompts}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
@@ -1480,6 +1768,9 @@ const handleFormatChange = async (format: SummaryFormat) => {
     overlayRoot.render(
       <MeditationFlowOverlay
         summary={currentSummary}
+        summaryDisplay={
+          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+        }
         prompts={currentPrompts}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
@@ -1546,6 +1837,9 @@ const handleFormatChange = async (format: SummaryFormat) => {
         newSummary = translated;
       }
       currentSummary = newSummary;
+      currentSummaryDisplay = newSummary;
+      stopSummaryAnimation();
+      summaryStreamComplete = true;
       console.log('Summary updated with new format:', currentSummary);
     } else {
       console.error('Failed to update summary format:', summaryResponse.error);
@@ -1575,6 +1869,9 @@ const handleFormatChange = async (format: SummaryFormat) => {
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
           prompts={currentPrompts}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
@@ -1649,11 +1946,18 @@ const hideReflectModeOverlay = () => {
  * Clears current data and resets dwell tracker
  */
 const resetReflectionState = () => {
+  activeSummaryStreamCleanup?.();
+  activeSummaryStreamCleanup = null;
   currentExtractedContent = null;
   currentSummary = [];
+  currentSummaryDisplay = [];
   currentPrompts = [];
   currentSummaryFormat = 'bullets';
   isLoadingSummary = false;
+  currentSummaryBuffer = '';
+  summaryAnimationIndex = 0;
+  summaryStreamComplete = false;
+  stopSummaryAnimation();
 
   // Reset dwell tracker to start tracking again
   if (dwellTracker) {

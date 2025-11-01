@@ -41,44 +41,71 @@
 
 **Narration:**
 
-> "Now watch as all 7 Chrome Built-in AI APIs work together to create a mindful reflection experience."
+> "Now watch as all 7 Chrome Built-in AI APIs work together to create a mindful reflection experience through our 4-step Meditation Flow."
 
 **Action:**
 
-1. **Breathing Orb Animation** (5 seconds)
-   - Show the calming 7-second breathing cycle
-   - Ambient audio plays (optional)
+1. **Step 0: Settle - Breathing Phase** (8-10 seconds)
+   - Breathing orb appears with 8-second cycles
+   - Meditative phrases rotate: "Crafting your insights...", "Take a deep breath..."
+   - Breath cues guide you: "Inhale..." → "Exhale..."
+   - Behind the scenes: AI processes article, detects language, generates summary
+   - Auto-advances to Step 1 when complete
+   - "This calming phase centers you while AI works"
 
-2. **Language Detection** (instant)
-   - Language pill appears: "English (99.5%)"
-   - "Reflexa automatically detected the article language"
+2. **Step 1: Summary - Review Insights** (15 seconds)
+   - 3-bullet AI-generated summary appears:
+     - **Insight**: Main takeaway
+     - **Surprise**: Unexpected finding
+     - **Apply**: Practical application
+   - Language badge (top-right): "🌐 English"
+   - Click "More Tools" (⋯) → Show format options (bullets, paragraph, headline)
+   - "Powered by Summarizer API + Language Detector API"
 
-3. **AI Summarization** (2 seconds)
-   - 3-bullet summary appears:
-     - Insight: Main takeaway
-     - Surprise: Unexpected finding
-     - Apply: Practical application
-   - "Powered by Summarizer API"
+3. **Step 2: Reflect - First Question** (30 seconds)
+   - Prompt appears: "What did you find most interesting?"
+   - Large textarea for reflection
 
-4. **Draft Generation** (3 seconds)
-   - Click "Generate Draft" button
-   - AI writes first reflection paragraph
-   - "Powered by Writer API with tone control"
+   **Show Voice Input**:
+   - Click 🎤 microphone button
+   - Speak: "I found the productivity tips really helpful..."
+   - Interim transcription appears in real-time
+   - Final text appends when you pause
+   - Blue border indicates recording
+   - "Powered by Web Speech API"
 
-5. **Tone Adjustment** (3 seconds)
-   - Show 4 tone chips: Calm, Concise, Empathetic, Academic
-   - Click "Academic" - text rewrites instantly
+   **Show AI Draft Generation**:
+   - Clear textarea
+   - Click "More Tools" (⋯) → "Generate Draft"
+   - AI writes contextual reflection with progressive display (2 chars/24ms)
+   - "Powered by Writer API with streaming"
+
+   **Show Tone Adjustment**:
+   - Click "More Tools" (⋯) → Select "🎓 Academic" tone
+   - Rewrite preview appears below
+   - Shows original vs rewritten text
+   - Click "✓ Accept" to apply
    - "Powered by Rewriter API"
 
-6. **Proofreading** (2 seconds)
-   - Click "Proofread" button
-   - Color-coded diff view shows corrections
+   **Show Proofreading**:
+   - Type text with errors: "I seen this before"
+   - Click "More Tools" (⋯) → "Proofread"
+   - Corrected text appears: "I saw this before"
+   - Click "✓ Accept" to apply
    - "Powered by Proofreader API"
 
-7. **Translation** (2 seconds)
-   - Click translate dropdown
+4. **Step 3: Reflect - Second Question** (10 seconds)
+   - Prompt: "How might you apply this?"
+   - Same AI features available
+   - All tools work independently for each reflection
+   - "Each reflection field has its own voice input and AI assistance"
+
+5. **Translation** (5 seconds)
+   - Go back to Step 1 (Summary)
+   - Click "More Tools" (⋯) → "Translate"
    - Select "Spanish"
    - Summary translates instantly
+   - Language badge updates: "🌐 Spanish"
    - "Powered by Translator API"
 
 ### Act 4: Save & Track (1 minute)

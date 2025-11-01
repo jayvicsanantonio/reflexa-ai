@@ -404,3 +404,45 @@ npm run zip
 ---
 
 > _End of Reflexa AI Engineering Requirements Document v1.0 — “Mindful Knowledge Companion”_
+
+---
+
+## Appendix: MeditationFlowOverlay Implementation
+
+### Overview
+
+The MeditationFlowOverlay is the primary reflection interface, implementing a 4-step meditation-focused journey with comprehensive AI integration.
+
+### AI API Integration Summary
+
+| API                   | Usage in MeditationFlowOverlay                                             |
+| --------------------- | -------------------------------------------------------------------------- |
+| **Summarizer API**    | 3 bullets (Insight, Surprise, Apply), format switching, markdown rendering |
+| **Writer API**        | Streaming draft generation with progressive display (2 chars/24ms)         |
+| **Rewriter API**      | 4 tone presets (Calm, Concise, Empathetic, Academic) with preview          |
+| **Proofreader API**   | Grammar/spelling corrections with accept/discard preview                   |
+| **Language Detector** | Automatic detection with subtle badge display (100+ languages)             |
+| **Translator API**    | Optional translation via MoreToolsMenu with markdown preservation          |
+| **Prompt API**        | Universal fallback for all operations                                      |
+
+### Key Features Implemented
+
+1. **Auto-Advance Logic**: Automatically transitions from Step 0 (breathing) to Step 1 (summary) when AI processing completes
+2. **Dual Voice Input**: Independent voice input for each reflection field with smart text merging
+3. **Typing Detection**: Auto-pauses voice input when user types, resumes after 2s
+4. **Streaming Writer**: Progressive text display for better UX (2 chars per 24ms)
+5. **Preview System**: Accept/discard previews for all AI operations (rewrite, proofread)
+6. **Context-Aware Tools**: MoreToolsMenu shows relevant tools based on step and content state
+7. **Language Badge**: Subtle display of detected language with translation status
+8. **Keyboard Shortcuts**: Cmd/Ctrl + G for draft generation, arrow keys for navigation
+9. **Audio Management**: Voice stop cues, ambient sound, completion sounds
+10. **Accessibility**: Full keyboard navigation, ARIA labels, reduce motion support
+
+### Technical Highlights
+
+- **Streaming Implementation**: Uses `chrome.runtime.connect()` for real-time AI responses
+- **Cleanup Management**: Proper cleanup of timers, streams, and audio on unmount
+- **State Management**: Complex state for dual voice inputs, AI operations, and previews
+- **Performance**: Optimized animations, memoized callbacks, efficient re-renders
+
+For complete technical documentation, see: `docs/MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md`

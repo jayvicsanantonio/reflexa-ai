@@ -67,18 +67,135 @@ Voice input has been successfully integrated into both reflection overlay compon
 - "Recording..." text with animated indicator when active
 - Blue border/background on textarea during recording
 - Interim text shown in lighter color
+- Language name displayed in button tooltip
 
 ### Audio Feedback
 
 - Voice stop cue plays when recording ends (if sound enabled)
 - Uses AudioManager for consistent audio handling
+- Plays on both manual stop and auto-stop
 
 ### Accessibility
 
 - ARIA labels on all buttons
-- Screen reader announcements
-- Keyboard accessible
-- Reduce motion support
+- Screen reader announcements for recording state
+- Keyboard accessible (Space/Enter to toggle)
+- Reduce motion support (disables pulse animation)
+- Focus indicators on all interactive elements
+
+## MeditationFlowOverlay Specifics
+
+### Dual Voice Input System
+
+MeditationFlowOverlay implements two independent voice input instances:
+
+```typescript
+// Voice input for reflection field 0
+const voiceInput0 = useVoiceInput({
+  language: settings.voiceLanguage ?? navigator.language,
+  onTranscript: handleTranscript0,
+  onError: handleVoiceError0,
+  onAutoStop: handleAutoStop0,
+  autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
+});
+
+// Voice input for reflection field 1
+const voiceInput1 = useVoiceInput({
+  language: settings.voiceLanguage ?? navigator.language,
+  onTranscript: handleTranscript1,
+  onError: handleVoiceError1,
+  onAutoStop: handleAutoStop1,
+  autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
+});
+```
+
+### Smart Text Merging
+
+Voice transcriptions are intelligently merged with existing text:
+
+```typescript
+const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
+  if (isFinal) {
+    setAnswers((prev) => {
+      const newAnswers = [...prev];
+      const currentText = newAnswers[0] || '';
+      // Append with space if there's existing text
+      newAnswers[0] = currentText
+        ? `${currentText} ${text.trim()}`
+        : text.trim();
+      return newAnswers;
+    });
+  } else {
+    // Show interim transcription in real-time
+    setVoiceInputStates((prev) => {
+      const newStates = [...prev];
+      newStates[0].interimText = text;
+      return newStates;
+    });
+  }
+}, []);
+```
+
+### Typing Detection & Auto-Pause
+
+Voice input automatically pauses when user starts typing:
+
+```typescript
+onChange={(e) => {
+  const newValue = e.target.value;
+  const lastValue = lastTextValueRef.current[0];
+
+  // Detect typing and pause voice if recording
+  if (
+    newValue !== lastValue &&
+    voiceInput0.isRecording &&
+    !voiceInput0.isPaused
+  ) {
+    voiceInput0.pauseRecording();
+
+    // Clear existing timer
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
+
+    // Resume after 2s of no typing
+    typingTimerRef.current = setTimeout(() => {
+      if (voiceInput0.isRecording && voiceInput0.isPaused) {
+        voiceInput0.resumeRecording();
+      }
+    }, 2000);
+  }
+
+  setAnswers((prev) => [newValue, prev[1] ?? '']);
+  lastTextValueRef.current[0] = newValue;
+}}
+```
+
+### Voice Button Positioning
+
+Voice buttons are positioned in the top-right corner of each textarea:
+
+```css
+.reflexa-overlay__reflection-input-wrapper {
+  position: relative;
+}
+
+.reflexa-voice-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+```
+
+### Integration with MoreToolsMenu
+
+Voice input is also accessible via the MoreToolsMenu on reflection screens:
+
+- Shows "Start Voice Input" when not recording
+- Shows "Stop Voice Input" when recording
+- Displays current language
+- Indicates if language fallback is active
 
 ## Settings Integration
 

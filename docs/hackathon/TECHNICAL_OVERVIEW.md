@@ -167,6 +167,40 @@ export class WriterManager {
 - Tone control (calm, professional, casual)
 - Length control (short, medium, long)
 - Session caching for performance
+- **Streaming support** in MeditationFlowOverlay:
+  - Progressive text display (2 chars per 24ms)
+  - Real-time feedback as AI generates
+  - Fallback to batch mode on error
+  - Cleanup on component unmount
+
+**MeditationFlowOverlay Integration:**
+
+```typescript
+// Streaming implementation with progressive display
+const attemptStreaming = () =>
+  new Promise<string>((resolve, reject) => {
+    let aggregated = '';
+    const port = chrome.runtime.connect({ name: 'ai-stream' });
+
+    port.onMessage.addListener((message) => {
+      switch (message.event) {
+        case 'chunk':
+          aggregated += message.data;
+          writerTargetTextRef.current[index] = aggregated;
+          startWriterAnimation(index); // Progressive display
+          break;
+        case 'complete':
+          resolve(aggregated);
+          break;
+      }
+    });
+
+    port.postMessage({
+      type: 'writer-stream',
+      payload: { prompt: writerPrompt, options },
+    });
+  });
+```
 
 ---
 
@@ -210,9 +244,50 @@ export class RewriterManager {
 
 **Features:**
 
-- 4 tone presets
-- Streaming support for long texts
-- Context-aware rewriting
+- 4 tone presets with emoji indicators (🧘 ✂️ 💙 🎓)
+- Context-aware rewriting using summary
+- Preview system with accept/discard
+- Accessible via MoreToolsMenu in MeditationFlowOverlay
+
+**MeditationFlowOverlay Integration:**
+
+```typescript
+// Tone selection with preview
+const handleToneSelect = async (tone: TonePreset) => {
+  const index = step === 2 ? 0 : 1;
+  const text = answers[index];
+
+  setIsRewriting((prev) => {
+    const next = [...prev];
+    next[index] = true;
+    return next;
+  });
+
+  const response = await chrome.runtime.sendMessage({
+    type: 'rewrite',
+    payload: { text, preset: tone, context: summary.join('\n') }
+  });
+
+  if (response.success) {
+    setRewritePreview({
+      index,
+      original: response.data.original,
+      rewritten: response.data.rewritten,
+    });
+  }
+};
+
+// Preview with accept/discard
+{rewritePreview && (
+  <div className="rewrite-preview">
+    <div className="rewritten-text">{rewritePreview.rewritten}</div>
+    <div className="actions">
+      <button onClick={handleDiscardRewrite}>× Discard</button>
+      <button onClick={handleAcceptRewrite}>✓ Accept</button>
+    </div>
+  </div>
+)}
+```
 
 ---
 

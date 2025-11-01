@@ -129,7 +129,22 @@ class ContentExtractor {
 - Click handler to trigger Reflect Mode
 - Positioned with fixed positioning and high z-index
 
-**ReflectModeOverlay.tsx**
+**MeditationFlowOverlay.tsx** (Primary Reflection Interface)
+
+- 4-step meditation-focused reflection journey
+- Step 0: Breathing exercises with auto-advance
+- Step 1: AI-generated summary with language detection
+- Steps 2-3: Reflection inputs with voice, AI drafts, tone adjustment
+- Integrated MoreToolsMenu for context-aware AI features
+- Dual voice input system with smart text merging
+- Streaming Writer API with progressive text display
+- Rewriter API for tone adjustment (Calm, Concise, Empathetic, Academic)
+- Proofreader API with accept/discard preview
+- Audio cues and ambient sound support
+- Full keyboard navigation and accessibility
+- See: `docs/MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md`
+
+**ReflectModeOverlay.tsx** (Alternative Interface)
 
 - Full-screen overlay with gradient background
 - Displays breathing orb, summary, and reflection inputs
@@ -139,10 +154,32 @@ class ContentExtractor {
 
 **BreathingOrb.tsx**
 
-- Animated circular element with 7-second cycle
+- Animated circular element with 8-second cycle
 - CSS-based animation for performance
 - Respects reduced motion preferences
 - Radial gradient for visual depth
+- Configurable duration and iterations
+
+**MoreToolsMenu.tsx**
+
+- Context-aware dropdown menu for AI tools
+- Summary screen: Format selector, translation, ambient controls
+- Reflection screen: Voice input, draft generation, tone adjustment, proofreading
+- Conditional rendering based on content state
+- Keyboard accessible with proper ARIA attributes
+
+**VoiceToggleButton.tsx**
+
+- Microphone button for voice input
+- Shows recording state with visual feedback
+- Displays language name and fallback status
+- Respects reduce motion settings
+
+**Notification.tsx**
+
+- Toast-style notifications for errors and info
+- Auto-dismiss with configurable duration
+- Types: error, warning, info, success
 
 #### Content Script Lifecycle
 
@@ -610,14 +647,25 @@ Reflexa AI uses `chrome.storage.local` by default, with optional `chrome.storage
 Reflexa AI integrates all seven Chrome Built-in AI APIs powered by Gemini Nano:
 
 1. **Summarizer API**: Generates summaries in three formats (bullets, paragraph, headline+bullets)
-2. **Writer API**: Creates first drafts with tone and length control
+2. **Writer API**: Creates first drafts with tone and length control, streaming support
 3. **Rewriter API**: Adjusts tone with four presets (Calm, Concise, Empathetic, Academic)
-4. **Proofreader API**: Fixes grammar and improves clarity
+4. **Proofreader API**: Fixes grammar and improves clarity with structured corrections
 5. **Language Detector API**: Identifies language of text content (100+ languages)
-6. **Translator API**: Translates between 10+ languages
+6. **Translator API**: Translates between 10+ languages with markdown preservation
 7. **Prompt API**: Universal fallback for all operations
 
-For detailed architecture documentation, see [AI Service Architecture](../development/AI_SERVICE_ARCHITECTURE.md).
+**Integration in MeditationFlowOverlay**:
+
+- Writer API: Streaming draft generation with progressive text display (2 chars/24ms)
+- Rewriter API: Tone adjustment with preview system (accept/discard)
+- Proofreader API: Grammar checking with correction preview
+- Language Detector: Automatic detection with subtle badge display
+- Translator API: Optional translation via MoreToolsMenu
+
+For detailed architecture documentation, see:
+
+- [AI Service Architecture](../development/architecture/AI_SERVICE_ARCHITECTURE.md)
+- [MeditationFlowOverlay Implementation](../MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md)
 
 ### Chrome Built-in AI APIs (Powered by Gemini Nano)
 

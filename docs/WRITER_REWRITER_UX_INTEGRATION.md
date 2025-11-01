@@ -371,23 +371,230 @@ const handleGenerateDraft = async (index: 0 | 1) => {
 
 ---
 
+## MeditationFlowOverlay Implementation
+
+### ✅ Fully Integrated
+
+Writer and Rewriter APIs are **fully integrated** into MeditationFlowOverlay with advanced features:
+
+#### Writer API - Streaming Implementation
+
+**Progressive Text Display**:
+
+```typescript
+const WRITER_CHAR_STEP = 2;
+const WRITER_FRAME_DELAY = 24;
+
+const startWriterAnimation = useCallback(
+  (index: 0 | 1, forceRestart = false) => {
+    const run = () => {
+      const target = writerTargetTextRef.current[index] ?? '';
+      const currentPos = writerDisplayIndexRef.current[index] ?? 0;
+
+      if (currentPos >= target.length) {
+        writerAnimationTimerRef.current[index] = 0;
+        setAnswers((prev) => {
+          const next = [...prev];
+          next[index] = target;
+          return next;
+        });
+        return;
+      }
+
+      const nextPos = Math.min(currentPos + WRITER_CHAR_STEP, target.length);
+      writerDisplayIndexRef.current[index] = nextPos;
+
+      const textToShow = target.slice(0, nextPos);
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[index] = textToShow;
+        return next;
+      });
+
+      writerAnimationTimerRef.current[index] = window.setTimeout(
+        run,
+        WRITER_FRAME_DELAY
+      );
+    };
+
+    writerAnimationTimerRef.current[index] = window.setTimeout(run, 0);
+  },
+  []
+);
+```
+
+**Streaming with Fallback**:
+
+```typescript
+const handleGenerateDraft = async (index: 0 | 1) => {
+  try {
+    // Try streaming first
+    await attemptStreaming();
+  } catch (streamError) {
+    console.warn(
+      'Writer streaming failed, falling back to batch mode:',
+      streamError
+    );
+
+    // Fallback to batch mode
+    const response = await chrome.runtime.sendMessage({
+      type: 'write',
+      payload: {
+        prompt: writerPrompt,
+        options: { tone: 'neutral', length: 'short' },
+      },
+    });
+
+    if (response.success) {
+      writerTargetTextRef.current[index] = response.data;
+      startWriterAnimation(index, true);
+    }
+  }
+};
+```
+
+#### Rewriter API - Preview System
+
+**Tone Selection**:
+
+```typescript
+const handleToneSelect = async (tone: TonePreset) => {
+  const index = step === 2 ? 0 : 1;
+  const text = answers[index];
+
+  if (!text || text.trim().length === 0) return;
+
+  setIsRewriting((prev) => {
+    const next = [...prev];
+    next[index] = true;
+    return next;
+  });
+
+  const response = await chrome.runtime.sendMessage({
+    type: 'rewrite',
+    payload: {
+      text,
+      preset: tone,
+      context: summary.join('\n'),
+    },
+  });
+
+  if (response.success) {
+    setRewritePreview({
+      index,
+      original: response.data.original,
+      rewritten: response.data.rewritten,
+    });
+  }
+};
+```
+
+**Accept/Discard Preview**:
+
+```typescript
+{rewritePreview?.index === 0 && (
+  <div style={{
+    marginTop: 16,
+    padding: 14,
+    background: 'rgba(59,130,246,0.08)',
+    border: '1px solid rgba(59,130,246,0.25)',
+    borderRadius: 12,
+  }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa' }}>
+      Rewrite Preview
+    </div>
+    <div style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>
+      {rewritePreview.rewritten}
+    </div>
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+      <button onClick={handleDiscardRewrite}>× Discard</button>
+      <button onClick={handleAcceptRewrite}>✓ Accept</button>
+    </div>
+  </div>
+)}
+```
+
+### Keyboard Shortcuts
+
+**Implemented**:
+
+```typescript
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Cmd/Ctrl + G = Generate draft
+    if (
+      (e.metaKey || e.ctrlKey) &&
+      e.key === 'g' &&
+      (step === 2 || step === 3)
+    ) {
+      e.preventDefault();
+      const index = step === 2 ? 0 : 1;
+      if (!answers[index] && writerAvailable) {
+        void handleGenerateDraft(index);
+      }
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [step, answers, writerAvailable, handleGenerateDraft]);
+```
+
+### MoreToolsMenu Integration
+
+**Context-Aware Display**:
+
+- **Generate Draft**: Only shown when textarea is empty
+- **Rewrite Tone**: Only shown when text > 20 characters
+- **Tone Chips**: Calm 🧘, Concise ✂️, Empathetic 💙, Academic 🎓
+
+```typescript
+<MoreToolsMenu
+  onGenerateDraft={
+    settings.experimentalMode &&
+    (step === 2 || step === 3) &&
+    !answers[step - 2]?.trim()
+      ? (draft) => {
+          const idx = step - 2;
+          setAnswers((prev) => {
+            const next = [...prev];
+            next[idx] = draft;
+            return next;
+          });
+        }
+      : undefined
+  }
+  selectedTone={_selectedTones[step === 2 ? 0 : 1]}
+  onToneSelect={
+    settings.experimentalMode && (step === 2 || step === 3)
+      ? handleToneSelect
+      : undefined
+  }
+  tonesDisabled={!answers[step - 2]?.trim()}
+  isRewriting={_isRewriting[step === 2 ? 0 : 1]}
+  hasReflectionContent={!!answers[step - 2]?.trim()}
+/>
+```
+
 ## Summary
 
-**Current State**: Writer and Rewriter APIs are fully integrated but only visible in experimental mode.
+**Current State**: Writer and Rewriter APIs are **fully integrated** into MeditationFlowOverlay with:
 
-**Recommendation**: Make these features more discoverable and add them to MeditationFlowOverlay for consistency.
+✅ **Streaming Writer API** with progressive text display
+✅ **Rewriter API** with preview system
+✅ **Keyboard shortcuts** (Cmd/Ctrl + G)
+✅ **Context-aware tools** via MoreToolsMenu
+✅ **Accept/Discard previews** for all AI operations
+✅ **Cleanup on unmount** to prevent memory leaks
 
 **Key Benefits**:
 
-- **Writer**: Helps users overcome blank page syndrome
-- **Rewriter**: Allows tone experimentation without retyping
-- **Voice + AI**: Transcribe speech, then enhance with AI
+- **Writer**: Helps users overcome blank page syndrome with streaming feedback
+- **Rewriter**: Allows tone experimentation with preview before applying
+- **Voice + AI**: Transcribe speech, then enhance with AI drafts/rewrites
 - **Faster reflections**: Reduces time from 5 minutes to 2 minutes
+- **Better UX**: Progressive display feels more responsive than batch mode
 
-**Next Steps**:
+**Implementation Details**:
 
-1. Enable by default (remove experimental flag)
-2. Add to MeditationFlowOverlay
-3. Add keyboard shortcuts
-4. Implement streaming for better UX
-5. Track usage analytics
+See `docs/MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md` for complete technical documentation.

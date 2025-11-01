@@ -196,6 +196,76 @@ export class SummarizerManager {
     }
   }
 
+  async summarizeStreaming(
+    text: string,
+    format: SummaryFormat,
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions,
+    onChunk?: (chunk: string, aggregate: string) => void
+  ): Promise<string> {
+    if (format === 'headline-bullets') {
+      throw new Error('Streaming is not supported for headline-bullets format');
+    }
+
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Summarizer API is not available');
+      }
+    }
+
+    const session = await this.createSession(
+      format === 'paragraph' ? 'tldr' : 'key-points',
+      format === 'paragraph' ? 'plain-text' : 'markdown',
+      format === 'paragraph' ? 'medium' : 'short',
+      outputLanguage,
+      languageOptions
+    );
+
+    if (!session || typeof session.summarizeStreaming !== 'function') {
+      throw new Error('Summarizer streaming is not available');
+    }
+
+    const stream = session.summarizeStreaming(text);
+    if (!stream) {
+      throw new Error('Summarizer streaming returned no data');
+    }
+
+    let aggregate = '';
+
+    if (
+      typeof (stream as unknown as AsyncIterable<string>)[
+        Symbol.asyncIterator
+      ] === 'function'
+    ) {
+      for await (const chunk of stream as unknown as AsyncIterable<string>) {
+        if (typeof chunk !== 'string') continue;
+        aggregate += chunk;
+        onChunk?.(chunk, aggregate);
+      }
+    } else if (
+      typeof (stream as ReadableStream<string>).getReader === 'function'
+    ) {
+      const reader = (stream as ReadableStream<string>).getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (typeof value === 'string') {
+            aggregate += value;
+            onChunk?.(value, aggregate);
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } else {
+      throw new Error('Unsupported summarizer streaming implementation');
+    }
+
+    return aggregate;
+  }
+
   /**
    * Summarize with timeout wrapper
    * @param text - Content to summarize

@@ -13,12 +13,13 @@ This directory contains all materials for the Google Chrome Built-in AI Challeng
 
 ### 📁 Contents
 
-1. **[PROJECT_PITCH.md](./PROJECT_PITCH.md)** - Executive summary and pitch (2-3 pages)
-2. **[TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md)** - Technical architecture and implementation
-3. **[CHROME_AI_INTEGRATION.md](./CHROME_AI_INTEGRATION.md)** - Detailed Chrome AI APIs usage
-4. **[MARKET_ANALYSIS.md](./MARKET_ANALYSIS.md)** - Market opportunity and business case
-5. **[DEMO_GUIDE.md](./DEMO_GUIDE.md)** - Step-by-step demo walkthrough
-6. **[METRICS.md](./METRICS.md)** - Key metrics and achievements
+1. **[JUDGES_GUIDE.md](./JUDGES_GUIDE.md)** - ⭐ **START HERE** - Complete testing guide for judges
+2. **[PROJECT_PITCH.md](./PROJECT_PITCH.md)** - Executive summary and pitch (2-3 pages)
+3. **[TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md)** - Technical architecture and implementation
+4. **[CHROME_AI_INTEGRATION.md](./CHROME_AI_INTEGRATION.md)** - Detailed Chrome AI APIs usage
+5. **[MARKET_ANALYSIS.md](./MARKET_ANALYSIS.md)** - Market opportunity and business case
+6. **[DEMO_GUIDE.md](./DEMO_GUIDE.md)** - Step-by-step demo walkthrough
+7. **[METRICS.md](./METRICS.md)** - Key metrics and achievements
 
 ### 🎯 Quick Links
 
@@ -57,43 +58,49 @@ This directory contains all materials for the Google Chrome Built-in AI Challeng
 
 ### For Judges
 
-1. **Quick Demo**: See [DEMO_GUIDE.md](./DEMO_GUIDE.md)
-2. **Technical Deep Dive**: See [TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md)
-3. **Chrome AI Usage**: See [CHROME_AI_INTEGRATION.md](./CHROME_AI_INTEGRATION.md)
+1. **⭐ START HERE**: [JUDGES_GUIDE.md](./JUDGES_GUIDE.md) - Complete testing guide (10-15 min)
+2. **Quick Demo**: [DEMO_GUIDE.md](./DEMO_GUIDE.md) - Presentation walkthrough
+3. **Technical Deep Dive**: [TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md) - Architecture details
+4. **Chrome AI Usage**: [CHROME_AI_INTEGRATION.md](./CHROME_AI_INTEGRATION.md) - API integration
 
-### Installation
+### Quick Installation
+
+**For detailed setup instructions, see [JUDGES_GUIDE.md](./JUDGES_GUIDE.md)**
 
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone [your-repo-url]
-cd reflexa-ai-chrome-extension
+cd reflexa-ai
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Build extension
+# 3. Build extension
 npm run build
 
-# Load in Chrome
-# 1. Go to chrome://extensions/
-# 2. Enable "Developer mode"
-# 3. Click "Load unpacked"
-# 4. Select the `dist` folder
+# 4. Load in Chrome
+# - Go to chrome://extensions/
+# - Enable "Developer mode"
+# - Click "Load unpacked"
+# - Select the `dist` folder
 ```
 
 ### Enable Chrome AI APIs
 
-```bash
-# Required flags
-chrome://flags/#optimization-guide-on-device-model → "Enabled BypassPerfRequirement"
-chrome://flags/#prompt-api-for-gemini-nano → "Enabled"
-chrome://flags/#summarization-api-for-gemini-nano → "Enabled"
-chrome://flags/#writer-api-for-gemini-nano → "Enabled"
-chrome://flags/#rewriter-api-for-gemini-nano → "Enabled"
-chrome://flags/#language-detection-api → "Enabled"
-chrome://flags/#translation-api → "Enabled"
+**Important**: All 7 Chrome flags must be enabled. See [JUDGES_GUIDE.md](./JUDGES_GUIDE.md) for detailed instructions.
 
-# Restart Chrome
+```bash
+# Required flags (set all to "Enabled" or "Enabled BypassPerfRequirement")
+chrome://flags/#optimization-guide-on-device-model
+chrome://flags/#prompt-api-for-gemini-nano
+chrome://flags/#summarization-api-for-gemini-nano
+chrome://flags/#writer-api-for-gemini-nano
+chrome://flags/#rewriter-api-for-gemini-nano
+chrome://flags/#language-detection-api
+chrome://flags/#translation-api
+
+# After enabling all flags, restart Chrome
+# Then download Gemini Nano model (see JUDGES_GUIDE.md)
 ```
 
 ---
