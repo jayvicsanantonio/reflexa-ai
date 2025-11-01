@@ -1126,9 +1126,7 @@ const renderOverlay = () => {
       onFormatChange={handleFormatChange}
       currentFormat={currentSummaryFormat}
       isLoadingSummary={isLoadingSummary}
-      languageDetection={
-        originalContentLanguage ?? currentLanguageDetection ?? undefined
-      }
+      languageDetection={originalContentLanguage ?? undefined}
       summaryLanguageDetection={
         currentLanguageDetection ?? originalContentLanguage ?? undefined
       }
@@ -1467,6 +1465,9 @@ const handleTranslate = async (targetLanguage: string) => {
   // Re-render with loading state
   if (overlayRoot && overlayContainer) {
     const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+    const badgeLanguageDetection = originalContentLanguage ?? undefined;
+    const summaryLanguageDetection =
+      currentLanguageDetection ?? originalContentLanguage ?? undefined;
     overlayRoot.render(
       <MeditationFlowOverlay
         summary={currentSummary}
@@ -1481,7 +1482,8 @@ const handleTranslate = async (targetLanguage: string) => {
         onFormatChange={handleFormatChange}
         currentFormat={currentSummaryFormat}
         isLoadingSummary={false}
-        languageDetection={currentLanguageDetection}
+        languageDetection={badgeLanguageDetection}
+        summaryLanguageDetection={summaryLanguageDetection}
         onTranslateToEnglish={handleTranslateToEnglish}
         onTranslate={handleTranslate}
         isTranslating={true}
@@ -1587,6 +1589,9 @@ const handleTranslate = async (targetLanguage: string) => {
       const soundEnabled = Boolean(
         currentSettings?.enableSound && audioManager
       );
+      const badgeLanguageDetection = originalContentLanguage ?? undefined;
+      const summaryLanguageDetection =
+        currentLanguageDetection ?? originalContentLanguage ?? undefined;
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -1601,7 +1606,8 @@ const handleTranslate = async (targetLanguage: string) => {
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
-          languageDetection={currentLanguageDetection}
+          languageDetection={badgeLanguageDetection}
+          summaryLanguageDetection={summaryLanguageDetection}
           onTranslateToEnglish={handleTranslateToEnglish}
           onTranslate={handleTranslate}
           isTranslating={false}
@@ -1697,6 +1703,9 @@ const handleTranslateToEnglish = async () => {
       const soundEnabled = Boolean(
         currentSettings?.enableSound && audioManager
       );
+      const badgeLanguageDetection = originalContentLanguage ?? undefined;
+      const summaryLanguageDetection =
+        currentLanguageDetection ?? originalContentLanguage ?? undefined;
       overlayRoot.render(
         <MeditationFlowOverlay
           summary={currentSummary}
@@ -1711,7 +1720,8 @@ const handleTranslateToEnglish = async () => {
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
-          languageDetection={currentLanguageDetection}
+          languageDetection={badgeLanguageDetection}
+          summaryLanguageDetection={summaryLanguageDetection}
           onTranslateToEnglish={handleTranslateToEnglish}
           onTranslate={handleTranslate}
           isTranslating={isTranslating}
@@ -1879,7 +1889,10 @@ const handleFormatChange = async (format: SummaryFormat) => {
         onFormatChange={handleFormatChange}
         currentFormat={currentSummaryFormat}
         isLoadingSummary={true}
-        languageDetection={currentLanguageDetection ?? undefined}
+        languageDetection={originalContentLanguage ?? undefined}
+        summaryLanguageDetection={
+          currentLanguageDetection ?? originalContentLanguage ?? undefined
+        }
         onTranslateToEnglish={
           translationEnabled ? handleTranslateToEnglish : undefined
         }
@@ -1980,7 +1993,10 @@ const handleFormatChange = async (format: SummaryFormat) => {
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
-          languageDetection={currentLanguageDetection ?? undefined}
+          languageDetection={originalContentLanguage ?? undefined}
+          summaryLanguageDetection={
+            currentLanguageDetection ?? originalContentLanguage ?? undefined
+          }
           onTranslateToEnglish={
             translationEnabled ? handleTranslateToEnglish : undefined
           }

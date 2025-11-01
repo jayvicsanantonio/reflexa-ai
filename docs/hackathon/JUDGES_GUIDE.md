@@ -63,22 +63,26 @@ After enabling all flags, click **"Relaunch"** button at the bottom of the flags
 
 ### 1.3 Download Gemini Nano Model (Important!)
 
-1. Open Chrome DevTools (F12)
-2. Go to Console tab
-3. Run this command:
-
-```javascript
-await ai.languageModel.create();
-```
-
-4. Wait for model to download (may take 2-5 minutes)
-5. You'll see "Model ready" when complete
-
-**Note**: This is a one-time download. The model stays on your device.
+1. Navigate to `chrome://components`
+2. Find **"Optimization Guide On Device Model"** in the component list
+3. Click **"Check for update"** button
+4. The model will download in the background (may take 2-5 minutes)
+5. Verify the download by checking for a new version number in the component list
 
 ---
 
 ## 🔧 Step 2: Install Reflexa AI Extension
+
+**Choose one of the following options:**
+
+### Option A: Use Pre-built Extension (Recommended - Fastest!)
+
+1. Download the ZIP file attached in the "Additional info" section of the hackathon submission
+2. Extract the ZIP file to a location on your computer
+3. Inside the extracted folder, you'll find a `reflexa-ai` folder
+4. Skip to **Step 2.4** below to load the extension
+
+### Option B: Build from Source
 
 ### 2.1 Clone Repository
 
@@ -108,7 +112,9 @@ npm run build
 1. Open Chrome and navigate to: `chrome://extensions/`
 2. Enable **"Developer mode"** (toggle in top-right corner)
 3. Click **"Load unpacked"** button
-4. Select the `dist/` folder from the cloned repository
+4. Select the appropriate folder:
+   - **Option A**: Select the `reflexa-ai` folder from the extracted ZIP
+   - **Option B**: Select the `dist/` folder from the cloned repository
 5. Extension should now appear in your extensions list
 
 **Verification**: You should see "Reflexa AI" with a lotus icon in your extensions.
