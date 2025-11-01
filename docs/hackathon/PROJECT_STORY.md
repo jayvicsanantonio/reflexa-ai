@@ -348,7 +348,7 @@ And I genuinely believe that if we can help people remember what matters, we can
 
 Thank you for taking the time to understand Reflexa AI. Whether you're a judge, a potential user, or just someone curious about mindful technology—I appreciate you being here.
 
-This project represents hundreds of hours of work, but more importantly, it represents a belief that technology can serve human flourishing. That AI can enhance our humanity rather than replace it. That we can build tools that make us more thoughtful, not just more productive.
+This project represents tens of hours of work, but more importantly, it represents a belief that technology can serve human flourishing. That AI can enhance our humanity rather than replace it. That we can build tools that make us more thoughtful, not just more productive.
 
 If you'd like to try Reflexa AI, contribute to the code, or just chat about mindful technology, I'd love to hear from you.
 
