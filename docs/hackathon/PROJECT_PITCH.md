@@ -31,16 +31,20 @@ Instead of just reading, users:
 ### How It Works
 
 ```
-Read Article (60s) → Lotus Icon Appears → Click to Reflect
+Read Article (10s active reading) → Lotus Icon Appears → Hover & Click "Reflect"
     ↓
-AI Summarization (3 bullets: Insight, Surprise, Apply)
+Step 0: Settle (Breathing orb, meditative phrases, 8-16s)
     ↓
-Guided Reflection (2 thoughtful questions)
+Step 1: Summary (AI-generated 3 bullets: Insight, Surprise, Apply)
     ↓
-Zen Experience (breathing orb, ambient audio, calm design)
+Step 2: Reflect (First question with voice input, AI drafts, tone adjustment)
     ↓
-Save & Track (reflection history, streak counter)
+Step 3: Reflect (Second question with same AI features)
+    ↓
+Save & Track (reflection history, streak counter, voice metadata)
 ```
+
+**Key Innovation**: 4-step Meditation Flow that combines breathing exercises with AI-powered reflection.
 
 ---
 
@@ -79,15 +83,21 @@ Reflexa AI integrates **all 7 Chrome Built-in AI APIs** powered by Gemini Nano:
 
 ### Key Features
 
-✅ **Gentle nudging** - Floating lotus icon after sustained reading
-✅ **AI-powered insights** - 3-bullet summaries in seconds
-✅ **Guided reflection** - Thoughtful questions to deepen understanding
-✅ **Draft generation** - AI writes first draft with tone control
-✅ **Tone adjustment** - 4 presets to match your voice
-✅ **Grammar checking** - Color-coded diff view
-✅ **Multilingual support** - Auto-detect and translate
+✅ **Smart dwell tracking** - Detects active reading (scrolling, cursor movement) with 10s threshold
+✅ **Expandable lotus nudge** - Hover to reveal quick actions (Dashboard, AI Status, Settings)
+✅ **4-step meditation flow** - Breathing → Summary → Reflect → Reflect
+✅ **Auto-advance breathing** - Transitions to summary when AI completes processing
+✅ **Dual voice input** - Independent voice transcription for each reflection field
+✅ **Smart typing detection** - Auto-pauses voice when you type, resumes after 2s
+✅ **Streaming AI drafts** - Progressive text display (2 chars/24ms) for better UX
+✅ **Tone adjustment** - 4 presets (Calm, Concise, Empathetic, Academic) with preview
+✅ **Grammar checking** - Accept/discard preview for all AI operations
+✅ **Language detection** - Subtle badge shows detected language
+✅ **Multilingual support** - Auto-detect and translate (10+ languages)
 ✅ **Reflection history** - Track your journey with streak counter
+✅ **Voice metadata** - Records transcription language, word count, timestamp
 ✅ **Export options** - JSON or Markdown formats
+✅ **Context-aware tools** - MoreToolsMenu shows relevant features per step
 
 ---
 

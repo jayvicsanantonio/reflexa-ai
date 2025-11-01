@@ -4,6 +4,14 @@ A wellness-centered Chrome Extension that transforms everyday reading into calm,
 
 ## Quick Links
 
+🏆 **For Hackathon Judges**
+
+- ⭐ **[JUDGES TESTING GUIDE](docs/hackathon/JUDGES_GUIDE.md)** - Complete setup and testing instructions (START HERE!)
+- 📊 [Project Pitch](docs/hackathon/PROJECT_PITCH.md) - Executive summary and business case
+- 🔧 [Technical Overview](docs/hackathon/TECHNICAL_OVERVIEW.md) - Architecture and implementation
+- 🎬 [Demo Guide](docs/hackathon/DEMO_GUIDE.md) - Presentation walkthrough
+- 📁 [All Hackathon Materials](docs/hackathon/) - Complete submission package
+
 📚 **Documentation**
 
 - [Documentation Index](docs/README.md) - Complete documentation index
