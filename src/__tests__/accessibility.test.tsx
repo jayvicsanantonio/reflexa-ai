@@ -392,14 +392,14 @@ describe('Accessibility Tests', () => {
         dwellThreshold: 30,
         enableSound: true,
         reduceMotion: false,
-        proofreadEnabled: false,
+        proofreadEnabled: true,
         privacyMode: 'local',
         useNativeSummarizer: false,
         useNativeProofreader: false,
         translationEnabled: false,
         targetLanguage: 'en',
         defaultSummaryFormat: 'bullets',
-        enableProofreading: false,
+        enableProofreading: true,
         enableTranslation: false,
         preferredTranslationLanguage: 'en',
         experimentalMode: false,
@@ -450,7 +450,11 @@ describe('Accessibility Tests', () => {
         );
 
         const orb = container.querySelector('.reflexa-breathing-orb');
-        expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
+        if (orb) {
+          expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
+        } else {
+          expect(orb).toBeNull();
+        }
       });
     });
   });

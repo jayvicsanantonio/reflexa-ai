@@ -72,7 +72,9 @@ let isTranslating = false;
 // Persistent target language for current overlay session. When set, all
 // subsequent AI-generated outputs should appear in this language.
 // Default target language for formatting/rewrites
-let selectedTargetLanguage: string | null = 'en';
+let selectedTargetLanguage: string | null = null;
+let preferredLanguageBaseline: string | null = null;
+let isTargetLanguageOverridden = false;
 // Remember the original detected language for reliable translations after
 // user changes target language.
 let originalDetectedLanguage: string | null = null;
@@ -329,12 +331,61 @@ const LOTUS_NUDGE_STYLES = `
 `;
 
 /**
+ * Update the session target language based on current settings.
+ * Defaults to the preferred translation language when translation
+ * features are enabled. Clears the override when translation is off.
+ */
+const applyTranslationPreference = (settings: Settings | null | undefined) => {
+  const translationActive = Boolean(
+    settings?.enableTranslation ?? settings?.translationEnabled
+  );
+
+  if (!translationActive) {
+    selectedTargetLanguage = null;
+    preferredLanguageBaseline = null;
+    isTargetLanguageOverridden = false;
+    return;
+  }
+
+  let derived = settings?.preferredTranslationLanguage?.trim();
+
+  if (!derived) {
+    const targetCandidate = settings?.targetLanguage?.trim();
+    if (targetCandidate && targetCandidate.length > 0) {
+      derived = targetCandidate;
+    }
+  }
+
+  if (!derived) {
+    const browserLanguage = navigator.language?.split('-')[0];
+    if (browserLanguage && browserLanguage.length > 0) {
+      derived = browserLanguage;
+    } else {
+      derived = 'en';
+    }
+  }
+
+  if (!derived) {
+    derived = 'en';
+  }
+
+  preferredLanguageBaseline = derived;
+
+  if (!isTargetLanguageOverridden || !selectedTargetLanguage) {
+    selectedTargetLanguage = derived;
+    isTargetLanguageOverridden = false;
+  }
+};
+
+/**
  * Initiate the complete reflection flow
  * Extracts content, requests AI processing, and shows overlay
  */
 const initiateReflectionFlow = async () => {
   try {
     console.log('Starting reflection flow...');
+
+    applyTranslationPreference(currentSettings);
 
     // Show loading state
     setNudgeLoadingState(true);
@@ -726,6 +777,9 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
 
     if (successCount === translatedSummary.length) {
       selectedTargetLanguage = targetLang;
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null &&
+        targetLang !== preferredLanguageBaseline;
       currentLanguageDetection = {
         detectedLanguage: targetLang,
         confidence: 1,
@@ -1144,14 +1198,14 @@ const getDefaultSettings = (): Settings => ({
   dwellThreshold: 10,
   enableSound: true,
   reduceMotion: false,
-  proofreadEnabled: false,
+  proofreadEnabled: true,
   privacyMode: 'local',
   useNativeSummarizer: false,
   useNativeProofreader: false,
   translationEnabled: false,
   targetLanguage: 'en',
   defaultSummaryFormat: 'bullets',
-  enableProofreading: false,
+  enableProofreading: true,
   enableTranslation: true,
   preferredTranslationLanguage: 'en',
   experimentalMode: false,
@@ -1447,6 +1501,10 @@ const handleTranslate = async (targetLanguage: string) => {
 
     if (translatedCount > 0 && failedCount === 0) {
       selectedTargetLanguage = targetLanguage;
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null
+          ? targetLanguage !== preferredLanguageBaseline
+          : true;
       currentLanguageDetection = {
         detectedLanguage: targetLanguage,
         confidence: 1,
@@ -1589,6 +1647,10 @@ const handleTranslateToEnglish = async () => {
         languageName: getLanguageName('en'),
       };
       selectedTargetLanguage = 'en';
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null
+          ? 'en' !== preferredLanguageBaseline
+          : true;
     }
 
     // Re-render overlay with translated content
@@ -1978,6 +2040,7 @@ const initializeContentScript = async () => {
     // Load settings from background worker
     const settings = await getSettings();
     currentSettings = settings;
+    applyTranslationPreference(settings);
 
     // Initialize content extractor
     contentExtractor = new ContentExtractor();
@@ -2031,14 +2094,14 @@ const getSettings = async (): Promise<Settings> => {
       dwellThreshold: 30,
       enableSound: true,
       reduceMotion: false,
-      proofreadEnabled: false,
+      proofreadEnabled: true,
       privacyMode: 'local',
       useNativeSummarizer: false,
       useNativeProofreader: false,
       translationEnabled: false,
       targetLanguage: 'en',
       defaultSummaryFormat: 'bullets',
-      enableProofreading: false,
+      enableProofreading: true,
       enableTranslation: false,
       preferredTranslationLanguage: 'en',
       experimentalMode: false,
@@ -2289,6 +2352,7 @@ const setupMessageListener = () => {
             if (updated) {
               console.log('Applying live settings update:', updated);
               currentSettings = updated;
+              applyTranslationPreference(updated);
               // Toast for user feedback
               try {
                 showNotification('Settings updated', '', 'info');

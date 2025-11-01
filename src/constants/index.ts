@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dwellThreshold: 10, // 10 seconds default
   enableSound: true,
   reduceMotion: false,
-  proofreadEnabled: false,
+  proofreadEnabled: true,
   privacyMode: 'local',
   // New AI API settings
   useNativeSummarizer: false, // Use Summarizer API instead of Prompt API
@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   targetLanguage: 'en',
   // Chrome AI APIs integration settings
   defaultSummaryFormat: 'bullets',
-  enableProofreading: false,
+  enableProofreading: true,
   enableTranslation: true,
   preferredTranslationLanguage: 'en',
   experimentalMode: true,

@@ -10,7 +10,7 @@ import type {
 import { trapFocus } from '../../utils/accessibility';
 import { renderMarkdown } from '../../utils/markdownRenderer';
 
-import { BreathingOrb } from './BreathingOrb';
+import { LotusOrb } from './LotusOrb';
 import { Notification } from './Notification';
 import { VoiceToggleButton } from './VoiceToggleButton';
 import { MoreToolsMenu } from './MoreToolsMenu';
@@ -1153,12 +1153,11 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           {step === 0 && (
             <div className="reflexa-meditation-fade">
               <div style={{ marginBottom: 32 }}>
-                <BreathingOrb
+                <LotusOrb
                   enabled={!settings?.reduceMotion}
                   duration={8}
                   iterations={isLoadingSummary ? Infinity : 2}
                   size={140}
-                  mode="pulse"
                 />
               </div>
               <h1
