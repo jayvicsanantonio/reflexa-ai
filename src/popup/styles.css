@@ -7,3 +7,18 @@
  * Component-specific styles for popup dashboard UI
  * Theme tokens are imported from ../styles/theme.css
  */
+
+/* Size the browser action popup to fit the card nicely */
+html,
+body,
+#root {
+  /* Compact popup to complement the pill size */
+  width: 520px;
+  height: 160px;
+  margin: 0;
+}
+
+body {
+  overflow: hidden; /* prevent default scrollbars around the modal card */
+  background: transparent;
+}

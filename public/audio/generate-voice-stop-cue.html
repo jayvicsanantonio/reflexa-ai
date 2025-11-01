@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generate Voice Stop Audio Cue</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+      .description {
+        color: #666;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .status {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 4px;
+        display: none;
+      }
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        display: block;
+      }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        display: block;
+      }
+      .audio-preview {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+      }
+      .specs {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e7f3ff;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .specs h3 {
+        margin-top: 0;
+        color: #0066cc;
+      }
+      .specs ul {
+        margin: 10px 0;
+        padding-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Generate Voice Stop Audio Cue</h1>
+      <div class="description">
+        This tool generates a subtle audio cue (< 0.3 seconds) to play when
+        voice recording stops. The sound is a soft, descending tone that signals
+        the end of recording without being intrusive.
+      </div>
+
+      <div class="specs">
+        <h3>Audio Specifications</h3>
+        <ul>
+          <li><strong>Duration:</strong> 250ms (0.25 seconds)</li>
+          <li><strong>Type:</strong> Soft descending tone</li>
+          <li><strong>Frequency:</strong> 800Hz → 400Hz</li>
+          <li><strong>Volume:</strong> Gentle fade out</li>
+          <li>
+            <strong>Purpose:</strong> Signal voice recording stop (manual or
+            auto)
+          </li>
+        </ul>
+      </div>
+
+      <button id="generateBtn">Generate Audio Cue</button>
+      <button id="playBtn" disabled>Play Preview</button>
+      <button id="downloadBtn" disabled>Download MP3</button>
+
+      <div id="status" class="status"></div>
+
+      <div class="audio-preview" id="audioPreview" style="display: none">
+        <h3>Audio Preview</h3>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+    </div>
+
+    <script>
+      let audioBlob = null;
+      let audioUrl = null;
+
+      const generateBtn = document.getElementById('generateBtn');
+      const playBtn = document.getElementById('playBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const status = document.getElementById('status');
+      const audioPreview = document.getElementById('audioPreview');
+      const audioPlayer = document.getElementById('audioPlayer');
+
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `status ${type}`;
+      }
+
+      async function generateAudioCue() {
+        try {
+          showStatus('Generating audio cue...', 'success');
+          generateBtn.disabled = true;
+
+          // Create audio context
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          const sampleRate = audioContext.sampleRate;
+          const duration = 0.25; // 250ms
+          const numSamples = Math.floor(sampleRate * duration);
+
+          // Create buffer
+          const buffer = audioContext.createBuffer(1, numSamples, sampleRate);
+          const channelData = buffer.getChannelData(0);
+
+          // Generate descending tone with fade out
+          const startFreq = 800; // Hz
+          const endFreq = 400; // Hz
+
+          for (let i = 0; i < numSamples; i++) {
+            const t = i / sampleRate;
+            const progress = i / numSamples;
+
+            // Frequency sweep from startFreq to endFreq
+            const freq = startFreq + (endFreq - startFreq) * progress;
+
+            // Generate sine wave
+            const sample = Math.sin(2 * Math.PI * freq * t);
+
+            // Apply fade out envelope (exponential)
+            const fadeOut = Math.pow(1 - progress, 2);
+
+            // Apply gentle volume (30% max)
+            channelData[i] = sample * fadeOut * 0.3;
+          }
+
+          // Convert to WAV
+          const wavBlob = await bufferToWave(buffer, numSamples);
+
+          // For MP3 conversion, we'll use the WAV directly
+          // (Browser doesn't have built-in MP3 encoding, but WAV works fine)
+          audioBlob = wavBlob;
+          audioUrl = URL.createObjectURL(audioBlob);
+
+          // Enable buttons
+          playBtn.disabled = false;
+          downloadBtn.disabled = false;
+
+          // Show preview
+          audioPlayer.src = audioUrl;
+          audioPreview.style.display = 'block';
+
+          showStatus(
+            'Audio cue generated successfully! Duration: 250ms',
+            'success'
+          );
+          generateBtn.disabled = false;
+        } catch (error) {
+          showStatus(`Error: ${error.message}`, 'error');
+          generateBtn.disabled = false;
+          console.error('Generation error:', error);
+        }
+      }
+
+      function bufferToWave(buffer, length) {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const format = 1; // PCM
+        const bitDepth = 16;
+
+        const bytesPerSample = bitDepth / 8;
+        const blockAlign = numChannels * bytesPerSample;
+
+        const data = new Int16Array(length * numChannels);
+        const channelData = buffer.getChannelData(0);
+
+        for (let i = 0; i < length; i++) {
+          const sample = Math.max(-1, Math.min(1, channelData[i]));
+          data[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+        }
+
+        const dataLength = data.length * bytesPerSample;
+        const bufferLength = 44 + dataLength;
+        const arrayBuffer = new ArrayBuffer(bufferLength);
+        const view = new DataView(arrayBuffer);
+
+        // WAV header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + dataLength, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true); // fmt chunk size
+        view.setUint16(20, format, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * blockAlign, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, dataLength, true);
+
+        // Write audio data
+        let offset = 44;
+        for (let i = 0; i < data.length; i++) {
+          view.setInt16(offset, data[i], true);
+          offset += 2;
+        }
+
+        return new Blob([arrayBuffer], { type: 'audio/wav' });
+      }
+
+      function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      }
+
+      playBtn.addEventListener('click', () => {
+        audioPlayer.currentTime = 0;
+        audioPlayer.play();
+      });
+
+      downloadBtn.addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = audioUrl;
+        a.download = 'voice-stop-cue.wav';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showStatus(
+          'Download started! Note: File is in WAV format. Convert to MP3 using an online converter if needed.',
+          'success'
+        );
+      });
+
+      generateBtn.addEventListener('click', generateAudioCue);
+
+      // Auto-generate on load
+      window.addEventListener('load', () => {
+        setTimeout(generateAudioCue, 500);
+      });
+    </script>
+  </body>
+</html>

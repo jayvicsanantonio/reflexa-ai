@@ -35,7 +35,7 @@ export const App: React.FC = () => {
     current: 0,
     lastReflectionDate: '',
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -255,6 +255,12 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [reflections.length]);
 
+  // Option B: open in-page Dashboard overlay and close popup
+  // Disabled per new design: toolbar click shows minimalist popup hero
+  useEffect(() => {
+    // no-op
+  }, []);
+
   // Focus trap ref for privacy modal
   const privacyModalRef = useRef<HTMLDivElement>(null);
 
@@ -292,49 +298,172 @@ export const App: React.FC = () => {
     return () => modal.removeEventListener('keydown', handleTabKey);
   }, [showPrivacyNotice]);
 
-  // Render loading state
-  if (isLoading) {
+  // New minimalist hero for toolbar popup
+  const renderHero = () => {
+    // Match pulsing lotus gradient (zen palette)
+    const bgGradient =
+      'linear-gradient(135deg, var(--color-zen-500, #0ea5e9) 0%, var(--color-zen-600, #0284c7) 100%)';
+    const handleReflectClick = () => {
+      // Close popup immediately for better UX
+      window.close();
+
+      // Send message to start reflection (fire and forget)
+      chrome.runtime
+        .sendMessage({
+          type: 'startReflectInActiveTab',
+        })
+        .catch(() => {
+          // Popup is already closed, nothing to do
+        });
+    };
     return (
-      <div className="bg-calm-50 flex h-[600px] w-96 items-center justify-center">
-        <div className="text-center">
-          <div className="bg-zen-500 mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-t-transparent"></div>
-          <p className="text-calm-600 text-sm">Loading your reflections...</p>
+      <div
+        role="document"
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 8,
+        }}
+      >
+        {/* Compact outer gradient box matching lotus vibe */}
+        <div
+          style={{
+            position: 'relative',
+            width: 'min(460px, 96%)',
+            height: 120,
+            background: bgGradient,
+            borderRadius: 20,
+            boxShadow: '0 12px 30px rgba(2,8,23,0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 10,
+          }}
+        >
+          {/* Inner white pill card */}
+          <div
+            style={{
+              position: 'relative',
+              width: 'min(440px, 95%)',
+              borderRadius: 9999,
+              background: '#ffffff',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
+              boxShadow: '0 10px 28px rgba(2,8,23,0.14)',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <img
+              src={chrome.runtime.getURL('icons/reflexa.png')}
+              alt="Reflexa AI"
+              width={40}
+              height={40}
+              style={{ borderRadius: 999, flexShrink: 0 }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  color: '#0f172a',
+                  fontWeight: 800,
+                  fontSize: 18,
+                  marginBottom: 2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title="Reflexa AI"
+              >
+                Reflexa AI
+              </div>
+              <div style={{ color: '#334155', fontSize: 12 }}>
+                Calm reflections, better focus
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReflectClick}
+              aria-label="Start reflecting"
+              style={{
+                border: '1px solid rgba(15,23,42,0.12)',
+                color: '#0f172a',
+                background: '#ffffff',
+                borderRadius: 999,
+                padding: '10px 18px',
+                fontWeight: 900,
+                fontSize: 18,
+                cursor: 'pointer',
+                boxShadow: '0 6px 16px rgba(2,8,23,0.08)',
+              }}
+            >
+              Reflect
+            </button>
+          </div>
         </div>
       </div>
     );
-  }
+  };
+
+  // Always render the new hero popup
+  return renderHero();
 
   return (
-    <div className="bg-calm-50 relative h-[600px] w-96 overflow-hidden">
-      {/* Skip to main content link for keyboard navigation */}
-      <a href="#main-content" className="skip-to-main">
-        Skip to main content
-      </a>
-
+    <div className="h-full w-full overflow-hidden bg-white" role="document">
       {/* Header */}
-      <header className="border-calm-200 bg-white px-6 py-4 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white/90 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        {/* Skip to main content link for keyboard navigation */}
+        <a href="#main-content" className="skip-to-main">
+          Skip to main content
+        </a>
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <svg
-              className="text-zen-600 h-8 w-8"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 2C12 2 9 6 9 10C9 11.66 10.34 13 12 13C13.66 13 15 11.66 15 10C15 6 12 2 12 2Z" />
-              <path d="M12 13C12 13 8 14 6 17C4.89 18.66 5.45 20.89 7.11 22C8.77 23.11 11 22.55 12.11 20.89C13 19.5 13 17 12 13Z" />
-              <path d="M12 13C12 13 16 14 18 17C19.11 18.66 18.55 20.89 16.89 22C15.23 23.11 13 22.55 11.89 20.89C11 19.5 11 17 12 13Z" />
-            </svg>
-            <h1 className="font-display text-calm-900 text-xl font-bold">
-              Reflexa AI
-            </h1>
+            <img
+              src={chrome.runtime.getURL('icons/reflexa.png')}
+              alt="Reflexa"
+              className="h-8 w-8 rounded-full shadow-sm"
+            />
+            <div>
+              <h1
+                id="reflexa-popup-title"
+                className="font-display text-calm-900 text-lg leading-tight font-bold"
+              >
+                Reflexa AI
+              </h1>
+              <p className="text-calm-500 text-[11px]">
+                Calm reflections, better focus
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setShowExportModal(true)}
-            className="text-calm-600 hover:bg-calm-100 hover:text-calm-900 focus-visible:outline-zen-500 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="border-calm-200 text-calm-800 hover:bg-calm-50 focus-visible:outline-zen-500 inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             aria-label="Export reflections"
             disabled={reflections.length === 0}
           >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
             Export
           </button>
         </div>
@@ -343,19 +472,34 @@ export const App: React.FC = () => {
       {/* Scrollable content */}
       <main
         id="main-content"
-        className="h-[calc(600px-64px)] overflow-y-auto px-6 py-4"
+        className="h-[calc(600px-48px)] overflow-y-auto px-5 py-4"
         role="main"
         aria-label="Reflection dashboard"
       >
-        <div className="space-y-4">
-          {/* Streak Counter */}
-          <StreakCounter
-            streak={streakData}
-            onStreakIncrease={handleStreakIncrease}
-          />
-
-          {/* Calm Stats */}
-          <CalmStats stats={calmStats} />
+        <div className="space-y-5">
+          {/* Top Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-display text-calm-900 text-sm font-semibold">
+                  Daily Streak
+                </h2>
+                <img
+                  src={chrome.runtime.getURL('icons/reflexa.png')}
+                  alt=""
+                  className="h-4 w-4 rounded"
+                  aria-hidden
+                />
+              </div>
+              <StreakCounter
+                streak={streakData}
+                onStreakIncrease={handleStreakIncrease}
+              />
+            </div>
+            <div className="border-calm-200 rounded-xl border bg-white p-3 shadow-sm">
+              <CalmStats stats={calmStats} />
+            </div>
+          </div>
 
           {/* Reflection List */}
           {reflections.length > 0 ? (
@@ -391,21 +535,13 @@ export const App: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="border-calm-200 rounded-lg border bg-white p-8 text-center">
-              <svg
-                className="text-calm-300 mx-auto mb-4 h-16 w-16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2C12 2 9 6 9 10C9 11.66 10.34 13 12 13C13.66 13 15 11.66 15 10C15 6 12 2 12 2Z" />
-                <path d="M12 13C12 13 8 14 6 17C4.89 18.66 5.45 20.89 7.11 22C8.77 23.11 11 22.55 12.11 20.89C13 19.5 13 17 12 13Z" />
-                <path d="M12 13C12 13 16 14 18 17C19.11 18.66 18.55 20.89 16.89 22C15.23 23.11 13 22.55 11.89 20.89C11 19.5 11 17 12 13Z" />
-              </svg>
-              <h3 className="font-display text-calm-900 mb-2 text-lg font-semibold">
+            <div className="border-calm-200 rounded-xl border bg-white p-8 text-center shadow-sm">
+              <img
+                src={chrome.runtime.getURL('icons/reflexa.png')}
+                alt="Reflexa"
+                className="mx-auto mb-4 h-16 w-16 rounded-full shadow"
+              />
+              <h3 className="font-display text-calm-900 mb-2 text-base font-semibold">
                 No reflections yet
               </h3>
               <p className="text-calm-600 mb-4 text-sm">

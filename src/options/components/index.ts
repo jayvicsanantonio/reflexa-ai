@@ -16,3 +16,6 @@ export type { SettingsSectionProps } from './SettingsSection';
 
 export { SaveIndicator } from './SaveIndicator';
 export type { SaveIndicatorProps } from './SaveIndicator';
+
+export { Dropdown } from './Dropdown';
+export type { DropdownProps, DropdownOption } from './Dropdown';

@@ -15,12 +15,18 @@ function initializeAudioInContentScript() {
     dwellThreshold: 30,
     enableSound: true,
     reduceMotion: false,
-    proofreadEnabled: false,
+    proofreadEnabled: true,
     privacyMode: 'local',
     useNativeSummarizer: false,
     useNativeProofreader: false,
     translationEnabled: false,
     targetLanguage: 'en',
+    defaultSummaryFormat: 'bullets',
+    enableProofreading: true,
+    enableTranslation: false,
+    preferredTranslationLanguage: 'en',
+    experimentalMode: false,
+    autoDetectLanguage: true,
   };
 
   // Create AudioManager instance

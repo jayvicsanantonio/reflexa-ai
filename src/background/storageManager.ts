@@ -19,6 +19,57 @@ export class StorageManager {
   // Cache for reflections to reduce storage reads
   private cache: Reflection[] | null = null;
   private cacheTimestamp = 0;
+  private migrationCompleted = false;
+
+  /**
+   * Migrate existing reflections to include AI metadata fields
+   * This ensures backward compatibility with reflections created before AI integration
+   */
+  private async migrateReflections(): Promise<void> {
+    if (this.migrationCompleted) {
+      return;
+    }
+
+    const result = await chrome.storage.local.get(STORAGE_KEYS.REFLECTIONS);
+    const reflections = (result[STORAGE_KEYS.REFLECTIONS] ??
+      []) as Reflection[];
+
+    let needsMigration = false;
+
+    // Check if any reflection needs migration
+    const migratedReflections = reflections.map((reflection) => {
+      // Check if reflection already has AI metadata
+      if (!reflection.aiMetadata) {
+        needsMigration = true;
+        return {
+          ...reflection,
+          // Add default AI metadata for existing reflections
+          summaryFormat: reflection.summaryFormat ?? 'bullets',
+          aiMetadata: {
+            summarizerUsed: false,
+            writerUsed: false,
+            rewriterUsed: false,
+            proofreaderUsed: false,
+            translatorUsed: false,
+            promptFallback: false,
+            processingTime: 0,
+          },
+        };
+      }
+      return reflection;
+    });
+
+    // Only write to storage if migration was needed
+    if (needsMigration) {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.REFLECTIONS]: migratedReflections,
+      });
+      // Invalidate cache to force reload with migrated data
+      this.invalidateCache();
+    }
+
+    this.migrationCompleted = true;
+  }
 
   /**
    * Save a new reflection to storage
@@ -33,6 +84,20 @@ export class StorageManager {
       if (!reflection.id) {
         reflection.id = generateUUID();
       }
+
+      // Ensure AI metadata exists with defaults if not provided
+      reflection.aiMetadata ??= {
+        summarizerUsed: false,
+        writerUsed: false,
+        rewriterUsed: false,
+        proofreaderUsed: false,
+        translatorUsed: false,
+        promptFallback: false,
+        processingTime: 0,
+      };
+
+      // Set default summary format if not provided
+      reflection.summaryFormat ??= 'bullets';
 
       // Add to reflections array
       reflections.push(reflection);
@@ -64,6 +129,9 @@ export class StorageManager {
    * @returns Array of reflections
    */
   async getReflections(limit?: number): Promise<Reflection[]> {
+    // Run migration on first access
+    await this.migrateReflections();
+
     // Check cache first
     const now = Date.now();
     if (this.cache && now - this.cacheTimestamp < TIMING.CACHE_TTL) {
@@ -193,9 +261,17 @@ export class StorageManager {
     markdown += `**URL:** ${reflection.url}\n`;
     markdown += `**Date:** ${formatDate(reflection.createdAt)}\n\n`;
 
+    // Add AI metadata section if present
+    if (reflection.aiMetadata) {
+      markdown += this.generateAIMetadataMarkdown(reflection);
+    }
+
     // Add summary section
     if (reflection.summary && reflection.summary.length > 0) {
-      markdown += this.generateSummaryMarkdown(reflection.summary);
+      markdown += this.generateSummaryMarkdown(
+        reflection.summary,
+        reflection.summaryFormat
+      );
     }
 
     // Add reflections section
@@ -218,12 +294,73 @@ export class StorageManager {
   }
 
   /**
+   * Generate Markdown for AI metadata section
+   * @param reflection Reflection with AI metadata
+   * @returns Markdown string for AI metadata
+   */
+  private generateAIMetadataMarkdown(reflection: Reflection): string {
+    let markdown = '### AI Processing\n\n';
+
+    // Add language information
+    if (reflection.detectedLanguage) {
+      markdown += `**Detected Language:** ${reflection.detectedLanguage}`;
+      if (reflection.originalLanguage) {
+        markdown += ` (Original: ${reflection.originalLanguage})`;
+      }
+      markdown += '\n';
+    }
+
+    if (reflection.translatedTo) {
+      markdown += `**Translated To:** ${reflection.translatedTo}\n`;
+    }
+
+    // Add summary format
+    if (reflection.summaryFormat) {
+      markdown += `**Summary Format:** ${reflection.summaryFormat}\n`;
+    }
+
+    // Add tone information
+    if (reflection.toneUsed) {
+      markdown += `**Tone Applied:** ${reflection.toneUsed}\n`;
+    }
+
+    // Add AI APIs used
+    if (reflection.aiMetadata) {
+      const apisUsed: string[] = [];
+      if (reflection.aiMetadata.summarizerUsed) apisUsed.push('Summarizer');
+      if (reflection.aiMetadata.writerUsed) apisUsed.push('Writer');
+      if (reflection.aiMetadata.rewriterUsed) apisUsed.push('Rewriter');
+      if (reflection.aiMetadata.proofreaderUsed) apisUsed.push('Proofreader');
+      if (reflection.aiMetadata.translatorUsed) apisUsed.push('Translator');
+      if (reflection.aiMetadata.promptFallback)
+        apisUsed.push('Prompt (Fallback)');
+
+      if (apisUsed.length > 0) {
+        markdown += `**AI APIs Used:** ${apisUsed.join(', ')}\n`;
+      }
+
+      if (reflection.aiMetadata.processingTime > 0) {
+        markdown += `**Processing Time:** ${reflection.aiMetadata.processingTime}ms\n`;
+      }
+    }
+
+    markdown += '\n';
+    return markdown;
+  }
+
+  /**
    * Generate Markdown for summary section
    * @param summary Array of summary bullets
+   * @param format Optional summary format
    * @returns Markdown string for summary
    */
-  private generateSummaryMarkdown(summary: string[]): string {
-    let markdown = '### Summary\n\n';
+  private generateSummaryMarkdown(summary: string[], format?: string): string {
+    let markdown = '### Summary';
+    if (format) {
+      markdown += ` (${format})`;
+    }
+    markdown += '\n\n';
+
     const labels = ['Insight', 'Surprise', 'Apply'];
 
     summary.forEach((bullet, index) => {

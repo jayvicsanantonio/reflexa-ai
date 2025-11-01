@@ -1,0 +1,686 @@
+/**
+ * Custom React hook for voice input using Web Speech API
+ *
+ * @example
+ * ```tsx
+ * const voiceInput = useVoiceInput({
+ *   language: 'en-US',
+ *   onTranscript: (text, isFinal) => {
+ *     if (isFinal) {
+ *       setReflection(prev => prev + ' ' + text);
+ *     } else {
+ *       setInterimText(text);
+ *     }
+ *   },
+ *   onError: (error) => {
+ *     console.error('Voice input error:', error);
+ *   },
+ *   autoStopDelay: 3000
+ * });
+ *
+ * // Start recording
+ * await voiceInput.startRecording();
+ *
+ * // Stop recording
+ * voiceInput.stopRecording();
+ * ```
+ */
+
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+/**
+ * Get the effective language for speech recognition
+ * Falls back to English if the requested language is not supported
+ * @param requestedLanguage - The language code requested by the user
+ * @returns The language code to use for speech recognition
+ */
+const getEffectiveLanguage = (requestedLanguage?: string): string => {
+  // If no language specified, use browser default
+  if (!requestedLanguage) {
+    return navigator.language || 'en-US';
+  }
+
+  // List of commonly supported languages by Web Speech API
+  // This is a subset - actual support varies by browser
+  const supportedLanguages = [
+    'en-US',
+    'en-GB',
+    'en-AU',
+    'en-CA',
+    'en-IN',
+    'en-NZ',
+    'en-ZA',
+    'es-ES',
+    'es-MX',
+    'es-AR',
+    'es-CO',
+    'es-CL',
+    'fr-FR',
+    'fr-CA',
+    'fr-BE',
+    'fr-CH',
+    'de-DE',
+    'de-AT',
+    'de-CH',
+    'it-IT',
+    'it-CH',
+    'pt-PT',
+    'pt-BR',
+    'ru-RU',
+    'ja-JP',
+    'ko-KR',
+    'zh-CN',
+    'zh-TW',
+    'zh-HK',
+    'ar-SA',
+    'ar-EG',
+    'hi-IN',
+    'nl-NL',
+    'nl-BE',
+    'pl-PL',
+    'tr-TR',
+    'sv-SE',
+    'da-DK',
+    'no-NO',
+    'fi-FI',
+    'cs-CZ',
+    'hu-HU',
+    'ro-RO',
+    'sk-SK',
+    'uk-UA',
+    'el-GR',
+    'he-IL',
+    'id-ID',
+    'ms-MY',
+    'th-TH',
+    'vi-VN',
+  ];
+
+  // Check if the exact language code is supported
+  if (supportedLanguages.includes(requestedLanguage)) {
+    return requestedLanguage;
+  }
+
+  // Try to find a match with just the language part (e.g., 'en' from 'en-US')
+  const languagePrefix = requestedLanguage.split('-')[0];
+  const matchingLanguage = supportedLanguages.find((lang) =>
+    lang.startsWith(languagePrefix)
+  );
+
+  if (matchingLanguage) {
+    return matchingLanguage;
+  }
+
+  // Fallback to English if language not supported
+  console.warn(
+    `Language "${requestedLanguage}" not supported by Web Speech API. Falling back to English.`
+  );
+  return 'en-US';
+};
+
+/**
+ * Get human-readable language name from language code
+ * @param languageCode - ISO language code (e.g., 'en-US')
+ * @returns Human-readable language name
+ */
+const getLanguageName = (languageCode: string): string => {
+  const languageNames: Record<string, string> = {
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'en-AU': 'English (Australia)',
+    'en-CA': 'English (Canada)',
+    'en-IN': 'English (India)',
+    'es-ES': 'Spanish (Spain)',
+    'es-MX': 'Spanish (Mexico)',
+    'fr-FR': 'French',
+    'de-DE': 'German',
+    'it-IT': 'Italian',
+    'pt-PT': 'Portuguese (Portugal)',
+    'pt-BR': 'Portuguese (Brazil)',
+    'ru-RU': 'Russian',
+    'ja-JP': 'Japanese',
+    'ko-KR': 'Korean',
+    'zh-CN': 'Chinese (Simplified)',
+    'zh-TW': 'Chinese (Traditional)',
+    'ar-SA': 'Arabic',
+    'hi-IN': 'Hindi',
+    'nl-NL': 'Dutch',
+    'pl-PL': 'Polish',
+    'tr-TR': 'Turkish',
+    'sv-SE': 'Swedish',
+    'da-DK': 'Danish',
+    'no-NO': 'Norwegian',
+    'fi-FI': 'Finnish',
+    'cs-CZ': 'Czech',
+    'hu-HU': 'Hungarian',
+    'ro-RO': 'Romanian',
+    'sk-SK': 'Slovak',
+    'uk-UA': 'Ukrainian',
+    'el-GR': 'Greek',
+    'he-IL': 'Hebrew',
+    'id-ID': 'Indonesian',
+    'ms-MY': 'Malay',
+    'th-TH': 'Thai',
+    'vi-VN': 'Vietnamese',
+  };
+
+  return languageNames[languageCode] || languageCode;
+};
+
+/**
+ * Voice input error types
+ */
+export type VoiceInputErrorCode =
+  | 'not-supported'
+  | 'permission-denied'
+  | 'no-speech'
+  | 'network'
+  | 'aborted'
+  | 'language-not-supported';
+
+/**
+ * Voice input error structure
+ */
+export interface VoiceInputError {
+  code: VoiceInputErrorCode;
+  message: string;
+}
+
+/**
+ * Voice input status states
+ */
+export type VoiceInputStatus =
+  | 'idle'
+  | 'requesting-permission'
+  | 'recording'
+  | 'stopping'
+  | 'error';
+
+/**
+ * Options for useVoiceInput hook
+ */
+export interface UseVoiceInputOptions {
+  language?: string;
+  onTranscript: (text: string, isFinal: boolean) => void;
+  onError?: (error: VoiceInputError) => void;
+  onStatusChange?: (status: VoiceInputStatus) => void;
+  autoStopDelay?: number; // default 3000ms
+  onTypingDetected?: () => void; // callback when typing is detected during recording
+  onAutoStop?: () => void; // callback when auto-stop is triggered
+}
+
+/**
+ * Return type for useVoiceInput hook
+ */
+export interface UseVoiceInputReturn {
+  isRecording: boolean;
+  isSupported: boolean;
+  hasPermission: boolean | null;
+  startRecording: () => Promise<void>;
+  stopRecording: () => void;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
+  error: VoiceInputError | null;
+  status: VoiceInputStatus;
+  isPaused: boolean;
+  effectiveLanguage: string; // The actual language being used for recognition
+  languageName: string; // Human-readable language name
+  isLanguageFallback: boolean; // True if using fallback language
+}
+
+/**
+ * Custom hook for managing voice input using Web Speech API
+ * Handles speech recognition lifecycle, permissions, and error management
+ */
+export const useVoiceInput = (
+  options: UseVoiceInputOptions
+): UseVoiceInputReturn => {
+  const {
+    language,
+    onTranscript,
+    onError,
+    onStatusChange,
+    autoStopDelay = 3000,
+    onTypingDetected,
+    onAutoStop,
+  } = options;
+
+  // State management
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [error, setError] = useState<VoiceInputError | null>(null);
+  const [status, setStatus] = useState<VoiceInputStatus>('idle');
+
+  // Refs for managing recognition instance and timers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const noSpeechTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isStoppingRef = useRef(false);
+  const isPausedRef = useRef(false);
+  const hasSpeechDetectedRef = useRef(false);
+
+  // Check browser support for SpeechRecognition
+  const isSupported = useMemo(() => {
+    return (
+      typeof window !== 'undefined' &&
+      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+    );
+  }, []);
+
+  // Determine effective language and check if fallback is needed
+  const effectiveLanguage = useMemo(() => {
+    return getEffectiveLanguage(language);
+  }, [language]);
+
+  const isLanguageFallback = useMemo(() => {
+    if (!language) return false;
+    // Only consider it a fallback if the language prefix changed
+    // e.g., 'en' -> 'en-US' is NOT a fallback, but 'xyz' -> 'en-US' IS
+    const requestedPrefix = language.split('-')[0];
+    const effectivePrefix = effectiveLanguage.split('-')[0];
+    return requestedPrefix !== effectivePrefix;
+  }, [language, effectiveLanguage]);
+
+  const languageName = useMemo(() => {
+    return getLanguageName(effectiveLanguage);
+  }, [effectiveLanguage]);
+
+  // Update status and notify callback
+  const updateStatus = useCallback(
+    (newStatus: VoiceInputStatus) => {
+      setStatus(newStatus);
+      if (onStatusChange) {
+        onStatusChange(newStatus);
+      }
+    },
+    [onStatusChange]
+  );
+
+  // Create error object with user-friendly messages
+  const createError = useCallback(
+    (code: VoiceInputErrorCode, customMessage?: string): VoiceInputError => {
+      const messages: Record<VoiceInputErrorCode, string> = {
+        'not-supported':
+          'Voice input is not supported in your browser. Please use typing instead.',
+        'permission-denied':
+          'Microphone access required for voice input. Please grant permission in your browser settings.',
+        'no-speech': 'No speech detected. Try again or type your reflection.',
+        network:
+          'Voice recognition unavailable. Please check your connection or type your reflection.',
+        aborted: 'Voice input was interrupted. Please try again.',
+        'language-not-supported':
+          'The selected language is not supported. Using English instead.',
+      };
+
+      return {
+        code,
+        message: customMessage ?? messages[code],
+      };
+    },
+    []
+  );
+
+  // Handle errors and notify callback
+  const handleError = useCallback(
+    (errorCode: VoiceInputErrorCode, customMessage?: string) => {
+      const errorObj = createError(errorCode, customMessage);
+      setError(errorObj);
+      updateStatus('error');
+      if (onError) {
+        onError(errorObj);
+      }
+    },
+    [createError, updateStatus, onError]
+  );
+
+  // Clear auto-stop timer
+  const clearAutoStopTimer = useCallback(() => {
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
+  }, []);
+
+  // Clear no speech timer
+  const clearNoSpeechTimer = useCallback(() => {
+    if (noSpeechTimerRef.current) {
+      clearTimeout(noSpeechTimerRef.current);
+      noSpeechTimerRef.current = null;
+    }
+  }, []);
+
+  // Start no speech detection timer (10 seconds)
+  const startNoSpeechTimer = useCallback(() => {
+    clearNoSpeechTimer();
+    hasSpeechDetectedRef.current = false;
+
+    noSpeechTimerRef.current = setTimeout(() => {
+      // If no speech detected after 10 seconds, stop recording and show error
+      if (
+        !hasSpeechDetectedRef.current &&
+        recognitionRef.current &&
+        isRecording
+      ) {
+        isStoppingRef.current = true;
+
+        // Stop recognition
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        recognitionRef.current.stop();
+
+        // Trigger no-speech error
+        handleError('no-speech');
+      }
+    }, 10000); // 10 seconds
+  }, [isRecording, handleError, clearNoSpeechTimer]);
+
+  // Start auto-stop timer
+  const startAutoStopTimer = useCallback(() => {
+    clearAutoStopTimer();
+    autoStopTimerRef.current = setTimeout(() => {
+      if (recognitionRef.current && isRecording && !isStoppingRef.current) {
+        isStoppingRef.current = true;
+
+        // Notify that auto-stop is triggered
+        if (onAutoStop) {
+          onAutoStop();
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        recognitionRef.current.stop();
+      }
+    }, autoStopDelay);
+  }, [autoStopDelay, isRecording, clearAutoStopTimer, onAutoStop]);
+
+  // Initialize SpeechRecognition instance
+  useEffect(() => {
+    if (!isSupported) return;
+
+    try {
+      // Get the SpeechRecognition constructor
+      const SpeechRecognitionConstructor =
+        window.SpeechRecognition ?? window.webkitSpeechRecognition;
+
+      if (!SpeechRecognitionConstructor) {
+        handleError('not-supported');
+        return;
+      }
+
+      // Create recognition instance
+      const recognition = new SpeechRecognitionConstructor();
+
+      // Configure recognition settings
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = effectiveLanguage;
+      recognition.maxAlternatives = 1;
+
+      // Handle result event (interim and final results)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        // Skip processing if paused
+        if (isPausedRef.current) {
+          return;
+        }
+
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        // Process all results
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          const result = event.results[i];
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          const transcript = result[0].transcript;
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (result.isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Send interim results
+        if (interimTranscript) {
+          onTranscript(interimTranscript, false);
+        }
+
+        // Send final results
+        if (finalTranscript) {
+          onTranscript(finalTranscript, true);
+        }
+
+        // Mark that speech has been detected and clear no-speech timer
+        if (interimTranscript || finalTranscript) {
+          hasSpeechDetectedRef.current = true;
+          clearNoSpeechTimer();
+          clearAutoStopTimer();
+        }
+      };
+
+      // Handle start event
+      recognition.onstart = () => {
+        setIsRecording(true);
+        updateStatus('recording');
+        setError(null);
+        isStoppingRef.current = false;
+
+        // Start no-speech detection timer
+        startNoSpeechTimer();
+      };
+
+      // Handle end event
+      recognition.onend = () => {
+        console.log('[useVoiceInput] onend event fired');
+        setIsRecording(false);
+        updateStatus('idle');
+        clearAutoStopTimer();
+        clearNoSpeechTimer();
+        isStoppingRef.current = false;
+        hasSpeechDetectedRef.current = false;
+        console.log('[useVoiceInput] State updated to not recording');
+      };
+
+      // Handle speechend event (user stopped speaking)
+      recognition.onspeechend = () => {
+        // Start auto-stop timer when speech ends
+        startAutoStopTimer();
+      };
+
+      // Handle error event
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onerror = (event: any) => {
+        clearAutoStopTimer();
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        switch (event.error) {
+          case 'not-allowed':
+          case 'permission-denied':
+            setHasPermission(false);
+            handleError('permission-denied');
+            break;
+
+          case 'no-speech':
+            handleError('no-speech');
+            break;
+
+          case 'network':
+            handleError('network');
+            break;
+
+          case 'aborted':
+            // Silent recovery for aborted sessions
+            if (!isStoppingRef.current) {
+              handleError('aborted');
+            }
+            break;
+
+          default:
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            handleError('network', `Voice recognition error: ${event.error}`);
+        }
+
+        // Stop recording on error
+        setIsRecording(false);
+        updateStatus('error');
+      };
+
+      recognitionRef.current = recognition;
+
+      // Cleanup on unmount
+      return () => {
+        if (recognitionRef.current) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            recognitionRef.current.stop();
+          } catch {
+            // Ignore errors during cleanup
+          }
+        }
+        clearAutoStopTimer();
+        clearNoSpeechTimer();
+      };
+    } catch (err) {
+      console.error('Failed to initialize SpeechRecognition:', err);
+      handleError('not-supported');
+    }
+  }, [
+    isSupported,
+    effectiveLanguage,
+    onTranscript,
+    handleError,
+    updateStatus,
+    clearAutoStopTimer,
+    clearNoSpeechTimer,
+    startAutoStopTimer,
+    startNoSpeechTimer,
+  ]);
+
+  // Start recording function
+  const startRecording = useCallback(async () => {
+    if (!isSupported) {
+      handleError('not-supported');
+      return;
+    }
+
+    if (!recognitionRef.current) {
+      handleError('not-supported', 'Speech recognition not initialized');
+      return;
+    }
+
+    if (isRecording) {
+      return; // Already recording
+    }
+
+    try {
+      updateStatus('requesting-permission');
+
+      // Request microphone permission
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        setHasPermission(true);
+      } catch {
+        setHasPermission(false);
+        handleError('permission-denied');
+        return;
+      }
+
+      // Start recognition
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      recognitionRef.current.start();
+      setError(null);
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      handleError('network', 'Failed to start voice input');
+    }
+  }, [isSupported, isRecording, handleError, updateStatus]);
+
+  // Stop recording function
+  const stopRecording = useCallback(() => {
+    console.log(
+      '[useVoiceInput] stopRecording called, isRecording:',
+      isRecording,
+      'hasRecognition:',
+      !!recognitionRef.current
+    );
+    if (!recognitionRef.current || !isRecording) {
+      console.log(
+        '[useVoiceInput] stopRecording early return - no recognition or not recording'
+      );
+      return;
+    }
+
+    try {
+      console.log('[useVoiceInput] Stopping recognition...');
+      isStoppingRef.current = true;
+      clearAutoStopTimer();
+      clearNoSpeechTimer();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      recognitionRef.current.stop();
+
+      // Immediately update state (onend event will also fire but this ensures immediate UI update)
+      setIsRecording(false);
+      updateStatus('idle');
+      setIsPaused(false);
+      isPausedRef.current = false;
+      hasSpeechDetectedRef.current = false;
+      console.log(
+        '[useVoiceInput] Recognition stopped successfully, state updated'
+      );
+    } catch (err) {
+      console.error('[useVoiceInput] Failed to stop recording:', err);
+      setIsRecording(false);
+      updateStatus('idle');
+      setIsPaused(false);
+      isPausedRef.current = false;
+    }
+  }, [isRecording, updateStatus, clearAutoStopTimer, clearNoSpeechTimer]);
+
+  // Pause recording function (keeps session active but ignores results)
+  const pauseRecording = useCallback(() => {
+    if (!isRecording || isPausedRef.current) {
+      return;
+    }
+
+    setIsPaused(true);
+    isPausedRef.current = true;
+    clearAutoStopTimer();
+    clearNoSpeechTimer();
+
+    if (onTypingDetected) {
+      onTypingDetected();
+    }
+  }, [isRecording, clearAutoStopTimer, clearNoSpeechTimer, onTypingDetected]);
+
+  // Resume recording function
+  const resumeRecording = useCallback(() => {
+    if (!isRecording || !isPausedRef.current) {
+      return;
+    }
+
+    setIsPaused(false);
+    isPausedRef.current = false;
+  }, [isRecording]);
+
+  return {
+    isRecording,
+    isSupported,
+    hasPermission,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    error,
+    status,
+    isPaused,
+    effectiveLanguage,
+    languageName,
+    isLanguageFallback,
+  };
+};
+
+// Export helper functions for use in other components
+export { getEffectiveLanguage, getLanguageName };

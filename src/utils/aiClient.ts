@@ -18,6 +18,7 @@ async function sendMessage<T>(
         resolve({
           success: false,
           error: chrome.runtime.lastError.message ?? 'Unknown error',
+          duration: 0,
         });
       } else {
         resolve(response);

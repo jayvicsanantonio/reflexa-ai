@@ -1,718 +1,745 @@
 /**
- * Prompt Manager for Gemini Nano Prompt API
- * Handles all interactions with Chrome's built-in Prompt API (Gemini Nano)
+ * Prompt Manager for Chrome Built-in Prompt API (Language Model)
+ * Serves as universal fallback for all specialized AI APIs
+ * Handles general-purpose AI prompting with conversation context management
+ * Implements timeout logic, retry mechanism, and session lifecycle management
  */
 
-import { AI_PROMPTS, CONTENT_LIMITS, TIMING } from '../constants';
-import { estimateTokens, truncateToTokens } from '../utils';
+/// <reference types="../types/chrome-ai.d.ts" />
+
+import type { SummaryFormat, TonePreset, WriterOptions } from '../types';
+import type { AILanguageModel } from '../types/chrome-ai';
+import { capabilityDetector } from './capabilityDetector';
 
 /**
- * Type definitions for Chrome's Prompt API (Gemini Nano)
- * Based on: https://developer.chrome.com/docs/ai/prompt-api
+ * Timeout duration for prompt operations (30 seconds)
+ * Increased to accommodate model download and initialization
  */
-interface AILanguageModel {
-  prompt(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  promptStreaming(input: string): ReadableStream;
-  destroy(): void;
-  clone(options?: { signal?: AbortSignal }): Promise<AILanguageModel>;
-}
-
-interface AILanguageModelFactory {
-  create(options?: {
-    temperature?: number;
-    topK?: number;
-    initialPrompts?: {
-      role: 'system' | 'user' | 'assistant';
-      content: string;
-    }[];
-    signal?: AbortSignal;
-    monitor?: (monitor: AIDownloadProgressMonitor) => void;
-  }): Promise<AILanguageModel>;
-  availability(): Promise<
-    'available' | 'downloadable' | 'downloading' | 'unavailable'
-  >;
-  params(): Promise<{
-    defaultTopK: number;
-    maxTopK: number;
-    defaultTemperature: number;
-    maxTemperature: number;
-  }>;
-}
-
-interface AIDownloadProgressMonitor {
-  addEventListener(
-    type: 'downloadprogress',
-    listener: (event: { loaded: number }) => void
-  ): void;
-}
-
-// Extend the global interface to include the Prompt API
-declare global {
-  interface Window {
-    LanguageModel?: AILanguageModelFactory;
-  }
-  // For service worker context
-  var LanguageModel: AILanguageModelFactory | undefined;
-}
+const PROMPT_TIMEOUT = 30000;
 
 /**
- * PromptManager class that wraps Chrome's Prompt API (Gemini Nano)
+ * Extended timeout for retry attempts (60 seconds)
+ * Allows for slower systems or large content processing
+ */
+const RETRY_TIMEOUT = 60000;
+
+/**
+ * Temperature settings for different task types
+ */
+const TEMPERATURE_SETTINGS = {
+  factual: 0.3, // Low temperature for factual tasks (summarization)
+  balanced: 0.7, // Balanced for general tasks
+  creative: 0.9, // High temperature for creative tasks (writing, rewriting)
+} as const;
+
+/**
+ * PromptManager class
+ * Manages Chrome Prompt API (Language Model) sessions as universal fallback
+ * Provides specialized prompts that mimic behavior of other AI APIs
  */
 export class PromptManager {
-  private isAvailable = false;
-  private model: AILanguageModel | null = null;
-  private modelCreatedAt = 0;
-  private readonly MODEL_SESSION_TTL = 5 * 60 * 1000; // 5 minutes
+  private sessions = new Map<string, AILanguageModel>();
+  private available = false;
 
   /**
-   * Check if Gemini Nano is available on the user's system
+   * Check if Prompt API (Language Model) is available
+   * Uses capability detector for consistent availability checking
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
     try {
-      // Access the Prompt API (works in both service worker and window contexts)
-      if (typeof LanguageModel === 'undefined') {
-        console.warn(
-          'Chrome Prompt API not available. To enable:\n' +
-            '1. Use Chrome 127+ (Canary/Dev recommended)\n' +
-            '2. Enable chrome://flags/#prompt-api-for-gemini-nano\n' +
-            '3. Enable chrome://flags/#optimization-guide-on-device-model\n' +
-            '4. Restart Chrome completely\n' +
-            '5. Verify in console: LanguageModel should be defined\n' +
-            '6. Run: await LanguageModel.create() to download model'
-        );
-        this.isAvailable = false;
-        return false;
-      }
-
-      const availability = await LanguageModel.availability();
-      console.log('AI availability status:', availability);
-
-      if (availability === 'unavailable') {
-        console.warn(
-          'Gemini Nano not available on this device. Check system requirements.'
-        );
-      } else if (availability === 'downloadable') {
-        console.log(
-          'Gemini Nano needs to be downloaded. Will download on first create() call.'
-        );
-      } else if (availability === 'downloading') {
-        console.log('Gemini Nano is currently downloading...');
-      }
-
-      // All states except 'unavailable' can be used (create() will trigger download if needed)
-      this.isAvailable = availability !== 'unavailable';
-      return this.isAvailable;
-    } catch (error) {
-      console.error('Error checking AI availability:', error);
-      this.isAvailable = false;
-      return false;
-    }
-  }
-
-  /**
-   * Initialize the AI model session
-   * @param systemPrompt Optional system prompt to set context
-   * @returns Promise resolving to success status
-   */
-  private async initializeModel(systemPrompt?: string): Promise<boolean> {
-    try {
-      // Access the Prompt API
-      if (typeof LanguageModel === 'undefined') {
-        return false;
-      }
-
-      // Get model parameters for defaults
-      const params = await LanguageModel.params();
-      console.log('AI model parameters:', params);
-
-      // Create a new session with optional system prompt
-      const options: Parameters<AILanguageModelFactory['create']>[0] = {
-        temperature: params.defaultTemperature,
-        topK: params.defaultTopK,
-      };
-
-      // Add system prompt via initialPrompts if provided
-      if (systemPrompt) {
-        options.initialPrompts = [{ role: 'system', content: systemPrompt }];
-      }
-
-      // Add download progress monitoring
-      options.monitor = (m: AIDownloadProgressMonitor) => {
-        m.addEventListener('downloadprogress', (e) => {
-          console.log(
-            `AI model download progress: ${(e.loaded * 100).toFixed(1)}%`
-          );
-        });
-      };
-
-      this.model = await LanguageModel.create(options);
-      this.modelCreatedAt = Date.now();
-      return true;
-    } catch (error) {
-      console.error('Error initializing AI model:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Ensure model is initialized and valid
-   * Recreates model if session is stale or invalid
-   * @returns Promise resolving to success status
-   */
-  private async ensureModel(): Promise<boolean> {
-    // Check if model exists and is not stale
-    if (this.model) {
-      const age = Date.now() - this.modelCreatedAt;
-
-      // If model is too old, recreate it
-      if (age > this.MODEL_SESSION_TTL) {
-        console.log('Model session expired, recreating...');
-        this.model.destroy();
-        this.model = null;
-        return await this.initializeModel();
-      }
-
-      // Test if model is still valid with a quick prompt
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 100);
-
-        await this.model.prompt('test', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        return true;
-      } catch {
-        // Model is invalid, recreate it
-        console.log('Model session invalid, recreating...');
-        this.model.destroy();
-        this.model = null;
-        return await this.initializeModel();
-      }
-    }
-
-    // No model exists, create one
-    return await this.initializeModel();
-  }
-
-  /**
-   * Summarize content into three bullets (Insight, Surprise, Apply)
-   * @param content The article content to summarize
-   * @returns Promise resolving to array of three summary bullets, or empty array on failure
-   */
-  async summarize(content: string): Promise<string[]> {
-    try {
-      // Check availability first
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          console.warn('AI not available for summarization');
-          return [];
-        }
-      }
-
-      // Truncate content if it exceeds token limit
-      const tokens = estimateTokens(content);
-      let processedContent = content;
-
-      if (tokens > CONTENT_LIMITS.MAX_TOKENS) {
-        console.warn(
-          `Content exceeds ${CONTENT_LIMITS.MAX_TOKENS} tokens, truncating...`
-        );
-        processedContent = truncateToTokens(
-          content,
-          CONTENT_LIMITS.TRUNCATE_TOKENS
-        );
-      }
-
-      // Format the prompt
-      const prompt = AI_PROMPTS.SUMMARIZE.replace(
-        '{content}',
-        processedContent
+      // First check if API exists
+      const capabilities = await Promise.resolve(
+        capabilityDetector.getCapabilities()
       );
 
-      // Call AI with timeout and retry logic
-      const result = await this.callWithTimeout(prompt, 1);
-
-      if (!result) {
-        return [];
+      if (!capabilities.prompt) {
+        this.available = false;
+        return false;
       }
 
-      // Parse the response into three bullets
-      const bullets = this.parseSummaryResponse(result);
-      return bullets;
+      // Then check actual availability status using global LanguageModel
+      if (typeof LanguageModel !== 'undefined') {
+        const status = await LanguageModel.availability();
+        this.available = status === 'available' || status === 'downloadable';
+        return this.available;
+      }
+
+      this.available = false;
+      return false;
     } catch (error) {
-      console.error('Error in summarize:', error);
-      return [];
+      console.error('Error checking Prompt API availability:', error);
+      this.available = false;
+      return false;
     }
   }
 
   /**
-   * Generate two reflection prompts based on the summary
-   * @param summary The three-bullet summary
-   * @returns Promise resolving to array of two reflection questions, or empty array on failure
+   * Check if Prompt API is available (synchronous)
+   * @returns True if Prompt API is available
    */
-  async generateReflectionPrompts(summary: string[]): Promise<string[]> {
-    try {
-      // Check availability first
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          console.warn('AI not available for reflection prompts');
-          return [];
-        }
-      }
-
-      // Format the summary for the prompt
-      const summaryText = summary.join('\n');
-      const prompt = AI_PROMPTS.REFLECT.replace('{summary}', summaryText);
-
-      // Call AI with timeout and retry logic
-      const result = await this.callWithTimeout(prompt, 1);
-
-      if (!result) {
-        return [];
-      }
-
-      // Parse the response into two questions
-      const questions = this.parseReflectionResponse(result);
-      return questions;
-    } catch (error) {
-      console.error('Error in generateReflectionPrompts:', error);
-      return [];
-    }
+  isAvailable(): boolean {
+    return this.available;
   }
 
   /**
-   * Proofread text for grammar and clarity improvements
-   * @param text The text to proofread
-   * @returns Promise resolving to proofread text, or original text on failure
+   * Create or retrieve a language model session with specific configuration
+   * Sessions are cached by configuration key for reuse
+   * @param config - Language model configuration options
+   * @returns AILanguageModel session or null if unavailable
    */
-  async proofread(text: string): Promise<string> {
-    try {
-      // Check availability first
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          console.warn('AI not available for proofreading');
-          return text;
-        }
-      }
+  private async createSession(config: {
+    systemPrompt?: string;
+    initialPrompts?: {
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }[];
+    temperature?: number;
+    topK?: number;
+    monitor?: (monitor: {
+      addEventListener: (
+        event: string,
+        callback: (e: { loaded: number; total: number }) => void
+      ) => void;
+    }) => void;
+    signal?: AbortSignal;
+  }): Promise<AILanguageModel | null> {
+    const sessionKey = `${config.systemPrompt ?? 'default'}-${config.temperature ?? 0.7}`;
 
-      // Format the prompt
-      const prompt = AI_PROMPTS.PROOFREAD.replace('{text}', text);
-
-      // Call AI with timeout and retry logic
-      const result = await this.callWithTimeout(prompt, 1);
-
-      if (!result) {
-        return text;
-      }
-
-      // Return the proofread version, or original if empty
-      return result.trim() || text;
-    } catch (error) {
-      console.error('Error in proofread:', error);
-      return text;
+    // Return cached session if available
+    if (this.sessions.has(sessionKey)) {
+      return this.sessions.get(sessionKey)!;
     }
-  }
-
-  /**
-   * Call the AI model with timeout and retry logic
-   * @param prompt The prompt to send to the AI
-   * @param retryCount Number of retries remaining
-   * @returns Promise resolving to AI response or null on failure
-   */
-  private async callWithTimeout(
-    prompt: string,
-    retryCount: number
-  ): Promise<string | null> {
-    const attemptNumber = 1 - retryCount + 1;
-    console.log(`[AI] Attempt ${attemptNumber} of ${2 - retryCount}`);
 
     try {
-      // Ensure model is initialized and valid
-      const modelReady = await this.ensureModel();
-      if (!modelReady) {
-        console.error('[AI] Model initialization failed');
+      // Access global LanguageModel (service worker context)
+      if (typeof LanguageModel === 'undefined') {
+        console.warn('Prompt API (Language Model) not available');
         return null;
       }
 
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.warn(`[AI] Request timeout after ${TIMING.AI_TIMEOUT}ms`);
-        controller.abort();
-      }, TIMING.AI_TIMEOUT);
+      console.log('[PromptManager] Creating LanguageModel session...');
+      const createStart = Date.now();
 
-      try {
-        const startTime = Date.now();
-        console.log('[AI] Sending prompt to model...');
+      // Create new session with specified options
+      const session = await LanguageModel.create({
+        systemPrompt: config.systemPrompt,
+        initialPrompts: config.initialPrompts,
+        temperature: config.temperature ?? TEMPERATURE_SETTINGS.balanced,
+        topK: config.topK ?? 40,
+        monitor: config.monitor,
+        signal: config.signal,
+      });
 
-        // Call the AI model with abort signal
-        const result = await this.model!.prompt(prompt, {
-          signal: controller.signal,
-        });
+      console.log(
+        `[PromptManager] LanguageModel.create completed in ${Date.now() - createStart}ms`
+      );
 
-        clearTimeout(timeoutId);
-        const duration = Date.now() - startTime;
-        console.log(`[AI] Response received in ${duration}ms`);
+      // Cache the session
+      this.sessions.set(sessionKey, session);
+      console.log(`Created prompt session: ${sessionKey.substring(0, 50)}...`);
 
-        return result;
-      } catch (error) {
-        clearTimeout(timeoutId);
-
-        // Check if it was a timeout (abort)
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.warn(
-            `[AI] Request aborted (timeout) on attempt ${attemptNumber}`
-          );
-
-          // Retry once if we have retries left
-          if (retryCount > 0) {
-            console.log(`[AI] Retrying... (${retryCount} retries remaining)`);
-            // Add a small delay before retry
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            return this.callWithTimeout(prompt, retryCount - 1);
-          } else {
-            console.error('[AI] All retry attempts exhausted');
-          }
-        } else {
-          console.error('[AI] Request failed with error:', error);
-        }
-
-        throw error;
-      }
+      return session;
     } catch (error) {
-      console.error(`[AI] Error on attempt ${attemptNumber}:`, error);
+      console.error('Error creating prompt session:', error);
       return null;
     }
   }
 
   /**
-   * Validate summary bullets for quality
-   * @param bullets Array of summary bullets
-   * @returns True if valid, false otherwise
+   * General-purpose prompt method
+   * @param text - Input text/prompt
+   * @param options - Optional configuration
+   * @returns AI-generated response
    */
-  private validateSummary(bullets: string[]): boolean {
-    // Must have exactly 3 bullets
-    if (bullets.length !== 3) {
-      return false;
+  async prompt(
+    text: string,
+    options?: {
+      systemPrompt?: string;
+      temperature?: number;
+      topK?: number;
+    }
+  ): Promise<string> {
+    // Check availability first
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Prompt API is not available');
+      }
     }
 
-    // Each bullet must be non-empty and within reasonable length
-    return bullets.every((bullet) => {
-      const trimmed = bullet.trim();
-      const wordCount = trimmed.split(/\s+/).length;
-
-      // Must have content and not exceed max words (with some tolerance)
-      return (
-        trimmed.length > 0 &&
-        wordCount > 0 &&
-        wordCount <= CONTENT_LIMITS.MAX_SUMMARY_WORDS + 5 // Allow 5 word tolerance
-      );
-    });
-  }
-
-  /**
-   * Parse the summary response into three bullets
-   * Expected format:
-   * - Insight: [text]
-   * - Surprise: [text]
-   * - Apply: [text]
-   *
-   * @param response Raw AI response
-   * @returns Array of three summary bullets
-   */
-  private parseSummaryResponse(response: string): string[] {
     try {
-      const lines = response.split('\n').filter((line) => line.trim());
-      const bullets: string[] = [];
-
-      // Look for lines starting with "- Insight:", "- Surprise:", "- Apply:"
-      const insightMatch = lines.find((line) =>
-        line.toLowerCase().includes('insight:')
-      );
-      const surpriseMatch = lines.find((line) =>
-        line.toLowerCase().includes('surprise:')
-      );
-      const applyMatch = lines.find((line) =>
-        line.toLowerCase().includes('apply:')
-      );
-
-      if (insightMatch) {
-        bullets.push(this.extractBulletText(insightMatch, 'insight:'));
-      }
-      if (surpriseMatch) {
-        bullets.push(this.extractBulletText(surpriseMatch, 'surprise:'));
-      }
-      if (applyMatch) {
-        bullets.push(this.extractBulletText(applyMatch, 'apply:'));
-      }
-
-      // Validate parsed bullets
-      if (!this.validateSummary(bullets)) {
-        console.warn('Parsed summary failed validation, using fallback');
-        return this.fallbackParseSummary(response);
-      }
-
-      return bullets;
+      // First attempt with standard timeout
+      return await this.promptWithTimeout(text, options, PROMPT_TIMEOUT);
     } catch (error) {
-      console.error('Error parsing summary response:', error);
-      return this.fallbackParseSummary(response);
+      console.warn('First prompt attempt failed, retrying...', error);
+
+      try {
+        // Retry with extended timeout
+        return await this.promptWithTimeout(text, options, RETRY_TIMEOUT);
+      } catch (retryError) {
+        console.error('Prompt failed after retry:', retryError);
+        throw new Error(
+          `Prompt operation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
+        );
+      }
     }
   }
 
   /**
-   * Extract text after a label (e.g., "Insight: text" -> "text")
-   * @param line The line containing the label and text
-   * @param label The label to remove (e.g., "insight:")
-   * @returns Extracted text
+   * Prompt with timeout wrapper
+   * @param text - Input text/prompt
+   * @param options - Optional configuration
+   * @param timeout - Timeout in milliseconds
+   * @returns AI-generated response
    */
-  private extractBulletText(line: string, label: string): string {
-    const index = line.toLowerCase().indexOf(label);
-    if (index === -1) return line.trim();
-
-    return line
-      .substring(index + label.length)
-      .replace(/^[\s\-:]+/, '') // Remove leading whitespace, dashes, colons
-      .trim();
-  }
-
-  /**
-   * Fallback parsing for summary when expected format is not found
-   * @param response Raw AI response
-   * @returns Array of up to three bullets
-   */
-  private fallbackParseSummary(response: string): string[] {
-    const lines = response
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .filter((line) => !/^(insight|surprise|apply)$/i.exec(line)); // Remove standalone labels
-
-    // Take first 3 non-empty lines
-    return lines.slice(0, 3);
-  }
-
-  /**
-   * Validate reflection questions for quality
-   * @param questions Array of reflection questions
-   * @returns True if valid, false otherwise
-   */
-  private validateReflectionQuestions(questions: string[]): boolean {
-    // Must have exactly 2 questions
-    if (questions.length !== 2) {
-      return false;
-    }
-
-    // Each question must be non-empty, end with '?', and within reasonable length
-    return questions.every((question) => {
-      const trimmed = question.trim();
-      const wordCount = trimmed.split(/\s+/).length;
-
-      // Must have content, end with '?', and not exceed max words (with tolerance)
-      return (
-        trimmed.length > 0 &&
-        trimmed.endsWith('?') &&
-        wordCount > 0 &&
-        wordCount <= CONTENT_LIMITS.MAX_PROMPT_WORDS + 5 // Allow 5 word tolerance
-      );
+  private async promptWithTimeout(
+    text: string,
+    options:
+      | {
+          systemPrompt?: string;
+          temperature?: number;
+          topK?: number;
+        }
+      | undefined,
+    timeout: number
+  ): Promise<string> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Prompt timeout')), timeout);
     });
+
+    const promptPromise = this.executePrompt(text, options);
+
+    return Promise.race([promptPromise, timeoutPromise]);
   }
 
   /**
-   * Parse the reflection response into two questions
-   * Expected format:
-   * 1. [First question]
-   * 2. [Second question]
-   *
-   * @param response Raw AI response
-   * @returns Array of two reflection questions
+   * Execute prompt operation
+   * @param text - Input text/prompt
+   * @param options - Optional configuration
+   * @returns AI-generated response
    */
-  private parseReflectionResponse(response: string): string[] {
-    try {
-      const lines = response.split('\n').filter((line) => line.trim());
-      const questions: string[] = [];
+  private async executePrompt(
+    text: string,
+    options?: {
+      systemPrompt?: string;
+      temperature?: number;
+      topK?: number;
+    }
+  ): Promise<string> {
+    console.log('[PromptManager] Starting executePrompt...');
+    const sessionStart = Date.now();
 
-      // Look for lines starting with "1." or "2."
-      for (const line of lines) {
-        const match = /^[12][.)]\s*(.+)/.exec(line);
-        if (match) {
-          questions.push(match[1].trim());
-        }
-      }
+    // Create session with configuration
+    const session = await this.createSession({
+      systemPrompt: options?.systemPrompt,
+      temperature: options?.temperature,
+      topK: options?.topK,
+    });
 
-      // Validate parsed questions
-      if (!this.validateReflectionQuestions(questions)) {
-        console.warn(
-          'Parsed reflection questions failed validation, using fallback'
-        );
-        return this.fallbackParseReflection(response);
-      }
+    console.log(
+      `[PromptManager] Session created in ${Date.now() - sessionStart}ms`
+    );
 
-      return questions;
-    } catch (error) {
-      console.error('Error parsing reflection response:', error);
-      return this.fallbackParseReflection(response);
+    if (!session) {
+      throw new Error('Failed to create prompt session');
+    }
+
+    // Execute prompt
+    console.log('[PromptManager] Executing prompt...');
+    const promptStart = Date.now();
+    const result = await session.prompt(text);
+    console.log(
+      `[PromptManager] Prompt completed in ${Date.now() - promptStart}ms`
+    );
+
+    return result.trim();
+  }
+
+  /**
+   * Summarize content using Prompt API as fallback
+   * Mimics Summarizer API behavior with specialized prompts
+   * @param text - Content to summarize
+   * @param format - Desired summary format (defaults to 'bullets' for backward compatibility)
+   * @param outputLanguage - Target language for summary output (optional)
+   * @returns Array of summary strings
+   */
+  async summarize(
+    text: string,
+    format: SummaryFormat = 'bullets',
+    outputLanguage?: string
+  ): Promise<string[]> {
+    const systemPrompt = this.buildSummarizationSystemPrompt(
+      format,
+      outputLanguage
+    );
+    const userPrompt = this.buildSummarizationUserPrompt(text, format);
+
+    const result = await this.prompt(userPrompt, {
+      systemPrompt,
+      temperature: TEMPERATURE_SETTINGS.factual,
+    });
+
+    return this.parseSummaryResponse(result, format);
+  }
+
+  /**
+   * Build system prompt for summarization
+   * @param format - Summary format
+   * @param outputLanguage - Target language for summary output (optional)
+   * @returns System prompt string
+   */
+  private buildSummarizationSystemPrompt(
+    format: SummaryFormat,
+    outputLanguage?: string
+  ): string {
+    const basePrompt =
+      'You are a precise summarization assistant. Your task is to create concise, accurate summaries that capture the key information from the provided text.';
+
+    const languageInstruction = outputLanguage
+      ? ` Always respond in ${outputLanguage}.`
+      : ' Always respond in the same language as the input text.';
+
+    switch (format) {
+      case 'bullets':
+        return `${basePrompt}${languageInstruction} Always respond with exactly 3 bullet points, each containing no more than 20 words. Format each bullet point on a new line starting with a dash (-).`;
+      case 'paragraph':
+        return `${basePrompt}${languageInstruction} Always respond with a single paragraph of no more than 150 words that captures the main ideas.`;
+      case 'headline-bullets':
+        return `${basePrompt}${languageInstruction} Always respond with a headline (maximum 10 words) on the first line, followed by exactly 3 bullet points (each no more than 20 words). Format bullet points starting with a dash (-).`;
+      default:
+        return `${basePrompt}${languageInstruction}`;
     }
   }
 
   /**
-   * Fallback parsing for reflection prompts when expected format is not found
-   * @param response Raw AI response
-   * @returns Array of up to two questions
+   * Build user prompt for summarization
+   * @param text - Content to summarize
+   * @param format - Summary format
+   * @returns User prompt string
    */
-  private fallbackParseReflection(response: string): string[] {
-    const lines = response
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .filter((line) => /\?/.exec(line)); // Filter for questions
+  private buildSummarizationUserPrompt(
+    text: string,
+    format: SummaryFormat
+  ): string {
+    const formatInstructions: Record<SummaryFormat, string> = {
+      bullets:
+        'Provide exactly 3 bullet points summarizing the key information:',
+      paragraph: 'Provide a concise paragraph summary:',
+      'headline-bullets':
+        'Provide a headline followed by 3 bullet points summarizing the key information:',
+    };
 
-    // Take first 2 questions
-    return lines.slice(0, 2);
+    return `${formatInstructions[format]}\n\n${text}`;
   }
 
   /**
-   * Summarize content with streaming response
-   * Yields partial results as they become available
-   * @param content The article content to summarize
-   * @returns AsyncGenerator yielding partial summary text
+   * Parse summary response into array format
+   * @param response - AI response
+   * @param format - Summary format
+   * @returns Array of summary strings
    */
-  async *summarizeStreaming(content: string): AsyncGenerator<string> {
-    try {
-      // Check availability first
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          console.warn('AI not available for streaming summarization');
-          return;
+  private parseSummaryResponse(
+    response: string,
+    format: SummaryFormat
+  ): string[] {
+    switch (format) {
+      case 'bullets': {
+        // Extract bullet points
+        const bullets = response
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.startsWith('-') || line.startsWith('*'))
+          .map((line) => line.replace(/^[-*]\s*/, '').trim())
+          .filter((line) => line.length > 0)
+          .slice(0, 3);
+
+        // If no bullets found, split by newlines
+        if (bullets.length === 0) {
+          return response
+            .split('\n')
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .slice(0, 3);
         }
+
+        return bullets;
       }
 
-      // Truncate content if it exceeds token limit
-      const tokens = estimateTokens(content);
-      let processedContent = content;
+      case 'paragraph':
+        return [response.trim()];
 
-      if (tokens > CONTENT_LIMITS.MAX_TOKENS) {
-        console.warn(
-          `Content exceeds ${CONTENT_LIMITS.MAX_TOKENS} tokens, truncating...`
-        );
-        processedContent = truncateToTokens(
-          content,
-          CONTENT_LIMITS.TRUNCATE_TOKENS
-        );
+      case 'headline-bullets': {
+        const lines = response.split('\n').map((line) => line.trim());
+        const headline = lines[0] ?? '';
+        const bullets = lines
+          .slice(1)
+          .filter((line) => line.startsWith('-') || line.startsWith('*'))
+          .map((line) => line.replace(/^[-*]\s*/, '').trim())
+          .filter((line) => line.length > 0)
+          .slice(0, 3);
+
+        return [headline, ...bullets];
       }
 
-      // Format the prompt
-      const prompt = AI_PROMPTS.SUMMARIZE.replace(
-        '{content}',
-        processedContent
-      );
+      default:
+        return [response.trim()];
+    }
+  }
 
-      // Ensure model is ready
-      const modelReady = await this.ensureModel();
-      if (!modelReady) {
-        return;
+  /**
+   * Generate draft text using Prompt API as fallback
+   * Mimics Writer API behavior with specialized prompts
+   * @param topic - Topic or prompt for draft generation
+   * @param options - Writer options (tone, length)
+   * @param context - Optional context for better generation
+   * @returns Generated draft text
+   */
+  async generateDraft(
+    topic: string,
+    options: WriterOptions,
+    context?: string
+  ): Promise<string> {
+    const systemPrompt = this.buildWriterSystemPrompt(options);
+    const userPrompt = this.buildWriterUserPrompt(topic, context);
+
+    const result = await this.prompt(userPrompt, {
+      systemPrompt,
+      temperature: TEMPERATURE_SETTINGS.creative,
+    });
+
+    return result.trim();
+  }
+
+  /**
+   * Build system prompt for draft generation
+   * @param options - Writer options
+   * @returns System prompt string
+   */
+  private buildWriterSystemPrompt(options: WriterOptions): string {
+    const toneDescriptions: Record<WriterOptions['tone'], string> = {
+      calm: 'calm, reflective, and mindful',
+      professional: 'professional, clear, and formal',
+      casual: 'casual, friendly, and conversational',
+    };
+
+    const lengthDescriptions: Record<WriterOptions['length'], string> = {
+      short: '50-100 words',
+      medium: '100-200 words',
+      long: '200-300 words',
+    };
+
+    return `You are a skilled writing assistant. Generate thoughtful, well-structured text in a ${toneDescriptions[options.tone]} tone. Your response should be approximately ${lengthDescriptions[options.length]} in length. Write in a natural, flowing style appropriate for personal reflection.`;
+  }
+
+  /**
+   * Build user prompt for draft generation
+   * @param topic - Topic for generation
+   * @param context - Optional context
+   * @returns User prompt string
+   */
+  private buildWriterUserPrompt(topic: string, context?: string): string {
+    if (context) {
+      return `Based on the following context:\n\n${context}\n\nWrite a reflective paragraph about: ${topic}`;
+    }
+
+    return `Write a reflective paragraph about: ${topic}`;
+  }
+
+  /**
+   * Rewrite text using Prompt API as fallback
+   * Mimics Rewriter API behavior with specialized prompts
+   * @param text - Text to rewrite
+   * @param preset - Tone preset to apply
+   * @param context - Optional context
+   * @returns Rewritten text
+   */
+  async rewrite(
+    text: string,
+    preset: TonePreset,
+    context?: string
+  ): Promise<string> {
+    const systemPrompt = this.buildRewriterSystemPrompt(preset);
+    const userPrompt = this.buildRewriterUserPrompt(text, preset, context);
+
+    const result = await this.prompt(userPrompt, {
+      systemPrompt,
+      temperature: TEMPERATURE_SETTINGS.creative,
+    });
+
+    return result.trim();
+  }
+
+  /**
+   * Build system prompt for rewriting
+   * @param preset - Tone preset
+   * @returns System prompt string
+   */
+  private buildRewriterSystemPrompt(preset: TonePreset): string {
+    const presetDescriptions: Record<TonePreset, string> = {
+      calm: 'Rewrite text to be calm, peaceful, and reflective while maintaining the original meaning.',
+      concise:
+        'Rewrite text to be more concise and direct, removing unnecessary words while preserving all key information.',
+      empathetic:
+        'Rewrite text to be more empathetic, warm, and understanding while keeping the core message.',
+      academic:
+        'Rewrite text to be more formal, scholarly, and precise while maintaining clarity.',
+    };
+
+    return `You are a text rewriting assistant. ${presetDescriptions[preset]} Preserve the paragraph structure and all important details.`;
+  }
+
+  /**
+   * Build user prompt for rewriting
+   * @param text - Text to rewrite
+   * @param preset - Tone preset
+   * @param context - Optional context
+   * @returns User prompt string
+   */
+  private buildRewriterUserPrompt(
+    text: string,
+    preset: TonePreset,
+    context?: string
+  ): string {
+    const contextPrefix = context ? `Context: ${context}\n\n` : '';
+    return `${contextPrefix}Rewrite the following text with a ${preset} tone:\n\n${text}`;
+  }
+
+  /**
+   * Prompt with streaming support
+   * Updates progressively as response generates
+   * @param text - Input text/prompt
+   * @param options - Optional configuration
+   * @param onChunk - Callback for each text chunk
+   * @returns Complete generated text
+   */
+  async promptStreaming(
+    text: string,
+    options:
+      | {
+          systemPrompt?: string;
+          temperature?: number;
+          topK?: number;
+        }
+      | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<string> {
+    // Check availability first
+    if (!this.available) {
+      const isAvailable = await this.checkAvailability();
+      if (!isAvailable) {
+        throw new Error('Prompt API is not available');
+      }
+    }
+
+    try {
+      // Create session with configuration
+      const session = await this.createSession({
+        systemPrompt: options?.systemPrompt,
+        temperature: options?.temperature,
+        topK: options?.topK,
+      });
+
+      if (!session) {
+        throw new Error('Failed to create prompt session');
       }
 
-      // Get streaming response
-      const stream = this.model!.promptStreaming(prompt);
+      // Get streaming response - returns ReadableStream<string>
+      const stream = session.promptStreaming(text);
       const reader = stream.getReader();
-      const decoder = new TextDecoder();
+      let fullText = '';
 
       try {
         while (true) {
-          const result = await reader.read();
-          const done = result.done;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const value = result.value;
+          const { done, value } = await reader.read();
 
           if (done) {
             break;
           }
 
-          // Decode and yield the chunk
+          // Value is already a string chunk, no need to decode
           if (value) {
-            const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            yield chunk;
+            fullText += value;
+
+            // Call chunk callback for progressive UI updates
+            onChunk(value);
           }
         }
+
+        return fullText.trim();
       } finally {
         reader.releaseLock();
       }
     } catch (error) {
-      console.error('Error in summarizeStreaming:', error);
+      console.error('Streaming prompt failed:', error);
+      throw new Error(
+        `Streaming prompt failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
-   * Generate reflection prompts with streaming response
-   * Yields partial results as they become available
-   * @param summary The three-bullet summary
-   * @returns AsyncGenerator yielding partial prompt text
-   */
-  async *generateReflectionPromptsStreaming(
-    summary: string[]
-  ): AsyncGenerator<string> {
-    try {
-      // Check availability first
-      if (!this.isAvailable) {
-        const available = await this.checkAvailability();
-        if (!available) {
-          console.warn('AI not available for streaming reflection prompts');
-          return;
-        }
-      }
-
-      // Format the summary for the prompt
-      const summaryText = summary.join('\n');
-      const prompt = AI_PROMPTS.REFLECT.replace('{summary}', summaryText);
-
-      // Ensure model is ready
-      const modelReady = await this.ensureModel();
-      if (!modelReady) {
-        return;
-      }
-
-      // Get streaming response
-      const stream = this.model!.promptStreaming(prompt);
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const result = await reader.read();
-          const done = result.done;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const value = result.value;
-
-          if (done) {
-            break;
-          }
-
-          // Decode and yield the chunk
-          if (value) {
-            const chunk = decoder.decode(value as Uint8Array, { stream: true });
-            yield chunk;
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    } catch (error) {
-      console.error('Error in generateReflectionPromptsStreaming:', error);
-    }
-  }
-
-  /**
-   * Destroy the current AI model session
+   * Clean up all active sessions
+   * Should be called when the manager is no longer needed
    */
   destroy(): void {
-    if (this.model) {
-      this.model.destroy();
-      this.model = null;
-      this.modelCreatedAt = 0;
+    for (const [key, session] of this.sessions.entries()) {
+      try {
+        session.destroy();
+        console.log(`Destroyed prompt session: ${key.substring(0, 50)}...`);
+      } catch (error) {
+        console.error(`Error destroying session ${key}:`, error);
+      }
     }
+    this.sessions.clear();
+  }
+
+  /**
+   * Clean up a specific session
+   * @param sessionKey - Key identifying the session
+   */
+  destroySession(sessionKey: string): void {
+    const session = this.sessions.get(sessionKey);
+    if (session) {
+      try {
+        session.destroy();
+        this.sessions.delete(sessionKey);
+        console.log(
+          `Destroyed prompt session: ${sessionKey.substring(0, 50)}...`
+        );
+      } catch (error) {
+        console.error(`Error destroying session ${sessionKey}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Get model capabilities (token limits, temperature ranges)
+   * @returns Model capabilities or null if unavailable
+   */
+  async getCapabilities(): Promise<{
+    available: 'readily' | 'after-download' | 'no';
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+  } | null> {
+    try {
+      if (typeof LanguageModel === 'undefined') {
+        return null;
+      }
+
+      return await LanguageModel.capabilities();
+    } catch (error) {
+      console.error('Error getting model capabilities:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clone an existing session
+   * Useful for creating variations without re-downloading the model
+   * @param sessionKey - Key of the session to clone
+   * @returns Cloned session or null
+   */
+  async cloneSession(sessionKey: string): Promise<AILanguageModel | null> {
+    const session = this.sessions.get(sessionKey);
+    if (!session) {
+      console.warn(`Session ${sessionKey} not found for cloning`);
+      return null;
+    }
+
+    try {
+      const clonedSession = await session.clone();
+      const cloneKey = `${sessionKey}-clone-${Date.now()}`;
+      this.sessions.set(cloneKey, clonedSession);
+      console.log(`Cloned session: ${cloneKey}`);
+      return clonedSession;
+    } catch (error) {
+      console.error('Error cloning session:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Count tokens in a prompt without executing it
+   * Useful for checking if prompt fits within limits
+   * @param text - Text to count tokens for
+   * @param sessionKey - Optional session key to use for counting
+   * @returns Token count or null if unavailable
+   */
+  async countTokens(text: string, sessionKey?: string): Promise<number | null> {
+    try {
+      let session: AILanguageModel | null = null;
+
+      if (sessionKey && this.sessions.has(sessionKey)) {
+        session = this.sessions.get(sessionKey)!;
+      } else {
+        // Create a temporary session for counting
+        session = await this.createSession({});
+      }
+
+      if (!session) {
+        return null;
+      }
+
+      return await session.countPromptTokens(text);
+    } catch (error) {
+      console.error('Error counting tokens:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate reflection prompts based on summary (backward compatibility method)
+   * @param summary - Summary array to base prompts on
+   * @returns Array of reflection prompts
+   */
+  async generateReflectionPrompts(summary: string[]): Promise<string[]> {
+    const systemPrompt =
+      'You are a thoughtful reflection assistant. Generate three insightful reflection prompts based on the provided summary. Each prompt should encourage deep thinking and personal connection to the content.';
+
+    const userPrompt = `Based on this summary:\n\n${summary.join('\n')}\n\nGenerate exactly 3 reflection prompts, one per line, that help the reader think deeply about this content.`;
+
+    const result = await this.prompt(userPrompt, {
+      systemPrompt,
+      temperature: TEMPERATURE_SETTINGS.creative,
+    });
+
+    // Parse response into array of prompts
+    const prompts = result
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => line.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, ''))
+      .slice(0, 3);
+
+    return prompts.length > 0
+      ? prompts
+      : [
+          'What insights from this content resonate with you?',
+          'How might you apply these ideas in your life?',
+          'What questions does this raise for you?',
+        ];
+  }
+
+  /**
+   * Proofread text for grammar and clarity (backward compatibility method)
+   * Note: This is a simplified version. For full proofreading with change tracking,
+   * use the ProofreaderManager when available.
+   * @param text - Text to proofread
+   * @returns Proofread text
+   */
+  async proofread(text: string): Promise<string> {
+    const systemPrompt =
+      'You are a professional proofreader. Fix grammar, spelling, and clarity issues while preserving the original meaning and tone. Return only the corrected text without explanations.';
+
+    const userPrompt = `Proofread and correct the following text:\n\n${text}`;
+
+    const result = await this.prompt(userPrompt, {
+      systemPrompt,
+      temperature: TEMPERATURE_SETTINGS.factual,
+    });
+
+    return result.trim();
   }
 }

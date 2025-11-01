@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Start Reflection Button - Reflexa AI Component Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.95) 0%,
+          rgba(30, 41, 59, 0.95) 50%,
+          rgba(51, 65, 85, 0.95) 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        color: #e2e8f0;
+      }
+
+      .demo-container {
+        max-width: 800px;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        text-align: center;
+        color: #f1f5f9;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #94a3b8;
+        margin-bottom: 48px;
+        font-size: 16px;
+      }
+
+      .demo-section {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+      }
+
+      .demo-section h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #cbd5e1;
+      }
+
+      .demo-section p {
+        color: #94a3b8;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+
+      .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .summary-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+      }
+
+      .summary-box h3 {
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+
+      .summary-box ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .summary-box li {
+        color: #cbd5e1;
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+        line-height: 1.6;
+      }
+
+      .summary-box li::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: #0ea5e9;
+        font-weight: bold;
+      }
+
+      .output-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 20px;
+        min-height: 100px;
+      }
+
+      .output-box h3 {
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+
+      .output-box p {
+        color: #cbd5e1;
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      .output-box.empty p {
+        color: #64748b;
+        font-style: italic;
+      }
+
+      .state-label {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+      }
+
+      .state-label.default {
+        background: rgba(14, 165, 233, 0.2);
+        color: #38bdf8;
+      }
+
+      .state-label.loading {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+      }
+
+      .state-label.success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+
+      .state-label.disabled {
+        background: rgba(100, 116, 139, 0.2);
+        color: #94a3b8;
+      }
+
+      .code-block {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        overflow-x: auto;
+      }
+
+      .code-block code {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 14px;
+        color: #e2e8f0;
+        line-height: 1.6;
+      }
+
+      .note {
+        background: rgba(251, 191, 36, 0.1);
+        border-left: 3px solid #fbbf24;
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-top: 20px;
+        font-size: 14px;
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-container">
+      <h1>Start Reflection Button</h1>
+      <p class="subtitle">
+        AI-powered button that generates reflection drafts using Writer API
+      </p>
+
+      <div class="demo-section">
+        <h2>Interactive Demo</h2>
+        <p>
+          Click the button to generate a reflection draft based on the summary
+          below. The button shows loading state while generating and success
+          animation when complete.
+        </p>
+
+        <div class="summary-box">
+          <h3>Summary</h3>
+          <ul>
+            <li>
+              The article discusses the importance of mindful reading in the
+              digital age
+            </li>
+            <li>
+              Studies show that deep reading improves comprehension and
+              retention
+            </li>
+            <li>
+              Taking time to reflect on content leads to better learning
+              outcomes
+            </li>
+          </ul>
+        </div>
+
+        <div class="button-container">
+          <div id="button-root"></div>
+        </div>
+
+        <div id="output" class="output-box empty">
+          <h3>Generated Draft</h3>
+          <p>Click the button to generate a reflection draft...</p>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2>Component States</h2>
+        <p>The button has four distinct states:</p>
+
+        <div class="button-container">
+          <div>
+            <span class="state-label default">Default</span>
+            <div id="default-button"></div>
+          </div>
+
+          <div>
+            <span class="state-label loading">Loading</span>
+            <div id="loading-button"></div>
+          </div>
+
+          <div>
+            <span class="state-label success">Success</span>
+            <div id="success-button"></div>
+          </div>
+
+          <div>
+            <span class="state-label disabled">Disabled</span>
+            <div id="disabled-button"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-section">
+        <h2>Usage</h2>
+        <div class="code-block">
+          <code>
+            &lt;StartReflectionButton summary={['Summary point 1', 'Summary
+            point 2', 'Summary point 3']} onDraftGenerated={(draft) => {
+            console.log('Generated draft:', draft); // Insert draft into
+            reflection input }} disabled={false} /&gt;
+          </code>
+        </div>
+
+        <div class="note">
+          <strong>Note:</strong> This demo uses mock data. In production, the
+          button calls the Writer API via chrome.runtime.sendMessage to generate
+          actual reflection drafts.
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import React from 'https://esm.sh/react@18.2.0';
+      import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
+
+      // Mock chrome.runtime.sendMessage for demo
+      if (!window.chrome?.runtime?.sendMessage) {
+        window.chrome = {
+          runtime: {
+            sendMessage: async (message) => {
+              console.log('Mock sendMessage called:', message);
+              // Simulate API delay
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              // Return mock draft
+              return {
+                success: true,
+                data: 'This article on mindful reading resonates deeply with my own experience. In our fast-paced digital world, I often find myself skimming rather than truly absorbing content. The research showing improved comprehension through deep reading validates what I intuitively knew but rarely practiced. Moving forward, I want to be more intentional about slowing down and reflecting on what I read, recognizing that this investment of time leads to richer understanding and better retention.',
+                apiUsed: 'writer',
+                duration: 2000,
+              };
+            },
+          },
+        };
+      }
+
+      // Simple StartReflectionButton component for demo
+      const StartReflectionButton = ({
+        summary,
+        onDraftGenerated,
+        disabled,
+      }) => {
+        const [isLoading, setIsLoading] = React.useState(false);
+        const [showSuccess, setShowSuccess] = React.useState(false);
+
+        const handleClick = async () => {
+          if (disabled || isLoading) return;
+
+          setIsLoading(true);
+          setShowSuccess(false);
+
+          try {
+            const summaryText = summary.join('\n');
+            const prompt = `Based on this summary:\n${summaryText}\n\nWrite a reflective paragraph.`;
+
+            const response = await chrome.runtime.sendMessage({
+              type: 'write',
+              payload: {
+                prompt,
+                options: {
+                  tone: 'neutral',
+                  format: 'plain-text',
+                  length: 'short',
+                },
+              },
+            });
+
+            if (response.success) {
+              setShowSuccess(true);
+              onDraftGenerated(response.data);
+
+              setTimeout(() => {
+                setShowSuccess(false);
+              }, 2000);
+            }
+          } catch (error) {
+            console.error('Error generating draft:', error);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        const buttonClass = `reflexa-start-reflection-button ${
+          isLoading ? 'reflexa-start-reflection-button--loading' : ''
+        } ${showSuccess ? 'reflexa-start-reflection-button--success' : ''} ${
+          disabled ? 'reflexa-start-reflection-button--disabled' : ''
+        }`;
+
+        return React.createElement(
+          'button',
+          {
+            type: 'button',
+            className: buttonClass,
+            onClick: handleClick,
+            disabled: disabled || isLoading,
+            'aria-label': 'Start reflection with AI-generated draft',
+            'data-testid': 'start-reflection-button',
+          },
+          isLoading
+            ? [
+                React.createElement(
+                  'span',
+                  {
+                    key: 'spinner',
+                    className: 'reflexa-start-reflection-button__spinner',
+                    'aria-label': 'Generating draft',
+                  },
+                  React.createElement(
+                    'svg',
+                    {
+                      className: 'reflexa-start-reflection-button__spinner-svg',
+                      viewBox: '0 0 24 24',
+                      fill: 'none',
+                      xmlns: 'http://www.w3.org/2000/svg',
+                    },
+                    React.createElement('circle', {
+                      className:
+                        'reflexa-start-reflection-button__spinner-circle',
+                      cx: '12',
+                      cy: '12',
+                      r: '10',
+                      stroke: 'currentColor',
+                      strokeWidth: '3',
+                      strokeLinecap: 'round',
+                    })
+                  )
+                ),
+                React.createElement(
+                  'span',
+                  {
+                    key: 'text',
+                    className: 'reflexa-start-reflection-button__text',
+                  },
+                  'Generating...'
+                ),
+              ]
+            : showSuccess
+              ? [
+                  React.createElement(
+                    'span',
+                    {
+                      key: 'icon',
+                      className: 'reflexa-start-reflection-button__icon',
+                    },
+                    '✓'
+                  ),
+                  React.createElement(
+                    'span',
+                    {
+                      key: 'text',
+                      className: 'reflexa-start-reflection-button__text',
+                    },
+                    'Draft Inserted!'
+                  ),
+                ]
+              : [
+                  React.createElement(
+                    'span',
+                    {
+                      key: 'icon',
+                      className: 'reflexa-start-reflection-button__icon',
+                    },
+                    '✨'
+                  ),
+                  React.createElement(
+                    'span',
+                    {
+                      key: 'text',
+                      className: 'reflexa-start-reflection-button__text',
+                    },
+                    'Start Reflection'
+                  ),
+                ]
+        );
+      };
+
+      // Sample summary data
+      const sampleSummary = [
+        'The article discusses the importance of mindful reading in the digital age',
+        'Studies show that deep reading improves comprehension and retention',
+        'Taking time to reflect on content leads to better learning outcomes',
+      ];
+
+      // Render interactive demo
+      const root = ReactDOM.createRoot(document.getElementById('button-root'));
+      root.render(
+        React.createElement(StartReflectionButton, {
+          summary: sampleSummary,
+          onDraftGenerated: (draft) => {
+            const output = document.getElementById('output');
+            output.classList.remove('empty');
+            output.querySelector('p').textContent = draft;
+          },
+          disabled: false,
+        })
+      );
+
+      // Render state examples
+      const defaultRoot = ReactDOM.createRoot(
+        document.getElementById('default-button')
+      );
+      defaultRoot.render(
+        React.createElement(StartReflectionButton, {
+          summary: sampleSummary,
+          onDraftGenerated: () => {},
+          disabled: false,
+        })
+      );
+
+      // Loading state (manually set)
+      const LoadingButton = () => {
+        const [isLoading] = React.useState(true);
+        return React.createElement(
+          'button',
+          {
+            type: 'button',
+            className:
+              'reflexa-start-reflection-button reflexa-start-reflection-button--loading',
+            disabled: true,
+          },
+          [
+            React.createElement(
+              'span',
+              {
+                key: 'spinner',
+                className: 'reflexa-start-reflection-button__spinner',
+              },
+              React.createElement(
+                'svg',
+                {
+                  className: 'reflexa-start-reflection-button__spinner-svg',
+                  viewBox: '0 0 24 24',
+                  fill: 'none',
+                },
+                React.createElement('circle', {
+                  className: 'reflexa-start-reflection-button__spinner-circle',
+                  cx: '12',
+                  cy: '12',
+                  r: '10',
+                  stroke: 'currentColor',
+                  strokeWidth: '3',
+                })
+              )
+            ),
+            React.createElement(
+              'span',
+              {
+                key: 'text',
+                className: 'reflexa-start-reflection-button__text',
+              },
+              'Generating...'
+            ),
+          ]
+        );
+      };
+
+      const loadingRoot = ReactDOM.createRoot(
+        document.getElementById('loading-button')
+      );
+      loadingRoot.render(React.createElement(LoadingButton));
+
+      // Success state
+      const SuccessButton = () => {
+        return React.createElement(
+          'button',
+          {
+            type: 'button',
+            className:
+              'reflexa-start-reflection-button reflexa-start-reflection-button--success',
+            disabled: true,
+          },
+          [
+            React.createElement(
+              'span',
+              {
+                key: 'icon',
+                className: 'reflexa-start-reflection-button__icon',
+              },
+              '✓'
+            ),
+            React.createElement(
+              'span',
+              {
+                key: 'text',
+                className: 'reflexa-start-reflection-button__text',
+              },
+              'Draft Inserted!'
+            ),
+          ]
+        );
+      };
+
+      const successRoot = ReactDOM.createRoot(
+        document.getElementById('success-button')
+      );
+      successRoot.render(React.createElement(SuccessButton));
+
+      // Disabled state
+      const disabledRoot = ReactDOM.createRoot(
+        document.getElementById('disabled-button')
+      );
+      disabledRoot.render(
+        React.createElement(StartReflectionButton, {
+          summary: sampleSummary,
+          onDraftGenerated: () => {},
+          disabled: true,
+        })
+      );
+    </script>
+
+    <!-- Import styles from the actual component -->
+    <link rel="stylesheet" href="../src/content/styles.css" />
+  </body>
+</html>

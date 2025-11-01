@@ -4,7 +4,13 @@
  */
 
 import { unifiedAI } from './unifiedAIService';
-import type { Message, AIResponse } from '../types';
+import type {
+  Message,
+  AIResponse,
+  TonePreset,
+  ProofreadResult,
+} from '../types';
+import { createSuccessResponse, createErrorResponse } from '../types';
 
 /**
  * Handle incoming messages from content scripts and popup
@@ -68,17 +74,14 @@ export async function handleMessage(
         return await handleCheckAllAI();
 
       default:
-        return {
-          success: false,
-          error: `Unknown message type: ${message.type}`,
-        };
+        return createErrorResponse(`Unknown message type: ${message.type}`, 0);
     }
   } catch (error) {
     console.error('[Background] Error handling message:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Unknown error',
+      0
+    );
   }
 }
 
@@ -88,25 +91,25 @@ export async function handleMessage(
 async function handleSummarize(payload: {
   content: string;
 }): Promise<AIResponse<string[]>> {
+  const startTime = Date.now();
   try {
     const summary = await unifiedAI.prompt.summarize(payload.content);
 
     if (summary.length === 0) {
-      return {
-        success: false,
-        error: 'Failed to generate summary',
-      };
+      return createErrorResponse(
+        'Failed to generate summary',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
-    return {
-      success: true,
-      data: summary,
-    };
+    return createSuccessResponse(summary, 'prompt', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Summarization failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Summarization failed',
+      Date.now() - startTime,
+      'prompt'
+    );
   }
 }
 
@@ -116,28 +119,27 @@ async function handleSummarize(payload: {
 async function handleReflect(payload: {
   summary: string[];
 }): Promise<AIResponse<string[]>> {
+  const startTime = Date.now();
   try {
     const questions = await unifiedAI.prompt.generateReflectionPrompts(
       payload.summary
     );
 
     if (questions.length === 0) {
-      return {
-        success: false,
-        error: 'Failed to generate reflection prompts',
-      };
+      return createErrorResponse(
+        'Failed to generate reflection prompts',
+        Date.now() - startTime,
+        'prompt'
+      );
     }
 
-    return {
-      success: true,
-      data: questions,
-    };
+    return createSuccessResponse(questions, 'prompt', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Reflection generation failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Reflection generation failed',
+      Date.now() - startTime,
+      'prompt'
+    );
   }
 }
 
@@ -147,31 +149,38 @@ async function handleReflect(payload: {
  */
 async function handleProofread(payload: {
   text: string;
-}): Promise<AIResponse<string>> {
+}): Promise<AIResponse<ProofreadResult>> {
+  const startTime = Date.now();
   try {
     // Try native Proofreader API first
     const proofreaderAvailable =
       await unifiedAI.proofreader.checkAvailability();
 
-    let result: string;
+    let result: ProofreadResult;
+    let apiUsed: string;
 
     if (proofreaderAvailable) {
       console.log('[Background] Using native Proofreader API');
       result = await unifiedAI.proofreader.proofread(payload.text);
+      apiUsed = 'proofreader';
     } else {
       console.log('[Background] Falling back to Prompt API for proofreading');
-      result = await unifiedAI.prompt.proofread(payload.text);
+      const correctedText = await unifiedAI.prompt.proofread(payload.text);
+      // Prompt API returns just the corrected text, so we create a ProofreadResult
+      result = {
+        correctedText,
+        corrections: [], // Prompt API doesn't provide detailed corrections
+      };
+      apiUsed = 'prompt';
     }
 
-    return {
-      success: true,
-      data: result,
-    };
+    return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Proofreading failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Proofreading failed',
+      Date.now() - startTime,
+      'proofreader'
+    );
   }
 }
 
@@ -183,34 +192,34 @@ async function handleTranslate(payload: {
   source: string;
   target: string;
 }): Promise<AIResponse<string>> {
+  const startTime = Date.now();
   try {
-    const available = await unifiedAI.translator.checkAvailability(
+    const available = await unifiedAI.translator.canTranslate(
       payload.source,
       payload.target
     );
 
     if (!available) {
-      return {
-        success: false,
-        error: `Translation not available for ${payload.source} -> ${payload.target}`,
-      };
+      return createErrorResponse(
+        `Translation not available for ${payload.source} -> ${payload.target}`,
+        Date.now() - startTime,
+        'translator'
+      );
     }
 
     const result = await unifiedAI.translator.translate(
       payload.text,
-      payload.source,
-      payload.target
+      payload.target,
+      payload.source
     );
 
-    return {
-      success: true,
-      data: result,
-    };
+    return createSuccessResponse(result, 'translator', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Translation failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Translation failed',
+      Date.now() - startTime,
+      'translator'
+    );
   }
 }
 
@@ -219,36 +228,37 @@ async function handleTranslate(payload: {
  */
 async function handleRewrite(payload: {
   text: string;
-  options?: {
-    tone?: 'as-is' | 'more-formal' | 'more-casual';
-    format?: 'as-is' | 'plain-text' | 'markdown';
-    length?: 'as-is' | 'shorter' | 'longer';
-  };
-}): Promise<AIResponse<string>> {
+  preset?: TonePreset;
+  context?: string;
+}): Promise<AIResponse<{ original: string; rewritten: string }>> {
+  const startTime = Date.now();
   try {
     const available = await unifiedAI.rewriter.checkAvailability();
 
     if (!available) {
-      return {
-        success: false,
-        error: 'Rewriter API not available',
-      };
+      return createErrorResponse(
+        'Rewriter API not available',
+        Date.now() - startTime,
+        'rewriter'
+      );
     }
+
+    // Default to 'calm' preset if not specified
+    const preset = payload.preset ?? 'calm';
 
     const result = await unifiedAI.rewriter.rewrite(
       payload.text,
-      payload.options
+      preset,
+      payload.context
     );
 
-    return {
-      success: true,
-      data: result,
-    };
+    return createSuccessResponse(result, 'rewriter', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Rewriting failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Rewriting failed',
+      Date.now() - startTime,
+      'rewriter'
+    );
   }
 }
 
@@ -263,14 +273,16 @@ async function handleWrite(payload: {
     length?: 'short' | 'medium' | 'long';
   };
 }): Promise<AIResponse<string>> {
+  const startTime = Date.now();
   try {
     const available = await unifiedAI.writer.checkAvailability();
 
     if (!available) {
-      return {
-        success: false,
-        error: 'Writer API not available',
-      };
+      return createErrorResponse(
+        'Writer API not available',
+        Date.now() - startTime,
+        'writer'
+      );
     }
 
     const result = await unifiedAI.writer.write(
@@ -278,15 +290,13 @@ async function handleWrite(payload: {
       payload.options
     );
 
-    return {
-      success: true,
-      data: result,
-    };
+    return createSuccessResponse(result, 'writer', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Writing failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Writing failed',
+      Date.now() - startTime,
+      'writer'
+    );
   }
 }
 
@@ -294,18 +304,16 @@ async function handleWrite(payload: {
  * Handle AI availability check (existing - Prompt API only)
  */
 async function handleCheckAI(): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
   try {
     const available = await unifiedAI.prompt.checkAvailability();
-    return {
-      success: true,
-      data: available,
-    };
+    return createSuccessResponse(available, 'prompt', Date.now() - startTime);
   } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Availability check failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Availability check failed',
+      Date.now() - startTime,
+      'prompt'
+    );
   }
 }
 
@@ -322,17 +330,19 @@ async function handleCheckAllAI(): Promise<
     rewriter: boolean;
   }>
 > {
+  const startTime = Date.now();
   try {
     const availability = await unifiedAI.checkAllAvailability();
-    return {
-      success: true,
-      data: availability,
-    };
+    return createSuccessResponse(
+      availability,
+      'unified',
+      Date.now() - startTime
+    );
   } catch (error) {
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'Availability check failed',
-    };
+    return createErrorResponse(
+      error instanceof Error ? error.message : 'Availability check failed',
+      Date.now() - startTime,
+      'unified'
+    );
   }
 }

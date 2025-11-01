@@ -1,19 +1,24 @@
 import './styles.css';
 import { createRoot } from 'react-dom/client';
-import { DwellTracker } from './dwellTracker';
-import { ContentExtractor } from './contentExtractor';
-import { LotusNudge } from './LotusNudge';
-import { ReflectModeOverlay } from './ReflectModeOverlay';
-import { ErrorModal } from './ErrorModal';
-import { Notification } from './Notification';
+import { DwellTracker } from './features/dwellTracking';
+import { ContentExtractor } from './features/contentExtraction/contentExtractor';
+import { LotusNudge, ErrorModal, Notification } from './components';
+import { MeditationFlowOverlay } from './components/MeditationFlowOverlay';
 import { AudioManager } from '../utils/audioManager';
 import { performanceMonitor } from '../utils/performanceMonitor';
+import { getLanguageName } from '../utils/translationHelpers';
 import type {
   Message,
   Settings,
   AIResponse,
   Reflection,
   ExtractedContent,
+  SummaryFormat,
+  LanguageDetection,
+  AICapabilities,
+  TonePreset,
+  ProofreadResult,
+  VoiceInputMetadata,
 } from '../types';
 import { generateUUID } from '../utils';
 import { ERROR_MESSAGES } from '../constants';
@@ -50,10 +55,58 @@ let isNotificationVisible = false;
 // Current reflection data
 let currentExtractedContent: ExtractedContent | null = null;
 let currentSummary: string[] = [];
+let currentSummaryDisplay: string[] = [];
 let currentPrompts: string[] = [];
+let currentSummaryFormat: SummaryFormat = 'bullets';
+let isLoadingSummary = false;
+let currentSummaryBuffer = '';
+let summaryAnimationIndex = 0;
+let summaryAnimationTimer: number | null = null;
+let summaryAnimationFormat: SummaryFormat = 'bullets';
+let summaryStreamComplete = false;
+let activeSummaryStreamCleanup: (() => void) | null = null;
+
+// Language detection state
+let currentLanguageDetection: LanguageDetection | null = null;
+let isTranslating = false;
+// Persistent target language for current overlay session. When set, all
+// subsequent AI-generated outputs should appear in this language.
+// Default target language for formatting/rewrites
+let selectedTargetLanguage: string | null = null;
+let preferredLanguageBaseline: string | null = null;
+let isTargetLanguageOverridden = false;
+// Remember the original detected language for reliable translations after
+// user changes target language.
+let originalDetectedLanguage: string | null = null;
+let originalContentLanguage: LanguageDetection | null = null;
+
+// Rewrite state
+const isRewritingArray: boolean[] = [false, false];
+
+// Ambient audio state
+let isAmbientMuted = false;
+
+// AI capabilities
+let aiCapabilities: AICapabilities | null = null;
 
 // AI availability status
 let aiAvailable: boolean | null = null;
+
+// AI Status modal UI state (replaces Help)
+let helpModalContainer: HTMLDivElement | null = null;
+let helpModalRoot: ReturnType<typeof createRoot> | null = null;
+let isHelpModalVisible = false;
+
+// Settings modal UI state
+let settingsModalContainer: HTMLDivElement | null = null;
+let settingsModalRoot: ReturnType<typeof createRoot> | null = null;
+let isSettingsModalVisible = false;
+// Dashboard modal UI state (content overlay)
+let dashboardModalContainer: HTMLDivElement | null = null;
+let dashboardModalRoot: ReturnType<typeof createRoot> | null = null;
+let isDashboardModalVisible = false;
+
+// Language names map removed (no longer shown in UI)
 
 // Lotus nudge styles constant for better maintainability
 const LOTUS_NUDGE_STYLES = `
@@ -80,11 +133,35 @@ const LOTUS_NUDGE_STYLES = `
   }
 
   /* Base component styles */
-  .reflexa-lotus-nudge {
+  .reflexa-nudge-wrapper {
     position: fixed;
+    z-index: 999999;
+  }
+
+  .reflexa-nudge-wrapper--bottom-right { bottom: 32px; right: 32px; }
+  .reflexa-nudge-wrapper--bottom-left { bottom: 32px; left: 32px; }
+  .reflexa-nudge-wrapper--top-right { top: 32px; right: 32px; }
+  .reflexa-nudge-wrapper--top-left { top: 32px; left: 32px; }
+
+  /* Expand wrapper hit area to include the vertical quick-actions column */
+  .reflexa-nudge-wrapper--bottom-left,
+  .reflexa-nudge-wrapper--bottom-right {
+    padding-top: 160px; /* height to cover 3 x 44px + gaps */
+  }
+  .reflexa-nudge-wrapper--top-left,
+  .reflexa-nudge-wrapper--top-right {
+    padding-bottom: 160px;
+  }
+
+  .reflexa-lotus-nudge {
+    position: relative; /* positioned by wrapper */
     width: 64px;
     height: 64px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    background: linear-gradient(
+      135deg,
+      var(--color-zen-500, #0ea5e9) 0%,
+      var(--color-zen-600, #0284c7) 100%
+    );
     border: none;
     border-radius: 50%;
     cursor: pointer;
@@ -93,38 +170,121 @@ const LOTUS_NUDGE_STYLES = `
     justify-content: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     z-index: 999999;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, border-radius 0.2s ease;
+    padding: 0 16px;
     /* Apply animations */
     animation:
-      fadeIn 1s ease-in-out,
-      pulseGentle 2s ease-in-out infinite 1s;
+      fadeIn 0.1s ease-in-out,
+      pulseGentle 2s ease-in-out infinite;
   }
+
+  /* Quick circular actions (hidden by default) */
+  .reflexa-nudge-quick {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+
+  .reflexa-nudge-wrapper--bottom-left .reflexa-nudge-quick { left: 0; bottom: 80px; }
+  .reflexa-nudge-wrapper--bottom-right .reflexa-nudge-quick { right: 0; bottom: 80px; }
+  .reflexa-nudge-wrapper--top-left .reflexa-nudge-quick { left: 0; top: 80px; }
+  .reflexa-nudge-wrapper--top-right .reflexa-nudge-quick { right: 0; top: 80px; }
+
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-nudge-quick,
+  .reflexa-nudge-wrapper:hover .reflexa-nudge-quick,
+  .reflexa-nudge-wrapper:focus-within .reflexa-nudge-quick {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .reflexa-nudge-quick__btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: none;
+    background: var(--color-lotus-100, #eef2ff);
+    color: var(--color-lotus-600, #4f46e5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.18);
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .reflexa-nudge-quick__btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(79,70,229,.24); }
+  .reflexa-nudge-quick__btn:active { transform: none; }
+  .reflexa-nudge-quick__btn:focus-visible { outline: 3px solid rgba(79,70,229,.55); outline-offset: 3px; }
+
+  /* Tooltips for quick actions */
+  .reflexa-nudge-quick__btn {
+    position: relative;
+  }
+  .reflexa-nudge-quick__tooltip {
+    position: absolute;
+    left: 52px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--color-calm-900, #0f172a);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+  }
+  .reflexa-nudge-quick__btn:hover .reflexa-nudge-quick__tooltip,
+  .reflexa-nudge-quick__btn:focus .reflexa-nudge-quick__tooltip { opacity: 1; }
 
   /* Position variants */
-  .reflexa-lotus-nudge--bottom-right {
-    bottom: 32px;
-    right: 32px;
-  }
-
-  .reflexa-lotus-nudge--bottom-left {
-    bottom: 32px;
-    left: 32px;
-  }
-
-  .reflexa-lotus-nudge--top-right {
-    top: 32px;
-    right: 32px;
-  }
-
-  .reflexa-lotus-nudge--top-left {
-    top: 32px;
-    left: 32px;
-  }
+  .reflexa-lotus-nudge--bottom-right {}
+  .reflexa-lotus-nudge--bottom-left {}
+  .reflexa-lotus-nudge--top-right {}
+  .reflexa-lotus-nudge--top-left {}
 
   /* Hover state */
   .reflexa-lotus-nudge:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  }
+
+  /* Expand into pill when open (hover/focus) */
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-lotus-nudge,
+  .reflexa-nudge-wrapper:hover .reflexa-lotus-nudge,
+  .reflexa-nudge-wrapper:focus-within .reflexa-lotus-nudge {
+    width: 220px;
+    border-radius: 999px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .reflexa-lotus-nudge__label {
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .02em;
+    opacity: 0;
+    width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity .18s ease, width .18s ease, margin-left .18s ease;
+  }
+  .reflexa-nudge-wrapper[data-open="true"] .reflexa-lotus-nudge__label,
+  .reflexa-nudge-wrapper:hover .reflexa-lotus-nudge__label,
+  .reflexa-nudge-wrapper:focus-within .reflexa-lotus-nudge__label {
+    opacity: 1;
+    width: auto;
+    margin-left: 8px;
   }
 
   /* Active state */
@@ -167,8 +327,61 @@ const LOTUS_NUDGE_STYLES = `
     .reflexa-lotus-nudge {
       animation: fadeIn 0.3s ease-in-out;
     }
+    .reflexa-nudge-quick { transition: none; }
   }
 `;
+
+/**
+ * Update the session target language based on current settings.
+ * Defaults to the preferred translation language when translation
+ * features are enabled. Clears the override when translation is off.
+ */
+const applyTranslationPreference = (settings: Settings | null | undefined) => {
+  const translationActive = Boolean(
+    settings?.enableTranslation ?? settings?.translationEnabled
+  );
+
+  if (!translationActive) {
+    selectedTargetLanguage = null;
+    preferredLanguageBaseline = null;
+    isTargetLanguageOverridden = false;
+    return;
+  }
+
+  let derived = settings?.preferredTranslationLanguage?.trim();
+
+  if (!derived) {
+    const targetCandidate = settings?.targetLanguage?.trim();
+    if (targetCandidate && targetCandidate.length > 0) {
+      derived = targetCandidate;
+    }
+  }
+
+  if (!derived) {
+    const browserLanguage = navigator.language?.split('-')[0];
+    if (browserLanguage && browserLanguage.length > 0) {
+      derived = browserLanguage;
+    } else {
+      derived = 'en';
+    }
+  }
+
+  if (!derived) {
+    derived = 'en';
+  }
+
+  preferredLanguageBaseline = derived;
+
+  if (!isTargetLanguageOverridden || !selectedTargetLanguage) {
+    selectedTargetLanguage = derived;
+    isTargetLanguageOverridden = false;
+  }
+
+  if (!translationActive) {
+    // Even when translation toggles are off, keep baseline so AI defaults to the preferred language.
+    return;
+  }
+};
 
 /**
  * Initiate the complete reflection flow
@@ -177,6 +390,8 @@ const LOTUS_NUDGE_STYLES = `
 const initiateReflectionFlow = async () => {
   try {
     console.log('Starting reflection flow...');
+
+    applyTranslationPreference(currentSettings);
 
     // Show loading state
     setNudgeLoadingState(true);
@@ -198,6 +413,24 @@ const initiateReflectionFlow = async () => {
       } else {
         aiAvailable = false;
         console.error('AI check failed:', aiCheckResponse.error);
+      }
+    }
+
+    // Get AI capabilities
+    if (aiCapabilities === null) {
+      const capabilitiesResponse =
+        await sendMessageToBackground<AICapabilities>({
+          type: 'getCapabilities',
+        });
+
+      if (capabilitiesResponse.success) {
+        aiCapabilities = capabilitiesResponse.data;
+        console.log('AI capabilities:', aiCapabilities);
+      } else {
+        console.error(
+          'Failed to get capabilities:',
+          capabilitiesResponse.error
+        );
       }
     }
 
@@ -240,6 +473,7 @@ const initiateReflectionFlow = async () => {
           hideErrorModal();
           // Proceed with manual mode
           currentSummary = ['', '', ''];
+          currentSummaryDisplay = currentSummary;
           currentPrompts = [
             'What did you find most interesting?',
             'How might you apply this?',
@@ -251,49 +485,190 @@ const initiateReflectionFlow = async () => {
       return;
     }
 
-    // Request AI summarization with retry logic
-    console.log('Requesting AI summarization...');
-    const summaryResponse = await sendMessageToBackground<string[]>({
-      type: 'summarize',
-      payload: currentExtractedContent.text,
+    // Show the Reflect Mode overlay immediately with loading state
+    isLoadingSummary = true;
+    currentSummary = [];
+    currentSummaryDisplay = [];
+    currentPrompts = [
+      'What did you find most interesting?',
+      'How might you apply this?',
+    ];
+    void showReflectModeOverlay();
+
+    // Request language detection first, then use it for summarization
+    // This happens during the breathing phase (Step 0)
+    console.log('Requesting language detection...');
+
+    // Detect language first
+    const languageResponse = await sendMessageToBackground<LanguageDetection>({
+      type: 'detectLanguage',
+      payload: {
+        text: currentExtractedContent.text.substring(0, 500),
+        pageUrl: currentExtractedContent.url,
+      },
     });
 
-    if (!summaryResponse.success) {
-      console.error('Summarization failed:', summaryResponse.error);
+    // Handle language detection
+    let detectedLanguageCode: string | undefined;
+    if (languageResponse.success) {
+      currentLanguageDetection = languageResponse.data;
+      originalContentLanguage ??= languageResponse.data;
+      detectedLanguageCode = languageResponse.data.detectedLanguage;
+      // Capture original language once per session
+      console.log(
+        `Language detected: ${currentLanguageDetection.languageName} (${currentLanguageDetection.detectedLanguage})`
+      );
+    } else {
+      console.warn('Language detection failed:', languageResponse.error);
+    }
 
-      // Check if it's a timeout error
-      if (summaryResponse.error.includes('timeout')) {
-        showErrorModal(
-          'AI Timeout',
-          ERROR_MESSAGES.AI_TIMEOUT,
-          'ai-timeout',
-          () => {
-            hideErrorModal();
-            // Proceed with manual mode
-            currentSummary = ['', '', ''];
-            currentPrompts = [
-              'What did you find most interesting?',
-              'How might you apply this?',
-            ];
-            void showReflectModeOverlay();
-          },
-          'Enter Summary Manually'
+    // Now request AI summarization with detected language
+    console.log('Requesting AI summarization...');
+
+    // Use default format from settings or fallback to bullets
+    const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
+    currentSummaryFormat = defaultFormat;
+
+    let summaryStreamed = false;
+    if (currentSettings?.useNativeSummarizer) {
+      try {
+        summaryStreamed = await summarizeWithStreaming(
+          currentExtractedContent.text,
+          defaultFormat,
+          detectedLanguageCode
         );
+      } catch (streamError) {
+        console.warn('Streaming summarization unavailable:', streamError);
+        currentSummaryBuffer = '';
+        currentSummary = [];
+        currentSummaryDisplay = [];
+        isLoadingSummary = true;
+      }
+    }
+
+    let summaryResponse: AIResponse<string[]> | null = null;
+
+    if (!summaryStreamed) {
+      summaryResponse = await sendMessageToBackground<string[]>({
+        type: 'summarize',
+        payload: {
+          content: currentExtractedContent.text,
+          format: defaultFormat,
+          detectedLanguage: detectedLanguageCode,
+        },
+      });
+
+      if (!summaryResponse.success) {
+        console.error('Summarization failed:', summaryResponse.error);
+        isLoadingSummary = false;
+
+        if (summaryResponse.error.includes('timeout')) {
+          currentSummary = ['', '', ''];
+          currentSummaryDisplay = currentSummary;
+          void showReflectModeOverlay();
+          return;
+        }
+
+        currentSummary = ['', '', ''];
+        currentSummaryDisplay = currentSummary;
+        void showReflectModeOverlay();
         return;
       }
 
-      // Fall back to manual mode with empty summary
-      currentSummary = ['', '', ''];
-      currentPrompts = [
-        'What did you find most interesting?',
-        'How might you apply this?',
-      ];
-      void showReflectModeOverlay();
-      return;
+      currentSummary = summaryResponse.data;
+      currentSummaryDisplay = summaryResponse.data;
+      summaryStreamComplete = true;
+      stopSummaryAnimation();
+      console.log('Summary received:', currentSummary);
+      isLoadingSummary = false;
+    } else {
+      console.log('Summary received (streaming):', currentSummary);
     }
 
-    currentSummary = summaryResponse.data;
-    console.log('Summary received:', currentSummary);
+    const detectionBeforeSummary = currentLanguageDetection;
+
+    if (detectionBeforeSummary) {
+      originalDetectedLanguage ??= detectionBeforeSummary.detectedLanguage;
+      originalContentLanguage ??= detectionBeforeSummary;
+      console.log('Language detected:', detectionBeforeSummary);
+
+      // Auto-translate if needed (during breathing phase)
+      if (shouldAutoTranslate(detectionBeforeSummary, currentSettings)) {
+        console.log('Auto-translating during breathing phase...');
+        await handleAutoTranslate(detectionBeforeSummary);
+      }
+    }
+
+    const summaryLanguageCode =
+      selectedTargetLanguage ??
+      preferredLanguageBaseline ??
+      currentSettings?.preferredTranslationLanguage ??
+      currentSettings?.targetLanguage ??
+      detectionBeforeSummary?.detectedLanguage;
+
+    if (summaryLanguageCode) {
+      currentLanguageDetection = {
+        detectedLanguage: summaryLanguageCode,
+        confidence:
+          summaryLanguageCode === detectionBeforeSummary?.detectedLanguage
+            ? (detectionBeforeSummary?.confidence ?? 1)
+            : 1,
+        languageName: getLanguageName(summaryLanguageCode),
+      };
+    } else {
+      currentLanguageDetection = detectionBeforeSummary;
+    }
+
+    const badgeLanguageDetection = originalContentLanguage ?? undefined;
+    const summaryLanguageDetection =
+      currentLanguageDetection ?? originalContentLanguage ?? undefined;
+
+    // Re-render overlay with summary loaded
+    if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      const translationEnabled = Boolean(currentSettings?.enableTranslation);
+      overlayRoot.render(
+        <MeditationFlowOverlay
+          summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={badgeLanguageDetection}
+          summaryLanguageDetection={summaryLanguageDetection}
+          onTranslateToEnglish={
+            translationEnabled ? handleTranslateToEnglish : undefined
+          }
+          onTranslate={translationEnabled ? handleTranslate : undefined}
+          isTranslating={translationEnabled ? isTranslating : false}
+          onProofread={handleProofread}
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
+                }
+              : undefined
+          }
+        />
+      );
+    }
 
     // Request AI reflection prompts
     console.log('Requesting reflection prompts...');
@@ -314,7 +689,7 @@ const initiateReflectionFlow = async () => {
       console.log('Prompts received:', currentPrompts);
     }
 
-    // Show the Reflect Mode overlay
+    // Update the overlay with prompts
     void showReflectModeOverlay();
   } catch (error) {
     console.error('Error in reflection flow:', error);
@@ -328,6 +703,138 @@ const initiateReflectionFlow = async () => {
   } finally {
     // Hide loading state
     setNudgeLoadingState(false);
+  }
+};
+
+/**
+ * Determine if content should be auto-translated
+ */
+const shouldAutoTranslate = (
+  detection: LanguageDetection,
+  settings: Settings | null
+): boolean => {
+  if (!settings?.enableTranslation) return false;
+  if (!detection) return false;
+
+  const userLang = navigator.language.split('-')[0];
+
+  // Don't translate if already in user's language
+  if (detection.detectedLanguage === userLang) return false;
+
+  // Don't translate if already in preferred language
+  if (detection.detectedLanguage === settings.preferredTranslationLanguage) {
+    return false;
+  }
+
+  // Only auto-translate if confidence is very high (90%+)
+  const threshold = 0.9;
+  if (detection.confidence < threshold) return false;
+
+  return true;
+};
+
+/**
+ * Auto-translate content during breathing phase
+ */
+const handleAutoTranslate = async (detection: LanguageDetection) => {
+  try {
+    const targetLang =
+      currentSettings?.preferredTranslationLanguage ??
+      navigator.language.split('-')[0];
+
+    // Check cache first
+    const cacheKey = `translation:${currentExtractedContent?.url}:${detection.detectedLanguage}:${targetLang}`;
+    const cached = await chrome.storage.local.get(cacheKey);
+
+    if (cached[cacheKey]) {
+      const cachedData = cached[cacheKey] as {
+        summary: string[];
+        timestamp: number;
+      };
+      const age = Date.now() - cachedData.timestamp;
+
+      // Use cache if less than 24 hours old
+      if (age < 24 * 60 * 60 * 1000) {
+        console.log('Using cached translation');
+        currentSummary = cachedData.summary;
+        currentSummaryDisplay = cachedData.summary;
+        stopSummaryAnimation();
+        summaryStreamComplete = true;
+        selectedTargetLanguage = targetLang;
+        currentLanguageDetection = {
+          detectedLanguage: targetLang,
+          confidence: 1,
+          languageName: getLanguageName(targetLang),
+        };
+        return;
+      }
+    }
+
+    // Translate each bullet
+    const translatedSummary: string[] = [];
+    let successCount = 0;
+    for (const bullet of currentSummary) {
+      const response = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          source: detection.detectedLanguage,
+          target: targetLang,
+        },
+      });
+
+      if (response.success) {
+        translatedSummary.push(response.data);
+        successCount += 1;
+      } else {
+        translatedSummary.push(bullet); // Keep original on error
+      }
+    }
+
+    if (successCount === 0) {
+      console.warn('Auto-translation skipped: no successful translations');
+      return;
+    }
+
+    // Update summary
+    currentSummary = translatedSummary;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
+    currentSummary = translatedSummary;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
+    currentSummaryDisplay = translatedSummary;
+    stopSummaryAnimation();
+    summaryStreamComplete = true;
+
+    if (successCount === translatedSummary.length) {
+      selectedTargetLanguage = targetLang;
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null &&
+        targetLang !== preferredLanguageBaseline;
+      currentLanguageDetection = {
+        detectedLanguage: targetLang,
+        confidence: 1,
+        languageName: getLanguageName(targetLang),
+      };
+
+      // Cache result only if we translated all bullets
+      await chrome.storage.local.set({
+        [cacheKey]: {
+          summary: translatedSummary,
+          timestamp: Date.now(),
+        },
+      });
+    } else {
+      console.warn('Auto-translation partially succeeded; cache skipped');
+    }
+
+    console.log('Auto-translation complete');
+  } catch (error) {
+    console.error('Auto-translation failed:', error);
+    // Keep original summary on error
   }
 };
 
@@ -350,9 +857,291 @@ const sendMessageToBackground = <T,>(
         resolve({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
+          duration: 0,
         });
       });
   });
+};
+
+interface AIStreamHandlers {
+  onChunk?: (chunk: string) => void;
+  onComplete?: (finalData?: string) => void;
+  onError?: (error: string) => void;
+}
+
+const startAIStream = (
+  type: string,
+  payload: unknown,
+  handlers: AIStreamHandlers
+): { requestId: string; cancel: () => void } => {
+  const port = chrome.runtime.connect({ name: 'ai-stream' });
+  const requestId = `${type}-${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+  let closed = false;
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    try {
+      port.disconnect();
+    } catch (disconnectError) {
+      console.warn('AI stream disconnect warning:', disconnectError);
+    }
+  };
+
+  port.onDisconnect.addListener(() => {
+    if (closed) return;
+    closed = true;
+    handlers.onError?.('Stream disconnected');
+  });
+
+  port.onMessage.addListener((rawMessage) => {
+    if (!rawMessage || typeof rawMessage !== 'object') return;
+
+    const message = rawMessage as {
+      requestId?: string;
+      event?: string;
+      data?: unknown;
+      error?: unknown;
+    };
+
+    if (message.requestId !== requestId) return;
+
+    switch (message.event) {
+      case 'chunk':
+        handlers.onChunk?.(
+          typeof message.data === 'string' ? message.data : ''
+        );
+        break;
+      case 'complete':
+        handlers.onComplete?.(
+          typeof message.data === 'string' ? message.data : undefined
+        );
+        cleanup();
+        break;
+      case 'error': {
+        const errorMessage =
+          typeof message.error === 'string'
+            ? message.error
+            : 'Unknown streaming error';
+        handlers.onError?.(errorMessage);
+        cleanup();
+        break;
+      }
+      default:
+        break;
+    }
+  });
+
+  try {
+    port.postMessage({
+      type,
+      requestId,
+      payload,
+    });
+  } catch (error) {
+    cleanup();
+    handlers.onError?.(
+      error instanceof Error ? error.message : 'Failed to start stream'
+    );
+  }
+
+  return { requestId, cancel: cleanup };
+};
+
+const parseSummaryBuffer = (
+  buffer: string,
+  format: SummaryFormat
+): string[] => {
+  const normalized = buffer.replace(/\r/g, '');
+  if (!normalized.trim()) {
+    return [];
+  }
+
+  if (format === 'paragraph') {
+    return [normalized.trim()];
+  }
+
+  const lines = normalized
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => line.replace(/^[*•-]\s*/, '').trim());
+
+  return lines;
+};
+
+const stopSummaryAnimation = () => {
+  if (summaryAnimationTimer !== null) {
+    window.clearTimeout(summaryAnimationTimer);
+    summaryAnimationTimer = null;
+  }
+};
+
+const stepSummaryAnimation = () => {
+  const targetLength = currentSummaryBuffer.length;
+  if (summaryAnimationIndex >= targetLength) {
+    summaryAnimationTimer = null;
+    if (summaryStreamComplete) {
+      currentSummaryDisplay = parseSummaryBuffer(
+        currentSummaryBuffer,
+        summaryAnimationFormat
+      );
+      renderOverlay();
+    }
+    return;
+  }
+
+  summaryAnimationIndex = Math.min(summaryAnimationIndex + 3, targetLength);
+
+  const partial = currentSummaryBuffer.slice(0, summaryAnimationIndex);
+  currentSummaryDisplay = parseSummaryBuffer(partial, summaryAnimationFormat);
+  renderOverlay();
+
+  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 20);
+};
+
+const startSummaryAnimation = (format: SummaryFormat) => {
+  summaryAnimationFormat = format;
+  if (summaryAnimationTimer !== null) return;
+  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 0);
+};
+
+const summarizeWithStreaming = async (
+  content: string,
+  format: SummaryFormat,
+  detectedLanguage?: string
+): Promise<boolean> => {
+  if (format === 'headline-bullets') {
+    return false;
+  }
+
+  return new Promise<boolean>((resolve, reject) => {
+    currentSummaryBuffer = '';
+    currentSummary = [];
+    currentSummaryDisplay = [];
+    summaryAnimationIndex = 0;
+    summaryStreamComplete = false;
+    stopSummaryAnimation();
+    let receivedChunk = false;
+    let completed = false;
+
+    if (activeSummaryStreamCleanup) {
+      activeSummaryStreamCleanup();
+      activeSummaryStreamCleanup = null;
+    }
+
+    const { cancel } = startAIStream(
+      'summarize-stream',
+      {
+        content,
+        format,
+        detectedLanguage,
+      },
+      {
+        onChunk: (chunk) => {
+          if (!chunk) return;
+          receivedChunk = true;
+          currentSummaryBuffer += chunk;
+          if (isLoadingSummary) {
+            isLoadingSummary = false;
+          }
+          startSummaryAnimation(format);
+        },
+        onComplete: (finalData) => {
+          completed = true;
+          if (typeof finalData === 'string' && finalData.length > 0) {
+            currentSummaryBuffer = finalData;
+          }
+          const finalSummary = parseSummaryBuffer(currentSummaryBuffer, format);
+          currentSummary = finalSummary;
+          summaryStreamComplete = true;
+          if (!receivedChunk) {
+            startSummaryAnimation(format);
+          } else if (summaryAnimationTimer === null) {
+            currentSummaryDisplay = finalSummary;
+            renderOverlay();
+          }
+          isLoadingSummary = false;
+          activeSummaryStreamCleanup = null;
+          resolve(parseSummaryBuffer(currentSummaryBuffer, format).length > 0);
+        },
+        onError: (error) => {
+          console.warn('Summarize stream error:', error);
+          if (!completed) {
+            currentSummaryBuffer = '';
+          }
+          activeSummaryStreamCleanup = null;
+          summaryStreamComplete = true;
+          if (receivedChunk) {
+            resolve(false);
+          } else {
+            reject(new Error(error));
+          }
+        },
+      }
+    );
+
+    activeSummaryStreamCleanup = () => {
+      cancel();
+      activeSummaryStreamCleanup = null;
+    };
+  });
+};
+
+/**
+ * Helper function to render the overlay with current state
+ * Used for initial render and re-renders when state changes
+ */
+const renderOverlay = () => {
+  if (!overlayRoot || !overlayContainer) return;
+
+  const handleToggleAmbient = async (mute: boolean) => {
+    if (!audioManager) return;
+    if (mute) {
+      await audioManager.stopAmbientLoopGracefully(400);
+      isAmbientMuted = true;
+    } else {
+      await audioManager.playAmbientLoopGracefully(400);
+      isAmbientMuted = false;
+    }
+    // Re-render overlay to update mute button state
+    renderOverlay();
+  };
+
+  const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+  const translationEnabled = Boolean(currentSettings?.enableTranslation);
+
+  overlayRoot.render(
+    <MeditationFlowOverlay
+      summary={currentSummary}
+      summaryDisplay={
+        currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+      }
+      prompts={currentPrompts}
+      onSave={handleSaveReflection}
+      onCancel={handleCancelReflection}
+      settings={currentSettings ?? getDefaultSettings()}
+      onFormatChange={handleFormatChange}
+      currentFormat={currentSummaryFormat}
+      isLoadingSummary={isLoadingSummary}
+      languageDetection={
+        originalContentLanguage ?? currentLanguageDetection ?? undefined
+      }
+      summaryLanguageDetection={
+        currentLanguageDetection ?? originalContentLanguage ?? undefined
+      }
+      onTranslateToEnglish={
+        translationEnabled ? handleTranslateToEnglish : undefined
+      }
+      onTranslate={translationEnabled ? handleTranslate : undefined}
+      isTranslating={translationEnabled ? isTranslating : false}
+      onProofread={handleProofread}
+      ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+      onToggleAmbient={soundEnabled ? handleToggleAmbient : undefined}
+    />
+  );
 };
 
 /**
@@ -381,10 +1170,10 @@ const showReflectModeOverlay = async () => {
 
   // Initialize audio manager if sound is enabled
   if (currentSettings?.enableSound && !audioManager) {
-    audioManager = new AudioManager();
+    audioManager = new AudioManager(currentSettings);
   }
 
-  // Play entry chime if enabled
+  // Play entry chime and ambient loop if enabled
   if (currentSettings?.enableSound && audioManager) {
     void audioManager.playEntryChime();
     void audioManager.playAmbientLoop();
@@ -420,16 +1209,9 @@ const showReflectModeOverlay = async () => {
 
   // Render the ReflectModeOverlay component
   overlayRoot = createRoot(rootElement);
-  overlayRoot.render(
-    <ReflectModeOverlay
-      summary={currentSummary}
-      prompts={currentPrompts}
-      onSave={handleSaveReflection}
-      onCancel={handleCancelReflection}
-      settings={currentSettings ?? getDefaultSettings()}
-      onProofread={handleProofread}
-    />
-  );
+
+  // Use the helper function for initial render
+  renderOverlay();
 
   isOverlayVisible = true;
 
@@ -452,22 +1234,33 @@ const showReflectModeOverlay = async () => {
  * @returns Default Settings object
  */
 const getDefaultSettings = (): Settings => ({
-  dwellThreshold: 30,
+  dwellThreshold: 10,
   enableSound: true,
   reduceMotion: false,
-  proofreadEnabled: false,
+  proofreadEnabled: true,
   privacyMode: 'local',
   useNativeSummarizer: false,
   useNativeProofreader: false,
   translationEnabled: false,
   targetLanguage: 'en',
+  defaultSummaryFormat: 'bullets',
+  enableProofreading: true,
+  enableTranslation: true,
+  preferredTranslationLanguage: 'en',
+  experimentalMode: false,
+  autoDetectLanguage: true,
+  voiceAutoStopDelay: 10000,
 });
 
 /**
  * Handle save reflection action
  * Sends reflection data to background worker for storage
  */
-const handleSaveReflection = async (reflections: string[]) => {
+const handleSaveReflection = async (
+  reflections: string[],
+  voiceMetadata?: VoiceInputMetadata[],
+  originalReflections?: (string | null)[]
+) => {
   console.log('Saving reflection...');
 
   try {
@@ -476,6 +1269,19 @@ const handleSaveReflection = async (reflections: string[]) => {
       audioManager.stopAmbientLoop();
     }
 
+    // Determine if any reflection was proofread
+    // If originalReflections has non-null values, it means proofreading was applied
+    const hasProofreadVersion = originalReflections?.some(
+      (orig) => orig !== null
+    );
+
+    // Build the final reflection array
+    // Use original versions where available, otherwise use current reflections
+    const finalReflections = reflections.map((reflection, index) => {
+      const original = originalReflections?.[index];
+      return original ?? reflection;
+    });
+
     // Create reflection object
     const reflection: Reflection = {
       id: generateUUID(),
@@ -483,7 +1289,11 @@ const handleSaveReflection = async (reflections: string[]) => {
       title: currentExtractedContent?.title ?? document.title,
       createdAt: Date.now(),
       summary: currentSummary,
-      reflection: reflections,
+      reflection: finalReflections,
+      proofreadVersion: hasProofreadVersion
+        ? reflections.join('\n\n')
+        : undefined,
+      voiceMetadata,
     };
 
     // Send to background worker for storage
@@ -524,11 +1334,15 @@ const handleSaveReflection = async (reflections: string[]) => {
     } else {
       console.log('Reflection saved successfully');
 
-      // Play completion bell if enabled
+      // Play completion bell if enabled (before hiding overlay)
       if (currentSettings?.enableSound && audioManager) {
         void audioManager.playCompletionBell();
       }
     }
+
+    // Wait a brief moment for the completion bell to start playing
+    // before hiding the overlay (bell continues playing after overlay closes)
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Clean up and hide overlay
     hideReflectModeOverlay();
@@ -551,7 +1365,7 @@ const handleSaveReflection = async (reflections: string[]) => {
 
 /**
  * Handle cancel reflection action
- * Closes overlay without saving
+ * Closes overlay without saving and shows the nudge again
  */
 const handleCancelReflection = () => {
   console.log('Reflection cancelled');
@@ -564,31 +1378,634 @@ const handleCancelReflection = () => {
   // Clean up and hide overlay
   hideReflectModeOverlay();
   resetReflectionState();
+
+  // Show the lotus nudge again so user can retry
+  showLotusNudge();
 };
 
 /**
  * Handle proofread request
  * Sends text to background worker for AI proofreading
  */
-const handleProofread = async (text: string, index: number) => {
+const handleProofread = async (
+  text: string,
+  index: number
+): Promise<ProofreadResult> => {
   console.log(`Proofreading reflection ${index}...`);
 
   try {
-    const proofreadResponse = await sendMessageToBackground<string>({
+    // Determine expected language for proofreading
+    const expectedLanguage =
+      selectedTargetLanguage ?? originalDetectedLanguage ?? 'en';
+
+    const proofreadResponse = await sendMessageToBackground<ProofreadResult>({
       type: 'proofread',
-      payload: text,
+      payload: {
+        text,
+        expectedLanguage,
+      },
     });
 
     if (proofreadResponse.success) {
       console.log('Proofread completed');
-      // The overlay component will handle updating the UI
-      // For now, we just log success
-      // In a more complete implementation, we'd update the reflection text
+      let result = proofreadResponse.data;
+
+      // Ensure proofread output is in selected target language, if any
+      if (selectedTargetLanguage && result.correctedText) {
+        try {
+          const detect = await sendMessageToBackground<LanguageDetection>({
+            type: 'detectLanguage',
+            payload: {
+              text: result.correctedText.substring(0, 500),
+              pageUrl: currentExtractedContent?.url ?? location.href,
+            },
+          });
+          const sourceLang = detect.success
+            ? detect.data.detectedLanguage
+            : (originalDetectedLanguage ?? 'en');
+          if (sourceLang !== selectedTargetLanguage) {
+            const tr = await sendMessageToBackground<string>({
+              type: 'translate',
+              payload: {
+                text: result.correctedText,
+                source: sourceLang,
+                target: selectedTargetLanguage,
+              },
+            });
+            if (tr.success) {
+              result = { ...result, correctedText: tr.data };
+            }
+          }
+        } catch (e) {
+          console.warn('Proofread translation skipped due to error:', e);
+        }
+      }
+
+      return result;
     } else {
       console.error('Proofread failed:', proofreadResponse.error);
+      throw new Error(proofreadResponse.error);
     }
   } catch (error) {
     console.error('Error proofreading:', error);
+    throw error;
+  }
+};
+
+/**
+ * Handle translate request
+ * Translates summary and prompts to target language
+ */
+const handleTranslate = async (targetLanguage: string) => {
+  if (!currentLanguageDetection || !currentExtractedContent) {
+    return;
+  }
+
+  console.log(`Translating to ${targetLanguage}...`);
+  isTranslating = true;
+
+  // Re-render with loading state
+  if (overlayRoot && overlayContainer) {
+    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+    overlayRoot.render(
+      <MeditationFlowOverlay
+        summary={currentSummary}
+        summaryDisplay={
+          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+        }
+        prompts={currentPrompts}
+        onSave={handleSaveReflection}
+        onCancel={handleCancelReflection}
+        settings={currentSettings ?? getDefaultSettings()}
+        onProofread={handleProofread}
+        onFormatChange={handleFormatChange}
+        currentFormat={currentSummaryFormat}
+        isLoadingSummary={false}
+        languageDetection={currentLanguageDetection}
+        onTranslateToEnglish={handleTranslateToEnglish}
+        onTranslate={handleTranslate}
+        isTranslating={true}
+        onRewrite={handleRewrite}
+        isRewriting={isRewritingArray}
+        proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+        onToggleAmbient={
+          soundEnabled
+            ? async (mute) => {
+                if (!audioManager) return;
+                if (mute) {
+                  await audioManager.stopAmbientLoopGracefully(400);
+                  isAmbientMuted = true;
+                } else {
+                  await audioManager.playAmbientLoopGracefully(400);
+                  isAmbientMuted = false;
+                }
+                renderOverlay();
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  try {
+    // Translate summary
+    const translatedSummary: string[] = [];
+    let translatedCount = 0;
+    let failedCount = 0;
+
+    for (const bullet of currentSummary) {
+      const translateResponse = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          source:
+            originalDetectedLanguage ??
+            currentLanguageDetection.detectedLanguage,
+          target: targetLanguage,
+        },
+      });
+
+      if (translateResponse.success) {
+        translatedSummary.push(translateResponse.data);
+        translatedCount += 1;
+      } else {
+        console.error('Translation failed:', translateResponse.error);
+        failedCount += 1;
+        translatedSummary.push(bullet); // Keep original on error
+      }
+    }
+
+    currentSummary = translatedSummary;
+
+    if (translatedCount > 0 && failedCount === 0) {
+      selectedTargetLanguage = targetLanguage;
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null
+          ? targetLanguage !== preferredLanguageBaseline
+          : true;
+      currentLanguageDetection = {
+        detectedLanguage: targetLanguage,
+        confidence: 1,
+        languageName: getLanguageName(targetLanguage),
+      };
+    }
+
+    const targetLanguageName = getLanguageName(targetLanguage);
+
+    if (translatedCount === 0) {
+      showNotification(
+        'Translation Failed',
+        'Could not translate content',
+        'error'
+      );
+    } else if (failedCount > 0) {
+      showNotification(
+        'Translation Partially Complete',
+        'Some items could not be translated',
+        'warning'
+      );
+    } else {
+      showNotification(
+        'Translation Complete',
+        `Content translated to ${targetLanguageName}`,
+        'info'
+      );
+    }
+  } catch (error) {
+    console.error('Error translating:', error);
+    showNotification(
+      'Translation Failed',
+      'Could not translate content',
+      'error'
+    );
+  } finally {
+    isTranslating = false;
+
+    // Re-render overlay with translated content
+    if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      overlayRoot.render(
+        <MeditationFlowOverlay
+          summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onProofread={handleProofread}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={false}
+          onRewrite={handleRewrite}
+          isRewriting={isRewritingArray}
+          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
+                }
+              : undefined
+          }
+        />
+      );
+    }
+  }
+};
+
+/**
+ * Handle translate to English request
+ * Translates summary and prompts to English
+ */
+const handleTranslateToEnglish = async () => {
+  if (!currentLanguageDetection || !currentExtractedContent) {
+    return;
+  }
+
+  console.log('Translating to English...');
+
+  try {
+    // Translate summary
+    const translatedSummary: string[] = [];
+    let translatedCount = 0;
+    let failedCount = 0;
+
+    for (const bullet of currentSummary) {
+      const translateResponse = await sendMessageToBackground<string>({
+        type: 'translate',
+        payload: {
+          text: bullet,
+          source: currentLanguageDetection.detectedLanguage,
+          target: 'en',
+        },
+      });
+
+      if (translateResponse.success) {
+        translatedSummary.push(translateResponse.data);
+        translatedCount += 1;
+      } else {
+        console.error('Translation failed:', translateResponse.error);
+        translatedSummary.push(bullet); // Keep original on error
+        failedCount += 1;
+      }
+    }
+
+    currentSummary = translatedSummary;
+
+    if (translatedCount === 0) {
+      showNotification(
+        'Translation Failed',
+        'Could not translate content to English',
+        'error'
+      );
+      return;
+    }
+
+    if (failedCount === 0) {
+      // Update language detection to English
+      currentLanguageDetection = {
+        detectedLanguage: 'en',
+        confidence: 1.0,
+        languageName: getLanguageName('en'),
+      };
+      selectedTargetLanguage = 'en';
+      isTargetLanguageOverridden =
+        preferredLanguageBaseline !== null
+          ? 'en' !== preferredLanguageBaseline
+          : true;
+    }
+
+    // Re-render overlay with translated content
+    if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      overlayRoot.render(
+        <MeditationFlowOverlay
+          summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onProofread={handleProofread}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection}
+          onTranslateToEnglish={handleTranslateToEnglish}
+          onTranslate={handleTranslate}
+          isTranslating={isTranslating}
+          onRewrite={handleRewrite}
+          isRewriting={isRewritingArray}
+          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
+                }
+              : undefined
+          }
+        />
+      );
+    }
+
+    if (failedCount === 0) {
+      showNotification(
+        'Translation Complete',
+        'Content translated to English',
+        'info'
+      );
+    } else {
+      showNotification(
+        'Translation Partially Complete',
+        'Some items could not be translated to English',
+        'warning'
+      );
+    }
+  } catch (error) {
+    console.error('Error translating to English:', error);
+    showNotification(
+      'Translation Failed',
+      'Could not translate content to English',
+      'error'
+    );
+  }
+};
+
+/**
+ * Handle rewrite request
+ * Rewrites text with selected tone preset
+ */
+const handleRewrite = async (
+  text: string,
+  tone: TonePreset,
+  index: number
+): Promise<{ original: string; rewritten: string }> => {
+  console.log(`Rewriting reflection ${index} with tone: ${tone}...`);
+
+  isRewritingArray[index] = true;
+
+  try {
+    // Build context from summary and reflection prompt
+    const contextParts: string[] = [];
+
+    if (currentSummary?.length > 0) {
+      contextParts.push(`Summary: ${currentSummary.join(' ')}`);
+    }
+
+    if (currentPrompts?.[index]) {
+      contextParts.push(`Reflection prompt: ${currentPrompts[index]}`);
+    }
+
+    const context =
+      contextParts.length > 0 ? contextParts.join('\n\n') : undefined;
+
+    const rewriteResponse = await sendMessageToBackground<{
+      original: string;
+      rewritten: string;
+    }>({
+      type: 'rewrite',
+      payload: {
+        text,
+        tone,
+        context,
+      },
+    });
+
+    if (rewriteResponse.success) {
+      console.log('Rewrite completed');
+      const { original, rewritten: rw } = rewriteResponse.data;
+      let rewritten = rw;
+
+      // Ensure output language matches selected target language, if any
+      if (selectedTargetLanguage) {
+        try {
+          // Detect language of rewritten text to avoid unnecessary translation
+          const detect = await sendMessageToBackground<LanguageDetection>({
+            type: 'detectLanguage',
+            payload: {
+              text: rewritten.substring(0, 500),
+              pageUrl: currentExtractedContent?.url ?? location.href,
+            },
+          });
+          const sourceLang = detect.success
+            ? detect.data.detectedLanguage
+            : (originalDetectedLanguage ?? 'en');
+          if (sourceLang !== selectedTargetLanguage) {
+            const tr = await sendMessageToBackground<string>({
+              type: 'translate',
+              payload: {
+                text: rewritten,
+                source: sourceLang,
+                target: selectedTargetLanguage,
+              },
+            });
+            if (tr.success) rewritten = tr.data;
+          }
+        } catch (e) {
+          console.warn('Rewrite translation skipped due to error:', e);
+        }
+      }
+
+      return { original, rewritten };
+    } else {
+      console.error('Rewrite failed:', rewriteResponse.error);
+      throw new Error(rewriteResponse.error);
+    }
+  } catch (error) {
+    console.error('Error rewriting:', error);
+    throw error;
+  } finally {
+    isRewritingArray[index] = false;
+  }
+};
+
+/**
+ * Handle summary format change
+ * Re-requests summary with new format from background worker
+ */
+const handleFormatChange = async (format: SummaryFormat) => {
+  if (!currentExtractedContent || isLoadingSummary) {
+    return;
+  }
+
+  console.log(`Changing summary format to: ${format}`);
+  currentSummaryFormat = format;
+  isLoadingSummary = true;
+
+  // Re-render overlay with loading state
+  if (overlayRoot && overlayContainer) {
+    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
+    const translationEnabled = Boolean(currentSettings?.enableTranslation);
+    overlayRoot.render(
+      <MeditationFlowOverlay
+        summary={currentSummary}
+        summaryDisplay={
+          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+        }
+        prompts={currentPrompts}
+        onSave={handleSaveReflection}
+        onCancel={handleCancelReflection}
+        settings={currentSettings ?? getDefaultSettings()}
+        onFormatChange={handleFormatChange}
+        currentFormat={currentSummaryFormat}
+        isLoadingSummary={true}
+        languageDetection={currentLanguageDetection ?? undefined}
+        onTranslateToEnglish={
+          translationEnabled ? handleTranslateToEnglish : undefined
+        }
+        onTranslate={translationEnabled ? handleTranslate : undefined}
+        isTranslating={translationEnabled ? isTranslating : false}
+        onProofread={handleProofread}
+        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+        onToggleAmbient={
+          soundEnabled
+            ? async (mute) => {
+                if (!audioManager) return;
+                if (mute) {
+                  await audioManager.stopAmbientLoopGracefully(400);
+                  isAmbientMuted = true;
+                } else {
+                  await audioManager.playAmbientLoopGracefully(400);
+                  isAmbientMuted = false;
+                }
+                renderOverlay();
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  try {
+    // Request new summary with selected format
+    // Pass detected language to maintain source language when translation is disabled
+    const summaryResponse = await sendMessageToBackground<string[]>({
+      type: 'summarize',
+      payload: {
+        content: currentExtractedContent.text,
+        format: format,
+        detectedLanguage: currentLanguageDetection?.detectedLanguage,
+      },
+    });
+
+    if (summaryResponse.success) {
+      let newSummary = summaryResponse.data;
+      // If the user selected a target language, translate the freshly
+      // generated summary to that language.
+      if (selectedTargetLanguage) {
+        const translated: string[] = [];
+        for (const item of newSummary) {
+          const tr = await sendMessageToBackground<string>({
+            type: 'translate',
+            payload: {
+              text: item,
+              source: originalDetectedLanguage ?? 'en',
+              target: selectedTargetLanguage,
+            },
+          });
+          translated.push(tr.success ? tr.data : item);
+        }
+        newSummary = translated;
+      }
+      currentSummary = newSummary;
+      currentSummaryDisplay = newSummary;
+      stopSummaryAnimation();
+      summaryStreamComplete = true;
+      console.log('Summary updated with new format:', currentSummary);
+    } else {
+      console.error('Failed to update summary format:', summaryResponse.error);
+      // Keep existing summary on error
+      showNotification(
+        'Format Change Failed',
+        'Could not update summary format. Using previous format.',
+        'error'
+      );
+    }
+  } catch (error) {
+    console.error('Error changing format:', error);
+    showNotification(
+      'Format Change Failed',
+      'An error occurred while changing format.',
+      'error'
+    );
+  } finally {
+    isLoadingSummary = false;
+
+    // Re-render overlay with updated summary
+    if (overlayRoot && overlayContainer) {
+      const soundEnabled = Boolean(
+        currentSettings?.enableSound && audioManager
+      );
+      const translationEnabled = Boolean(currentSettings?.enableTranslation);
+      overlayRoot.render(
+        <MeditationFlowOverlay
+          summary={currentSummary}
+          summaryDisplay={
+            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          }
+          prompts={currentPrompts}
+          onSave={handleSaveReflection}
+          onCancel={handleCancelReflection}
+          settings={currentSettings ?? getDefaultSettings()}
+          onFormatChange={handleFormatChange}
+          currentFormat={currentSummaryFormat}
+          isLoadingSummary={false}
+          languageDetection={currentLanguageDetection ?? undefined}
+          onTranslateToEnglish={
+            translationEnabled ? handleTranslateToEnglish : undefined
+          }
+          onTranslate={translationEnabled ? handleTranslate : undefined}
+          isTranslating={translationEnabled ? isTranslating : false}
+          onProofread={handleProofread}
+          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          onToggleAmbient={
+            soundEnabled
+              ? async (mute) => {
+                  if (!audioManager) return;
+                  if (mute) {
+                    await audioManager.stopAmbientLoopGracefully(400);
+                    isAmbientMuted = true;
+                  } else {
+                    await audioManager.playAmbientLoopGracefully(400);
+                    isAmbientMuted = false;
+                  }
+                  renderOverlay();
+                }
+              : undefined
+          }
+        />
+      );
+    }
   }
 };
 
@@ -599,6 +2016,11 @@ const handleProofread = async (text: string, index: number) => {
 const hideReflectModeOverlay = () => {
   if (!isOverlayVisible) {
     return;
+  }
+
+  // Stop ambient audio if playing
+  if (audioManager) {
+    audioManager.stopAmbientLoop();
   }
 
   // Stop frame rate monitoring if active
@@ -625,10 +2047,19 @@ const hideReflectModeOverlay = () => {
  * Clears current data and resets dwell tracker
  */
 const resetReflectionState = () => {
+  activeSummaryStreamCleanup?.();
+  activeSummaryStreamCleanup = null;
   currentExtractedContent = null;
   currentSummary = [];
+  currentSummaryDisplay = [];
   currentPrompts = [];
-
+  currentSummaryFormat = 'bullets';
+  isLoadingSummary = false;
+  currentSummaryBuffer = '';
+  summaryAnimationIndex = 0;
+  summaryStreamComplete = false;
+  stopSummaryAnimation();
+  originalContentLanguage = null;
   // Reset dwell tracker to start tracking again
   if (dwellTracker) {
     dwellTracker.reset();
@@ -648,6 +2079,7 @@ const initializeContentScript = async () => {
     // Load settings from background worker
     const settings = await getSettings();
     currentSettings = settings;
+    applyTranslationPreference(settings);
 
     // Initialize content extractor
     contentExtractor = new ContentExtractor();
@@ -701,23 +2133,20 @@ const getSettings = async (): Promise<Settings> => {
       dwellThreshold: 30,
       enableSound: true,
       reduceMotion: false,
-      proofreadEnabled: false,
+      proofreadEnabled: true,
       privacyMode: 'local',
       useNativeSummarizer: false,
       useNativeProofreader: false,
       translationEnabled: false,
       targetLanguage: 'en',
+      defaultSummaryFormat: 'bullets',
+      enableProofreading: true,
+      enableTranslation: false,
+      preferredTranslationLanguage: 'en',
+      experimentalMode: false,
+      autoDetectLanguage: true,
     };
   }
-};
-
-/**
- * Handle when dwell threshold is reached
- * Shows the lotus nudge icon to invite reflection
- */
-const handleDwellThresholdReached = () => {
-  console.log('Dwell threshold reached!');
-  showLotusNudge();
 };
 
 /**
@@ -747,12 +2176,28 @@ const setNudgeLoadingState = (loading: boolean) => {
 };
 
 /**
+ * Handle when dwell threshold is reached
+ * Shows the lotus nudge icon to invite reflection
+ */
+const handleDwellThresholdReached = () => {
+  console.log('Dwell threshold reached!');
+  showLotusNudge();
+};
+
+/**
  * Show the lotus nudge icon
  * Creates a shadow DOM container and renders the React component
  */
 const showLotusNudge = () => {
   if (isNudgeVisible) {
     console.log('Nudge already visible');
+    return;
+  }
+
+  // Ensure document.body is available
+  if (!document.body) {
+    console.error('document.body not available yet, retrying...');
+    setTimeout(showLotusNudge, 100);
     return;
   }
 
@@ -779,7 +2224,17 @@ const showLotusNudge = () => {
     <LotusNudge
       visible={true}
       onClick={handleNudgeClick}
-      position="bottom-right"
+      position="bottom-left"
+      quickActionsCount={3}
+      onDashboard={() => {
+        void showDashboardModal();
+      }}
+      onHelp={() => {
+        void showHelpModal();
+      }}
+      onSettings={() => {
+        void showSettingsModal();
+      }}
       onAnimationComplete={() => {
         console.log('Lotus nudge fade-in animation completed');
       }}
@@ -835,6 +2290,90 @@ const hideLotusNudge = () => {
   console.log('Lotus nudge hidden');
 };
 
+/** Show AI Status modal in the center of the page */
+const showHelpModal = async () => {
+  if (isHelpModalVisible) return;
+  helpModalContainer = document.createElement('div');
+  helpModalContainer.id = 'reflexa-ai-status-container';
+  document.body.appendChild(helpModalContainer);
+
+  const shadowRoot = helpModalContainer.attachShadow({ mode: 'open' });
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  }
+
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  helpModalRoot = createRoot(rootElement);
+  const { AIStatusModal } = await import('./components/AIStatusModal');
+  helpModalRoot.render(<AIStatusModal onClose={hideHelpModal} />);
+
+  isHelpModalVisible = true;
+};
+
+/** Hide AI Status modal */
+const hideHelpModal = () => {
+  if (!isHelpModalVisible) return;
+  if (helpModalRoot) {
+    helpModalRoot.unmount();
+    helpModalRoot = null;
+  }
+  if (helpModalContainer?.parentNode) {
+    helpModalContainer.parentNode.removeChild(helpModalContainer);
+    helpModalContainer = null;
+  }
+  isHelpModalVisible = false;
+};
+
+/**
+ * Show Quick Settings modal in the center of the page
+ */
+const showSettingsModal = async () => {
+  if (isSettingsModalVisible) return;
+  settingsModalContainer = document.createElement('div');
+  settingsModalContainer.id = 'reflexa-settings-container';
+  document.body.appendChild(settingsModalContainer);
+
+  const shadowRoot = settingsModalContainer.attachShadow({ mode: 'open' });
+  const linkElement = document.createElement('link');
+  linkElement.rel = 'stylesheet';
+  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
+  if (cssUrl && !cssUrl.includes('invalid')) {
+    linkElement.href = cssUrl;
+    shadowRoot.appendChild(linkElement);
+  }
+
+  const rootElement = document.createElement('div');
+  shadowRoot.appendChild(rootElement);
+
+  settingsModalRoot = createRoot(rootElement);
+  const { QuickSettingsModal } = await import(
+    './components/QuickSettingsModal'
+  );
+  settingsModalRoot.render(<QuickSettingsModal onClose={hideSettingsModal} />);
+
+  isSettingsModalVisible = true;
+};
+
+/** Hide Quick Settings modal */
+const hideSettingsModal = () => {
+  if (!isSettingsModalVisible) return;
+  if (settingsModalRoot) {
+    settingsModalRoot.unmount();
+    settingsModalRoot = null;
+  }
+  if (settingsModalContainer?.parentNode) {
+    settingsModalContainer.parentNode.removeChild(settingsModalContainer);
+    settingsModalContainer = null;
+  }
+  isSettingsModalVisible = false;
+};
+
 /**
  * Set up message listener for background worker responses
  * Handles any messages sent from the background worker
@@ -842,11 +2381,68 @@ const hideLotusNudge = () => {
 const setupMessageListener = () => {
   chrome.runtime.onMessage.addListener(
     (message: unknown, _sender, sendResponse) => {
-      console.log('Content script received message:', message);
+      try {
+        if (message && typeof message === 'object' && 'type' in message) {
+          const { type } = message as { type: string };
+          if (type === 'settingsUpdated') {
+            const updated = (message as { data?: unknown }).data as
+              | Settings
+              | undefined;
+            if (updated) {
+              console.log('Applying live settings update:', updated);
+              currentSettings = updated;
+              applyTranslationPreference(updated);
+              // Toast for user feedback
+              try {
+                showNotification('Settings updated', '', 'info');
+              } catch {
+                // no-op
+              }
+              // Live-update dwell tracker so changes take effect immediately
+              if (dwellTracker) {
+                dwellTracker.setDwellThreshold(updated.dwellThreshold);
+                // Reset to apply new threshold from now
+                dwellTracker.reset();
+              }
+              // Live-update audio behavior
+              if (audioManager) {
+                audioManager.updateSettings(updated);
+              } else if (updated.enableSound) {
+                audioManager = new AudioManager(updated);
+              }
+              if (isOverlayVisible && audioManager) {
+                if (updated.enableSound) {
+                  void audioManager.playAmbientLoopGracefully(300);
+                } else {
+                  void audioManager.stopAmbientLoopGracefully(300);
+                }
+              }
 
-      // Handle different message types if needed
-      // For now, we primarily use sendMessage with responses
-      // This listener is here for future extensibility
+              // If overlay is mounted, re-render via unified renderer to reflect toggles consistently
+              if (isOverlayVisible && overlayRoot && overlayContainer) {
+                renderOverlay();
+              }
+            }
+          } else if (type === 'openDashboard') {
+            void showDashboardModal();
+            sendResponse({ success: true });
+            return true;
+          } else if (type === 'startReflection') {
+            // Mirror lotus click behavior
+            void (async () => {
+              try {
+                await initiateReflectionFlow();
+                sendResponse({ success: true });
+              } catch {
+                sendResponse({ success: false });
+              }
+            })();
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn('Error handling incoming message in content script:', e);
+      }
 
       sendResponse({ success: true });
       return true;
@@ -1079,3 +2675,36 @@ window.addEventListener('beforeunload', () => {
 
 // Initialize the content script
 void initializeContentScript();
+
+/** Show Dashboard modal */
+async function showDashboardModal() {
+  if (isDashboardModalVisible) return;
+  dashboardModalContainer = document.createElement('div');
+  dashboardModalContainer.id = 'reflexa-dashboard-modal-container';
+  document.body.appendChild(dashboardModalContainer);
+
+  const shadowRoot = dashboardModalContainer.attachShadow({ mode: 'open' });
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = chrome.runtime.getURL('src/content/styles.css');
+  shadowRoot.appendChild(link);
+  const root = document.createElement('div');
+  shadowRoot.appendChild(root);
+  dashboardModalRoot = createRoot(root);
+  const { DashboardModal } = await import('./components/DashboardModal');
+  dashboardModalRoot.render(<DashboardModal onClose={hideDashboardModal} />);
+  isDashboardModalVisible = true;
+}
+
+function hideDashboardModal() {
+  if (!isDashboardModalVisible) return;
+  if (dashboardModalRoot) {
+    dashboardModalRoot.unmount();
+    dashboardModalRoot = null;
+  }
+  if (dashboardModalContainer?.parentNode) {
+    dashboardModalContainer.parentNode.removeChild(dashboardModalContainer);
+    dashboardModalContainer = null;
+  }
+  isDashboardModalVisible = false;
+}

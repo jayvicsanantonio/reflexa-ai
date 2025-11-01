@@ -8,25 +8,36 @@ import type { Settings } from '../types';
  * Default user settings
  */
 export const DEFAULT_SETTINGS: Settings = {
-  dwellThreshold: 30, // 30 seconds default
+  dwellThreshold: 10, // 10 seconds default
   enableSound: true,
   reduceMotion: false,
-  proofreadEnabled: false,
+  proofreadEnabled: true,
   privacyMode: 'local',
   // New AI API settings
   useNativeSummarizer: false, // Use Summarizer API instead of Prompt API
   useNativeProofreader: false, // Use Proofreader API instead of Prompt API
-  translationEnabled: false,
+  translationEnabled: true,
   targetLanguage: 'en',
+  // Chrome AI APIs integration settings
+  defaultSummaryFormat: 'bullets',
+  enableProofreading: true,
+  enableTranslation: true,
+  preferredTranslationLanguage: 'en',
+  experimentalMode: true,
+  autoDetectLanguage: true,
+  // Voice input settings
+  voiceInputEnabled: true,
+  voiceLanguage: undefined, // Will default to browser language
+  voiceAutoStopDelay: 10000, // 10 seconds
 };
 
 /**
  * Timing values (in milliseconds unless specified)
  */
 export const TIMING = {
-  DWELL_MIN: 30, // Minimum dwell threshold in seconds
-  DWELL_MAX: 300, // Maximum dwell threshold in seconds
-  DWELL_DEFAULT: 30, // Default dwell threshold in seconds
+  DWELL_MIN: 0, // Minimum dwell threshold in seconds (0 = instant)
+  DWELL_MAX: 60, // Maximum dwell threshold in seconds
+  DWELL_DEFAULT: 10, // Default dwell threshold in seconds
   AI_TIMEOUT: 4000, // AI request timeout in milliseconds
   OVERLAY_FADE_IN: 1000, // Overlay fade-in duration
   BREATHING_CYCLE: 7000, // Breathing orb animation cycle
@@ -45,6 +56,7 @@ export const AUDIO = {
   ENTRY_CHIME_DURATION: 1000, // Entry chime duration in ms
   AMBIENT_LOOP_DURATION: 8000, // Ambient loop duration in ms
   COMPLETION_BELL_DURATION: 800, // Completion bell duration in ms
+  VOICE_STOP_CUE_DURATION: 250, // Voice stop cue duration in ms (< 0.3s per requirements)
 };
 
 /**

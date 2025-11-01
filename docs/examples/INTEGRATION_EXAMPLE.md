@@ -274,13 +274,17 @@ export function SettingsPage() {
           {apiAvailability && (
             <ul>
               <li>💭 Prompt API: {apiAvailability.prompt ? '✅' : '❌'}</li>
+              <li>📄 Summarizer: {apiAvailability.summarizer ? '✅' : '❌'}</li>
+              <li>✏️ Writer: {apiAvailability.writer ? '✅' : '❌'}</li>
+              <li>🖊️ Rewriter: {apiAvailability.rewriter ? '✅' : '❌'}</li>
               <li>
                 🔤 Proofreader: {apiAvailability.proofreader ? '✅' : '❌'}
               </li>
-              <li>📄 Summarizer: {apiAvailability.summarizer ? '✅' : '❌'}</li>
               <li>🌐 Translator: {apiAvailability.translator ? '✅' : '❌'}</li>
-              <li>✏️ Writer: {apiAvailability.writer ? '✅' : '❌'}</li>
-              <li>🖊️ Rewriter: {apiAvailability.rewriter ? '✅' : '❌'}</li>
+              <li>
+                🔍 Language Detector:{' '}
+                {apiAvailability.languageDetector ? '✅' : '❌'}
+              </li>
             </ul>
           )}
         </div>
