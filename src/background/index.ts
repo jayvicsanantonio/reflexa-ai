@@ -589,20 +589,32 @@ async function handleProofread(
     // Check if Proofreader API is available
     const proofreaderAvailable =
       await aiService.proofreader.checkAvailability();
-    let result: ProofreadResult;
-    let apiUsed: string;
+    let result: ProofreadResult | undefined;
+    let apiUsed = 'prompt';
+    let useProofreader = proofreaderAvailable;
 
-    if (proofreaderAvailable) {
-      // Determine expected input language
-      const languages = expectedLanguage ? [expectedLanguage] : ['en'];
-      console.log(
-        `[Proofread] Using Proofreader API with languages: ${languages.join(', ')}`
-      );
-      result = await aiService.proofreader.proofread(text, {
-        expectedInputLanguages: languages,
-      });
-      apiUsed = 'proofreader';
-    } else {
+    if (useProofreader) {
+      try {
+        // Determine expected input language
+        const languages = expectedLanguage ? [expectedLanguage] : ['en'];
+        console.log(
+          `[Proofread] Using Proofreader API with languages: ${languages.join(', ')}`
+        );
+        result = await aiService.proofreader.proofread(text, {
+          expectedInputLanguages: languages,
+        });
+        apiUsed = 'proofreader';
+      } catch (proofreaderError) {
+        console.warn(
+          '[Proofread] Proofreader API failed, falling back to Prompt API:',
+          proofreaderError
+        );
+        // Fall through to Prompt API fallback
+        useProofreader = false;
+      }
+    }
+
+    if (!useProofreader || !result) {
       // Fallback to Prompt API
       console.log('[Proofread] Falling back to Prompt API');
 
