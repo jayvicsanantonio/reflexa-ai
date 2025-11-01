@@ -411,17 +411,19 @@ Check Storage:
 
 TROUBLESHOOTING
 
-Issue: Lotus Icon Doesn't Appear
+Issue: Lotus Icon Doesn't Appear or Reflect Button Not Working
 
 Possible causes:
 1. Dwell threshold not reached (wait 10 seconds while actively reading)
 2. Page doesn't have enough text content (try different article)
 3. Extension not loaded properly (check chrome://extensions/)
+4. Extension needs to be reloaded after updates or changes
 
 Solutions:
 • Set dwell threshold to 0 in settings
 • Try a different article (Medium, blog post)
-• Reload extension
+• Reload extension: Go to chrome://extensions/, find Reflexa AI, click the reload icon (circular arrow)
+• If pulsing lotus stops appearing or popup Reflect button doesn't work, reload the extension
 
 Issue: AI Features Show "Unavailable"
 
