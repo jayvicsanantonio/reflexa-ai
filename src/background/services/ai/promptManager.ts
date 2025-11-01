@@ -32,6 +32,25 @@ const TEMPERATURE_SETTINGS = {
   creative: 0.9, // High temperature for creative tasks (writing, rewriting)
 } as const;
 
+const languageDisplayNames = (() => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'language' });
+  } catch {
+    return null;
+  }
+})();
+
+const resolveLanguageDisplayName = (language?: string): string | undefined => {
+  if (!language) return undefined;
+  if (!languageDisplayNames) return language;
+
+  try {
+    return languageDisplayNames.of(language) ?? language;
+  } catch {
+    return language;
+  }
+};
+
 /**
  * PromptManager class
  * Manages Chrome Prompt API (Language Model) sessions as universal fallback
@@ -278,7 +297,7 @@ export class PromptManager {
       'You are a precise summarization assistant. Your task is to create concise, accurate summaries that capture the key information from the provided text.';
 
     const languageInstruction = outputLanguage
-      ? ` Always respond in ${outputLanguage}.`
+      ? ` Always respond in ${resolveLanguageDisplayName(outputLanguage)}.`
       : ' Always respond in the same language as the input text.';
 
     switch (format) {

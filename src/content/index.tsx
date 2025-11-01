@@ -375,6 +375,11 @@ const applyTranslationPreference = (settings: Settings | null | undefined) => {
     selectedTargetLanguage = derived;
     isTargetLanguageOverridden = false;
   }
+
+  if (!translationActive) {
+    // Even when translation toggles are off, keep baseline so AI defaults to the preferred language.
+    return;
+  }
 };
 
 /**

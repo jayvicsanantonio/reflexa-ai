@@ -1157,7 +1157,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   enabled={!settings?.reduceMotion}
                   duration={8}
                   iterations={isLoadingSummary ? Infinity : 2}
-                  size={140}
+                  size={200}
                 />
               </div>
               <h1

@@ -617,14 +617,15 @@ async function handleSummarize(
       `[Summarize] useNativeSummarizer setting: ${settings.useNativeSummarizer}`
     );
 
-    // Determine output language based on translation settings
-    // If translation is enabled, use the preferred translation language
-    // If translation is disabled, use the detected language (if available) to maintain source language
-    const translationEnabled =
-      settings.enableTranslation ?? settings.translationEnabled;
-    const outputLanguage = translationEnabled
-      ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
-      : detectedLanguage;
+    const preferredLanguageRaw =
+      settings.preferredTranslationLanguage ?? settings.targetLanguage;
+    const preferredLanguage = preferredLanguageRaw
+      ? preferredLanguageRaw.trim()
+      : undefined;
+    const outputLanguage =
+      preferredLanguage && preferredLanguage.length > 0
+        ? preferredLanguage
+        : detectedLanguage;
     const expectedInputLanguages = detectedLanguage
       ? [detectedLanguage]
       : undefined;
@@ -633,7 +634,7 @@ async function handleSummarize(
       : undefined;
 
     console.log(
-      `[Summarize] Translation enabled: ${translationEnabled}, Output language: ${outputLanguage ?? 'auto-detect'}, Detected language: ${detectedLanguage ?? 'not provided'}`
+      `[Summarize] Preferred language: ${preferredLanguage ?? 'none'}, Output language: ${outputLanguage ?? 'auto-detect'}, Detected language: ${detectedLanguage ?? 'not provided'}`
     );
 
     // Check if Summarizer API is available and enabled in settings

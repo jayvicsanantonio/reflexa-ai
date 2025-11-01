@@ -11,137 +11,206 @@ export const LotusOrb: React.FC<LotusOrbProps> = ({
   enabled = true,
   duration = 8,
   iterations = Infinity,
-  size = 140,
+  size = 200,
 }) => {
-  if (!enabled) {
-    return (
-      <div
-        style={{
-          width: size,
-          height: size,
-          margin: '0 auto',
-        }}
-      >
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 140 140"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <LotusPath opacity={0.6} />
-        </svg>
-      </div>
-    );
-  }
+  const iterationValue =
+    iterations === Infinity ? 'infinite' : String(iterations);
 
-  return (
-    <div
-      style={{
+  const containerStyle: React.CSSProperties = {
+    position: 'relative',
+    width: size,
+    height: size,
+    margin: '0 auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const orbStyle: React.CSSProperties = enabled
+    ? {
         width: size,
         height: size,
-        margin: '0 auto',
-        animation: `lotusPulse ${duration}s ease-in-out ${
-          iterations === Infinity ? 'infinite' : iterations
-        }`,
-      }}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 140 140"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <LotusPath opacity={1} />
-      </svg>
+        borderRadius: '50%',
+        background:
+          'radial-gradient(circle at 30% 30%, #38bdf8 0%, #0ea5e9 40%, #0284c7 100%)',
+        boxShadow:
+          '0 0 40px rgba(14, 165, 233, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.2)',
+        animation: `breathingPulse ${duration}s cubic-bezier(0.22, 0.9, 0.2, 1) ${iterationValue} both`,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+      }
+    : {
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background:
+          'radial-gradient(circle at 30% 30%, #38bdf8 0%, #0ea5e9 40%, #0284c7 100%)',
+        boxShadow:
+          '0 0 40px rgba(14, 165, 233, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.2)',
+        opacity: 0.6,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+      };
+
+  // Ring that pulses at peak expansion
+  const ringStyle: React.CSSProperties = enabled
+    ? {
+        content: '""',
+        position: 'absolute',
+        top: -8,
+        left: -8,
+        right: -8,
+        bottom: -8,
+        borderRadius: '50%',
+        border: '2px solid rgba(96, 165, 250, 0.9)',
+        boxShadow: '0 0 18px rgba(96, 165, 250, 0.45)',
+        pointerEvents: 'none',
+        opacity: 0,
+        animation: `ringPulse ${duration}s cubic-bezier(0.22, 0.9, 0.2, 1) ${iterationValue} both`,
+      }
+    : {
+        display: 'none',
+      };
+
+  const lotusContainerStyle: React.CSSProperties = enabled
+    ? {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1,
+        pointerEvents: 'none',
+        animation: `breathingPulse ${duration}s cubic-bezier(0.22, 0.9, 0.2, 1) ${iterationValue} both`,
+      }
+    : {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1,
+        pointerEvents: 'none',
+        opacity: 0.6,
+      };
+
+  // Make lotus 85% of orb size so it almost touches the edges
+  const lotusSize = size * 0.85;
+
+  return (
+    <div style={containerStyle}>
+      {/* Blue pulsing orb background */}
+      <div style={orbStyle} />
+
+      {/* Pulsing ring at peak expansion */}
+      <div style={ringStyle} />
+
+      {/* Lotus flower on top, centered */}
+      <div style={lotusContainerStyle}>
+        <svg
+          width={lotusSize}
+          height={lotusSize}
+          viewBox="0 0 48 48"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+          style={{
+            display: 'block',
+            background: 'transparent',
+          }}
+        >
+          {/* Lotus flower icon with zen aesthetic - same as LotusNudge */}
+          {/* Center circle */}
+          <circle cx="24" cy="24" r="6" fill="#f0abfc" opacity="1" />
+
+          {/* Petals - arranged in lotus pattern */}
+          {/* Top petal */}
+          <ellipse
+            cx="24"
+            cy="12"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+          />
+
+          {/* Top-right petal */}
+          <ellipse
+            cx="32"
+            cy="16"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(45 32 16)"
+          />
+
+          {/* Right petal */}
+          <ellipse
+            cx="36"
+            cy="24"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(90 36 24)"
+          />
+
+          {/* Bottom-right petal */}
+          <ellipse
+            cx="32"
+            cy="32"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(135 32 32)"
+          />
+
+          {/* Bottom petal */}
+          <ellipse
+            cx="24"
+            cy="36"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+          />
+
+          {/* Bottom-left petal */}
+          <ellipse
+            cx="16"
+            cy="32"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(-135 16 32)"
+          />
+
+          {/* Left petal */}
+          <ellipse
+            cx="12"
+            cy="24"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(-90 12 24)"
+          />
+
+          {/* Top-left petal */}
+          <ellipse
+            cx="16"
+            cy="16"
+            rx="5"
+            ry="10"
+            fill="#ffffff"
+            opacity="0.95"
+            transform="rotate(-45 16 16)"
+          />
+        </svg>
+      </div>
     </div>
   );
 };
-
-const LotusPath: React.FC<{ opacity: number }> = ({ opacity }) => (
-  <g opacity={opacity}>
-    {/* Center circle */}
-    <circle cx="70" cy="70" r="12" fill="url(#lotusGradient)" />
-
-    {/* Inner petals (4 petals) */}
-    <path
-      d="M 70 58 Q 62 50 58 42 Q 62 50 70 52 Z"
-      fill="url(#petalGradient1)"
-      opacity="0.9"
-    />
-    <path
-      d="M 82 70 Q 90 62 98 58 Q 90 62 88 70 Z"
-      fill="url(#petalGradient1)"
-      opacity="0.9"
-    />
-    <path
-      d="M 70 82 Q 78 90 82 98 Q 78 90 70 88 Z"
-      fill="url(#petalGradient1)"
-      opacity="0.9"
-    />
-    <path
-      d="M 58 70 Q 50 78 42 82 Q 50 78 52 70 Z"
-      fill="url(#petalGradient1)"
-      opacity="0.9"
-    />
-
-    {/* Outer petals (8 petals) */}
-    <path
-      d="M 70 52 Q 65 35 62 20 Q 68 35 70 45 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 78 58 Q 88 45 100 35 Q 88 48 82 58 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 88 70 Q 100 68 115 65 Q 100 70 90 70 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 82 82 Q 92 92 105 105 Q 90 92 82 82 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 70 88 Q 72 105 75 120 Q 70 105 70 95 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 58 82 Q 48 92 35 105 Q 50 90 58 82 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 52 70 Q 40 72 25 75 Q 40 70 50 70 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-    <path
-      d="M 58 58 Q 48 48 35 35 Q 52 50 58 58 Z"
-      fill="url(#petalGradient2)"
-      opacity="0.8"
-    />
-
-    {/* Gradients */}
-    <defs>
-      <radialGradient id="lotusGradient" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#fbbf24" stopOpacity="1" />
-        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
-      </radialGradient>
-      <linearGradient id="petalGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#ec4899" stopOpacity="0.9" />
-        <stop offset="100%" stopColor="#a855f7" stopOpacity="0.7" />
-      </linearGradient>
-      <linearGradient id="petalGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
-        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.6" />
-      </linearGradient>
-    </defs>
-  </g>
-);
