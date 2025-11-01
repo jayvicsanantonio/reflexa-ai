@@ -21,9 +21,6 @@ export const LotusOrb: React.FC<LotusOrbProps> = ({
     width: size,
     height: size,
     margin: '0 auto',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   };
 
   const orbStyle: React.CSSProperties = enabled
@@ -54,18 +51,18 @@ export const LotusOrb: React.FC<LotusOrbProps> = ({
         left: 0,
       };
 
-  // Ring that pulses at peak expansion
+  // Ring that appears at peak expansion
   const ringStyle: React.CSSProperties = enabled
     ? {
         content: '""',
         position: 'absolute',
-        top: -8,
-        left: -8,
-        right: -8,
-        bottom: -8,
+        top: -20,
+        left: -20,
+        right: -20,
+        bottom: -20,
         borderRadius: '50%',
-        border: '2px solid rgba(96, 165, 250, 0.9)',
-        boxShadow: '0 0 18px rgba(96, 165, 250, 0.45)',
+        border: '3px solid rgba(96, 165, 250, 0.9)',
+        boxShadow: '0 0 24px rgba(96, 165, 250, 0.5)',
         pointerEvents: 'none',
         opacity: 0,
         animation: `ringPulse ${duration}s cubic-bezier(0.22, 0.9, 0.2, 1) ${iterationValue} both`,
@@ -74,28 +71,35 @@ export const LotusOrb: React.FC<LotusOrbProps> = ({
         display: 'none',
       };
 
-  const lotusContainerStyle: React.CSSProperties = enabled
+  // Make lotus the same size as the orb
+  const lotusSize = size;
+  const lotusOffset = 0;
+
+  const svgStyle: React.CSSProperties = enabled
     ? {
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: lotusOffset,
+        left: lotusOffset,
+        width: lotusSize,
+        height: lotusSize,
         zIndex: 1,
         pointerEvents: 'none',
+        borderRadius: '50%',
+        overflow: 'hidden',
         animation: `breathingPulse ${duration}s cubic-bezier(0.22, 0.9, 0.2, 1) ${iterationValue} both`,
       }
     : {
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: lotusOffset,
+        left: lotusOffset,
+        width: lotusSize,
+        height: lotusSize,
         zIndex: 1,
         pointerEvents: 'none',
+        borderRadius: '50%',
+        overflow: 'hidden',
         opacity: 0.6,
       };
-
-  // Make lotus 85% of orb size so it almost touches the edges
-  const lotusSize = size * 0.85;
 
   return (
     <div style={containerStyle}>
@@ -105,112 +109,91 @@ export const LotusOrb: React.FC<LotusOrbProps> = ({
       {/* Pulsing ring at peak expansion */}
       <div style={ringStyle} />
 
-      {/* Lotus flower on top, centered */}
-      <div style={lotusContainerStyle}>
-        <svg
-          width={lotusSize}
-          height={lotusSize}
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          style={{
-            display: 'block',
-            background: 'transparent',
-          }}
-        >
-          {/* Lotus flower icon with zen aesthetic - same as LotusNudge */}
-          {/* Center circle */}
-          <circle cx="24" cy="24" r="6" fill="#f0abfc" opacity="1" />
+      {/* Lotus flower SVG directly positioned */}
+      <svg
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        style={svgStyle}
+      >
+        {/* Lotus flower icon with zen aesthetic - same as LotusNudge */}
+        {/* Center circle */}
+        <circle cx="24" cy="24" r="6" fill="#f0abfc" opacity="1" />
 
-          {/* Petals - arranged in lotus pattern */}
-          {/* Top petal */}
-          <ellipse
-            cx="24"
-            cy="12"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-          />
+        {/* Petals - arranged in lotus pattern */}
+        {/* Top petal */}
+        <ellipse cx="24" cy="12" rx="5" ry="10" fill="#ffffff" opacity="0.95" />
 
-          {/* Top-right petal */}
-          <ellipse
-            cx="32"
-            cy="16"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(45 32 16)"
-          />
+        {/* Top-right petal */}
+        <ellipse
+          cx="32"
+          cy="16"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(45 32 16)"
+        />
 
-          {/* Right petal */}
-          <ellipse
-            cx="36"
-            cy="24"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(90 36 24)"
-          />
+        {/* Right petal */}
+        <ellipse
+          cx="36"
+          cy="24"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(90 36 24)"
+        />
 
-          {/* Bottom-right petal */}
-          <ellipse
-            cx="32"
-            cy="32"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(135 32 32)"
-          />
+        {/* Bottom-right petal */}
+        <ellipse
+          cx="32"
+          cy="32"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(135 32 32)"
+        />
 
-          {/* Bottom petal */}
-          <ellipse
-            cx="24"
-            cy="36"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-          />
+        {/* Bottom petal */}
+        <ellipse cx="24" cy="36" rx="5" ry="10" fill="#ffffff" opacity="0.95" />
 
-          {/* Bottom-left petal */}
-          <ellipse
-            cx="16"
-            cy="32"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(-135 16 32)"
-          />
+        {/* Bottom-left petal */}
+        <ellipse
+          cx="16"
+          cy="32"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(-135 16 32)"
+        />
 
-          {/* Left petal */}
-          <ellipse
-            cx="12"
-            cy="24"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(-90 12 24)"
-          />
+        {/* Left petal */}
+        <ellipse
+          cx="12"
+          cy="24"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(-90 12 24)"
+        />
 
-          {/* Top-left petal */}
-          <ellipse
-            cx="16"
-            cy="16"
-            rx="5"
-            ry="10"
-            fill="#ffffff"
-            opacity="0.95"
-            transform="rotate(-45 16 16)"
-          />
-        </svg>
-      </div>
+        {/* Top-left petal */}
+        <ellipse
+          cx="16"
+          cy="16"
+          rx="5"
+          ry="10"
+          fill="#ffffff"
+          opacity="0.95"
+          transform="rotate(-45 16 16)"
+        />
+      </svg>
     </div>
   );
 };

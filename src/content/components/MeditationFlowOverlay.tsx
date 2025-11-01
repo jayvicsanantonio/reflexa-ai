@@ -36,6 +36,7 @@ interface MeditationFlowOverlayProps {
   currentFormat?: SummaryFormat;
   isLoadingSummary?: boolean;
   languageDetection?: LanguageDetection;
+  summaryLanguageDetection?: LanguageDetection;
   onProofread?: (text: string, index: number) => Promise<ProofreadResult>;
   onTranslateToEnglish?: () => Promise<void>;
   onTranslate?: (targetLanguage: string) => Promise<void>;
@@ -65,6 +66,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   currentFormat = 'bullets',
   isLoadingSummary = false,
   languageDetection,
+  summaryLanguageDetection,
   onProofread,
   onTranslateToEnglish: _onTranslateToEnglish,
   onTranslate: _onTranslate,
@@ -992,7 +994,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               settings.enableTranslation ? _onTranslate : undefined
             }
             isTranslating={settings.enableTranslation ? _isTranslating : false}
-            currentLanguage={languageDetection?.detectedLanguage}
+            currentLanguage={summaryLanguageDetection?.detectedLanguage}
             unsupportedLanguages={[]}
             defaultTargetLanguage={settings.preferredTranslationLanguage}
           />
@@ -1085,7 +1087,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               settings.enableTranslation ? _onTranslate : undefined
             }
             isTranslating={settings.enableTranslation ? _isTranslating : false}
-            currentLanguage={languageDetection?.detectedLanguage}
+            currentLanguage={summaryLanguageDetection?.detectedLanguage}
             unsupportedLanguages={[]}
             defaultTargetLanguage={settings.preferredTranslationLanguage}
           />
@@ -1152,7 +1154,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         >
           {step === 0 && (
             <div className="reflexa-meditation-fade">
-              <div style={{ marginBottom: 32 }}>
+              <div style={{ marginBottom: 60 }}>
                 <LotusOrb
                   enabled={!settings?.reduceMotion}
                   duration={8}
@@ -1211,39 +1213,19 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     alignItems: 'center',
                     gap: 6,
                     padding: '4px 10px',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(226, 232, 240, 0.12)',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(226, 232, 240, 0.18)',
                     borderRadius: 999,
                     fontSize: 11,
-                    color: 'rgba(226, 232, 240, 0.6)',
+                    color: 'rgba(226, 232, 240, 0.75)',
                     backdropFilter: 'blur(8px)',
-                    transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = 'rgba(226, 232, 240, 0.8)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background =
-                      'rgba(255, 255, 255, 0.06)';
-                    e.currentTarget.style.color = 'rgba(226, 232, 240, 0.6)';
-                  }}
+                  aria-live="polite"
                 >
-                  <span style={{ fontSize: 13 }}>🌐</span>
-                  <span>{languageDetection.languageName}</span>
-                  {languageDetection.detectedLanguage !==
-                    navigator.language.split('-')[0] && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        opacity: 0.5,
-                        marginLeft: 4,
-                      }}
-                    >
-                      (translated)
-                    </span>
-                  )}
+                  <span aria-hidden style={{ fontSize: 13 }}>
+                    🌐
+                  </span>
+                  <span>Translated from {languageDetection.languageName}</span>
                 </div>
               )}
 

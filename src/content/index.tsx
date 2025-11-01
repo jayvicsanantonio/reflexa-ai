@@ -78,6 +78,7 @@ let isTargetLanguageOverridden = false;
 // Remember the original detected language for reliable translations after
 // user changes target language.
 let originalDetectedLanguage: string | null = null;
+let originalContentLanguage: LanguageDetection | null = null;
 
 // Rewrite state
 const isRewritingArray: boolean[] = [false, false];
@@ -511,6 +512,7 @@ const initiateReflectionFlow = async () => {
     let detectedLanguageCode: string | undefined;
     if (languageResponse.success) {
       currentLanguageDetection = languageResponse.data;
+      originalContentLanguage ??= languageResponse.data;
       detectedLanguageCode = languageResponse.data.detectedLanguage;
       // Capture original language once per session
       console.log(
@@ -583,17 +585,43 @@ const initiateReflectionFlow = async () => {
       console.log('Summary received (streaming):', currentSummary);
     }
 
-    // Store original detected language for later use
-    if (currentLanguageDetection) {
-      originalDetectedLanguage ??= currentLanguageDetection.detectedLanguage;
-      console.log('Language detected:', currentLanguageDetection);
+    const detectionBeforeSummary = currentLanguageDetection;
+
+    if (detectionBeforeSummary) {
+      originalDetectedLanguage ??= detectionBeforeSummary.detectedLanguage;
+      originalContentLanguage ??= detectionBeforeSummary;
+      console.log('Language detected:', detectionBeforeSummary);
 
       // Auto-translate if needed (during breathing phase)
-      if (shouldAutoTranslate(currentLanguageDetection, currentSettings)) {
+      if (shouldAutoTranslate(detectionBeforeSummary, currentSettings)) {
         console.log('Auto-translating during breathing phase...');
-        await handleAutoTranslate(currentLanguageDetection);
+        await handleAutoTranslate(detectionBeforeSummary);
       }
     }
+
+    const summaryLanguageCode =
+      selectedTargetLanguage ??
+      preferredLanguageBaseline ??
+      currentSettings?.preferredTranslationLanguage ??
+      currentSettings?.targetLanguage ??
+      detectionBeforeSummary?.detectedLanguage;
+
+    if (summaryLanguageCode) {
+      currentLanguageDetection = {
+        detectedLanguage: summaryLanguageCode,
+        confidence:
+          summaryLanguageCode === detectionBeforeSummary?.detectedLanguage
+            ? (detectionBeforeSummary?.confidence ?? 1)
+            : 1,
+        languageName: getLanguageName(summaryLanguageCode),
+      };
+    } else {
+      currentLanguageDetection = detectionBeforeSummary;
+    }
+
+    const badgeLanguageDetection = originalContentLanguage ?? undefined;
+    const summaryLanguageDetection =
+      currentLanguageDetection ?? originalContentLanguage ?? undefined;
 
     // Re-render overlay with summary loaded
     if (overlayRoot && overlayContainer) {
@@ -614,7 +642,8 @@ const initiateReflectionFlow = async () => {
           onFormatChange={handleFormatChange}
           currentFormat={currentSummaryFormat}
           isLoadingSummary={false}
-          languageDetection={currentLanguageDetection ?? undefined}
+          languageDetection={badgeLanguageDetection}
+          summaryLanguageDetection={summaryLanguageDetection}
           onTranslateToEnglish={
             translationEnabled ? handleTranslateToEnglish : undefined
           }
@@ -1097,7 +1126,12 @@ const renderOverlay = () => {
       onFormatChange={handleFormatChange}
       currentFormat={currentSummaryFormat}
       isLoadingSummary={isLoadingSummary}
-      languageDetection={currentLanguageDetection ?? undefined}
+      languageDetection={
+        originalContentLanguage ?? currentLanguageDetection ?? undefined
+      }
+      summaryLanguageDetection={
+        currentLanguageDetection ?? originalContentLanguage ?? undefined
+      }
       onTranslateToEnglish={
         translationEnabled ? handleTranslateToEnglish : undefined
       }
@@ -2025,7 +2059,7 @@ const resetReflectionState = () => {
   summaryAnimationIndex = 0;
   summaryStreamComplete = false;
   stopSummaryAnimation();
-
+  originalContentLanguage = null;
   // Reset dwell tracker to start tracking again
   if (dwellTracker) {
     dwellTracker.reset();
