@@ -48,8 +48,9 @@ All development documentation is now organized in the **[development/](./develop
 
 ### Translation & Language Detection
 
-- **[Translation Meditation Alignment](./TRANSLATION_MEDITATION_ALIGNMENT.md)** - How translation fits the zen flow
-- **[Translation Implementation Guide](./TRANSLATION_MEDITATION_IMPLEMENTATION.md)** - Practical integration for meditation flow
+Translation and language detection features are documented in:
+
+- **[Meditation Flow Overlay Implementation](./MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md)** - Includes translation integration details
 
 ### Reference Documents
 

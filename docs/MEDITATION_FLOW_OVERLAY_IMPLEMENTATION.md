@@ -787,5 +787,3 @@ For implementation details on specific features, see:
 
 - Voice Input: `docs/VOICE_INPUT_IMPLEMENTATION.md`
 - Writer/Rewriter: `docs/WRITER_REWRITER_UX_INTEGRATION.md`
-- More Tools Menu: `docs/MORE_TOOLS_MENU_IMPLEMENTATION.md`
-- Translation: `docs/TRANSLATION_MEDITATION_IMPLEMENTATION.md`

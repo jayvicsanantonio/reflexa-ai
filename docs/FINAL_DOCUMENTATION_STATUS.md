@@ -218,8 +218,7 @@ All documentation has been updated to reflect the current implementation of Refl
 **Documented in**:
 
 - JUDGES_GUIDE.md (Step 5.2C-E)
-- MORE_TOOLS_MENU_IMPLEMENTATION.md (technical)
-- MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md (integration)
+- MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md (technical details and integration)
 
 ---
 
@@ -321,9 +320,8 @@ docs/
 │
 ├── VOICE_INPUT_IMPLEMENTATION.md          # Voice features
 ├── WRITER_REWRITER_UX_INTEGRATION.md      # AI features
-├── MORE_TOOLS_MENU_IMPLEMENTATION.md      # MoreToolsMenu
 │
-└── [45+ other technical docs]             # Comprehensive coverage
+└── [30+ other technical docs]             # Comprehensive coverage
 ```
 
 ---
