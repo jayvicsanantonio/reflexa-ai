@@ -18,6 +18,21 @@ const REWRITER_TIMEOUT = 5000;
  */
 const RETRY_TIMEOUT = 8000;
 
+interface RewriterLanguageOptions {
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+}
+
+const normalizeLanguageKey = (languages?: string[]): string => {
+  if (!languages || languages.length === 0) {
+    return 'default';
+  }
+  return languages
+    .map((lang) => lang.toLowerCase())
+    .sort()
+    .join('|');
+};
+
 /**
  * RewriterManager class
  * Manages Chrome Rewriter API sessions with tone mapping, error handling, and timeouts
@@ -92,8 +107,14 @@ export class RewriterManager {
     format?: 'as-is' | 'markdown' | 'plain-text';
     length?: 'as-is' | 'shorter' | 'longer';
     outputLanguage?: string;
+    expectedInputLanguages?: string[];
+    expectedContextLanguages?: string[];
   }): Promise<AIRewriter | null> {
-    const sessionKey = `${config.tone ?? 'as-is'}-${config.format ?? 'as-is'}-${config.length ?? 'as-is'}-${config.outputLanguage ?? 'default'}`;
+    const sessionKey = `${config.tone ?? 'as-is'}-${
+      config.format ?? 'as-is'
+    }-${config.length ?? 'as-is'}-${config.outputLanguage ?? 'default'}-${normalizeLanguageKey(
+      config.expectedInputLanguages
+    )}-${normalizeLanguageKey(config.expectedContextLanguages)}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -115,6 +136,14 @@ export class RewriterManager {
         format: config.format,
         length: config.length,
         ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
+        ...(config.expectedInputLanguages &&
+          config.expectedInputLanguages.length > 0 && {
+            expectedInputLanguages: config.expectedInputLanguages,
+          }),
+        ...(config.expectedContextLanguages &&
+          config.expectedContextLanguages.length > 0 && {
+            expectedContextLanguages: config.expectedContextLanguages,
+          }),
       });
 
       // Cache the session
@@ -145,7 +174,8 @@ export class RewriterManager {
     text: string,
     preset: TonePreset,
     context?: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: RewriterLanguageOptions
   ): Promise<{ original: string; rewritten: string }> {
     // Check availability first
     if (!this.available) {
@@ -162,6 +192,7 @@ export class RewriterManager {
         preset,
         context,
         outputLanguage,
+        languageOptions,
         REWRITER_TIMEOUT
       );
       return { original: text, rewritten };
@@ -175,6 +206,7 @@ export class RewriterManager {
           preset,
           context,
           outputLanguage,
+          languageOptions,
           RETRY_TIMEOUT
         );
         return { original: text, rewritten };
@@ -201,6 +233,7 @@ export class RewriterManager {
     preset: TonePreset,
     context: string | undefined,
     outputLanguage: string | undefined,
+    languageOptions: RewriterLanguageOptions | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -211,7 +244,8 @@ export class RewriterManager {
       text,
       preset,
       context,
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     return Promise.race([rewritePromise, timeoutPromise]);
@@ -229,7 +263,8 @@ export class RewriterManager {
     text: string,
     preset: TonePreset,
     context?: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: RewriterLanguageOptions
   ): Promise<string> {
     // Map tone preset to API parameters
     const { tone, length } = this.mapTonePreset(preset);
@@ -246,6 +281,8 @@ export class RewriterManager {
       format: 'plain-text',
       length,
       outputLanguage,
+      expectedInputLanguages: languageOptions?.expectedInputLanguages,
+      expectedContextLanguages: languageOptions?.expectedContextLanguages,
     });
 
     if (!session) {
@@ -274,7 +311,8 @@ export class RewriterManager {
     preset: TonePreset,
     context: string | undefined,
     onChunk: (chunk: string) => void,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: RewriterLanguageOptions
   ): Promise<{ original: string; rewritten: string }> {
     // Check availability first
     if (!this.available) {
@@ -300,6 +338,8 @@ export class RewriterManager {
         format: 'plain-text',
         length,
         outputLanguage,
+        expectedInputLanguages: languageOptions?.expectedInputLanguages,
+        expectedContextLanguages: languageOptions?.expectedContextLanguages,
       });
 
       if (!session) {

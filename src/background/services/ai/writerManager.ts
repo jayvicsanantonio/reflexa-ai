@@ -27,6 +27,21 @@ const LENGTH_RANGES = {
   long: { min: 200, max: 300 },
 } as const;
 
+interface WriterLanguageOptions {
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+}
+
+const normalizeLanguageKey = (languages?: string[]): string => {
+  if (!languages || languages.length === 0) {
+    return 'default';
+  }
+  return languages
+    .map((lang) => lang.toLowerCase())
+    .sort()
+    .join('|');
+};
+
 /**
  * WriterManager class
  * Manages Chrome Writer API sessions with tone/length control, error handling, and timeouts
@@ -103,8 +118,14 @@ export class WriterManager {
     format?: 'plain-text' | 'markdown';
     length?: 'short' | 'medium' | 'long';
     outputLanguage?: string;
+    expectedInputLanguages?: string[];
+    expectedContextLanguages?: string[];
   }): Promise<AIWriter | null> {
-    const sessionKey = `${config.tone ?? 'neutral'}-${config.format ?? 'markdown'}-${config.length ?? 'medium'}-${config.outputLanguage ?? 'default'}`;
+    const sessionKey = `${config.tone ?? 'neutral'}-${
+      config.format ?? 'markdown'
+    }-${config.length ?? 'medium'}-${config.outputLanguage ?? 'default'}-${normalizeLanguageKey(
+      config.expectedInputLanguages
+    )}-${normalizeLanguageKey(config.expectedContextLanguages)}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -126,6 +147,14 @@ export class WriterManager {
         format: config.format ?? 'markdown', // Default is markdown per docs
         length: config.length,
         ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
+        ...(config.expectedInputLanguages &&
+          config.expectedInputLanguages.length > 0 && {
+            expectedInputLanguages: config.expectedInputLanguages,
+          }),
+        ...(config.expectedContextLanguages &&
+          config.expectedContextLanguages.length > 0 && {
+            expectedContextLanguages: config.expectedContextLanguages,
+          }),
       });
 
       // Cache the session
@@ -154,6 +183,8 @@ export class WriterManager {
       format?: 'plain-text' | 'markdown';
       length?: 'short' | 'medium' | 'long';
       outputLanguage?: string;
+      expectedInputLanguages?: string[];
+      expectedContextLanguages?: string[];
     }
   ): Promise<string> {
     // Map to WriterOptions format
@@ -166,7 +197,11 @@ export class WriterManager {
       prompt,
       writerOptions,
       undefined,
-      options?.outputLanguage
+      options?.outputLanguage,
+      {
+        expectedInputLanguages: options?.expectedInputLanguages,
+        expectedContextLanguages: options?.expectedContextLanguages,
+      }
     );
   }
 
@@ -204,7 +239,8 @@ export class WriterManager {
     topic: string,
     options: WriterOptions,
     context?: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: WriterLanguageOptions
   ): Promise<string> {
     // Check availability first
     if (!this.available) {
@@ -221,6 +257,7 @@ export class WriterManager {
         options,
         context,
         outputLanguage,
+        languageOptions,
         WRITER_TIMEOUT
       );
     } catch (error) {
@@ -233,6 +270,7 @@ export class WriterManager {
           options,
           context,
           outputLanguage,
+          languageOptions,
           RETRY_TIMEOUT
         );
       } catch (retryError) {
@@ -258,6 +296,7 @@ export class WriterManager {
     options: WriterOptions,
     context: string | undefined,
     outputLanguage: string | undefined,
+    languageOptions: WriterLanguageOptions | undefined,
     timeout: number
   ): Promise<string> {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -268,7 +307,8 @@ export class WriterManager {
       topic,
       options,
       context,
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     return Promise.race([generatePromise, timeoutPromise]);
@@ -286,7 +326,8 @@ export class WriterManager {
     topic: string,
     options: WriterOptions,
     context?: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: WriterLanguageOptions
   ): Promise<string> {
     // Map tone and length to Writer API values
     const apiTone = this.mapTone(options.tone);
@@ -299,6 +340,8 @@ export class WriterManager {
       format: 'plain-text',
       length: apiLength,
       outputLanguage,
+      expectedInputLanguages: languageOptions?.expectedInputLanguages,
+      expectedContextLanguages: languageOptions?.expectedContextLanguages,
     });
 
     if (!session) {
@@ -340,7 +383,8 @@ export class WriterManager {
     options: WriterOptions,
     context: string | undefined,
     onChunk: (chunk: string) => void,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: WriterLanguageOptions
   ): Promise<string> {
     // Check availability first
     if (!this.available) {
@@ -367,6 +411,8 @@ export class WriterManager {
         format: 'plain-text',
         length: apiLength,
         outputLanguage,
+        expectedInputLanguages: languageOptions?.expectedInputLanguages,
+        expectedContextLanguages: languageOptions?.expectedContextLanguages,
       });
 
       if (!session) {

@@ -376,6 +376,12 @@ async function handleSummarize(
     const outputLanguage = translationEnabled
       ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
       : detectedLanguage;
+    const expectedInputLanguages = detectedLanguage
+      ? [detectedLanguage]
+      : undefined;
+    const expectedContextLanguages = detectedLanguage
+      ? [detectedLanguage]
+      : undefined;
 
     console.log(
       `[Summarize] Translation enabled: ${translationEnabled}, Output language: ${outputLanguage ?? 'auto-detect'}, Detected language: ${detectedLanguage ?? 'not provided'}`
@@ -400,7 +406,11 @@ async function handleSummarize(
 
       // Use specialized Summarizer API with format parameter, language, and rate limiting
       summary = await rateLimiter.executeWithRetry(
-        () => aiService.summarizer.summarize(content, format, outputLanguage),
+        () =>
+          aiService.summarizer.summarize(content, format, outputLanguage, {
+            expectedInputLanguages,
+            expectedContextLanguages,
+          }),
         'summarizations'
       );
       apiUsed = 'summarizer';
@@ -673,6 +683,11 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
       (settings.enableTranslation ?? settings.translationEnabled)
         ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
         : undefined;
+    const writerExpectedLanguages = outputLanguage
+      ? [outputLanguage]
+      : settings.preferredTranslationLanguage
+        ? [settings.preferredTranslationLanguage]
+        : undefined;
 
     // Check if Writer API is available
     const writerAvailable = await aiService.writer.checkAvailability();
@@ -686,6 +701,8 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
       result = await aiService.writer.write(payloadObj.prompt, {
         ...payloadObj.options,
         outputLanguage,
+        expectedInputLanguages: writerExpectedLanguages,
+        expectedContextLanguages: writerExpectedLanguages,
       });
       apiUsed = 'writer';
     } else {
@@ -781,6 +798,11 @@ async function handleRewrite(
       (settings.enableTranslation ?? settings.translationEnabled)
         ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
         : undefined;
+    const rewriterExpectedLanguages = outputLanguage
+      ? [outputLanguage]
+      : settings.preferredTranslationLanguage
+        ? [settings.preferredTranslationLanguage]
+        : undefined;
 
     // Check if Rewriter API is available
     const rewriterAvailable = await aiService.rewriter.checkAvailability();
@@ -795,7 +817,11 @@ async function handleRewrite(
         payloadObj.text,
         preset,
         payloadObj.context,
-        outputLanguage
+        outputLanguage,
+        {
+          expectedInputLanguages: rewriterExpectedLanguages,
+          expectedContextLanguages: rewriterExpectedLanguages,
+        }
       );
       apiUsed = 'rewriter';
     } else {

@@ -6,6 +6,7 @@ import { LotusNudge, ErrorModal, Notification } from './components';
 import { MeditationFlowOverlay } from './components/MeditationFlowOverlay';
 import { AudioManager } from '../utils/audioManager';
 import { performanceMonitor } from '../utils/performanceMonitor';
+import { getLanguageName } from '../utils/translationHelpers';
 import type {
   Message,
   Settings,
@@ -635,12 +636,19 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
       if (age < 24 * 60 * 60 * 1000) {
         console.log('Using cached translation');
         currentSummary = cachedData.summary;
+        selectedTargetLanguage = targetLang;
+        currentLanguageDetection = {
+          detectedLanguage: targetLang,
+          confidence: 1,
+          languageName: getLanguageName(targetLang),
+        };
         return;
       }
     }
 
     // Translate each bullet
     const translatedSummary: string[] = [];
+    let successCount = 0;
     for (const bullet of currentSummary) {
       const response = await sendMessageToBackground<string>({
         type: 'translate',
@@ -653,21 +661,38 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
 
       if (response.success) {
         translatedSummary.push(response.data);
+        successCount += 1;
       } else {
         translatedSummary.push(bullet); // Keep original on error
       }
     }
 
+    if (successCount === 0) {
+      console.warn('Auto-translation skipped: no successful translations');
+      return;
+    }
+
     // Update summary
     currentSummary = translatedSummary;
 
-    // Cache result
-    await chrome.storage.local.set({
-      [cacheKey]: {
-        summary: translatedSummary,
-        timestamp: Date.now(),
-      },
-    });
+    if (successCount === translatedSummary.length) {
+      selectedTargetLanguage = targetLang;
+      currentLanguageDetection = {
+        detectedLanguage: targetLang,
+        confidence: 1,
+        languageName: getLanguageName(targetLang),
+      };
+
+      // Cache result only if we translated all bullets
+      await chrome.storage.local.set({
+        [cacheKey]: {
+          summary: translatedSummary,
+          timestamp: Date.now(),
+        },
+      });
+    } else {
+      console.warn('Auto-translation partially succeeded; cache skipped');
+    }
 
     console.log('Auto-translation complete');
   } catch (error) {
@@ -1066,7 +1091,6 @@ const handleTranslate = async (targetLanguage: string) => {
 
   console.log(`Translating to ${targetLanguage}...`);
   isTranslating = true;
-  selectedTargetLanguage = targetLanguage;
 
   // Re-render with loading state
   if (overlayRoot && overlayContainer) {
@@ -1112,6 +1136,9 @@ const handleTranslate = async (targetLanguage: string) => {
   try {
     // Translate summary
     const translatedSummary: string[] = [];
+    let translatedCount = 0;
+    let failedCount = 0;
+
     for (const bullet of currentSummary) {
       const translateResponse = await sendMessageToBackground<string>({
         type: 'translate',
@@ -1126,32 +1153,46 @@ const handleTranslate = async (targetLanguage: string) => {
 
       if (translateResponse.success) {
         translatedSummary.push(translateResponse.data);
+        translatedCount += 1;
       } else {
         console.error('Translation failed:', translateResponse.error);
+        failedCount += 1;
         translatedSummary.push(bullet); // Keep original on error
       }
     }
 
     currentSummary = translatedSummary;
 
-    const languageNames: Record<string, string> = {
-      en: 'English',
-      es: 'Spanish',
-      fr: 'French',
-      de: 'German',
-      it: 'Italian',
-      pt: 'Portuguese',
-      zh: 'Chinese',
-      ja: 'Japanese',
-      ko: 'Korean',
-      ar: 'Arabic',
-    };
+    if (translatedCount > 0 && failedCount === 0) {
+      selectedTargetLanguage = targetLanguage;
+      currentLanguageDetection = {
+        detectedLanguage: targetLanguage,
+        confidence: 1,
+        languageName: getLanguageName(targetLanguage),
+      };
+    }
 
-    showNotification(
-      'Translation Complete',
-      `Content translated to ${languageNames[targetLanguage] || targetLanguage}`,
-      'info'
-    );
+    const targetLanguageName = getLanguageName(targetLanguage);
+
+    if (translatedCount === 0) {
+      showNotification(
+        'Translation Failed',
+        'Could not translate content',
+        'error'
+      );
+    } else if (failedCount > 0) {
+      showNotification(
+        'Translation Partially Complete',
+        'Some items could not be translated',
+        'warning'
+      );
+    } else {
+      showNotification(
+        'Translation Complete',
+        `Content translated to ${targetLanguageName}`,
+        'info'
+      );
+    }
   } catch (error) {
     console.error('Error translating:', error);
     showNotification(
@@ -1221,6 +1262,9 @@ const handleTranslateToEnglish = async () => {
   try {
     // Translate summary
     const translatedSummary: string[] = [];
+    let translatedCount = 0;
+    let failedCount = 0;
+
     for (const bullet of currentSummary) {
       const translateResponse = await sendMessageToBackground<string>({
         type: 'translate',
@@ -1233,20 +1277,34 @@ const handleTranslateToEnglish = async () => {
 
       if (translateResponse.success) {
         translatedSummary.push(translateResponse.data);
+        translatedCount += 1;
       } else {
         console.error('Translation failed:', translateResponse.error);
         translatedSummary.push(bullet); // Keep original on error
+        failedCount += 1;
       }
     }
 
     currentSummary = translatedSummary;
 
-    // Update language detection to English
-    currentLanguageDetection = {
-      detectedLanguage: 'en',
-      confidence: 1.0,
-      languageName: 'English',
-    };
+    if (translatedCount === 0) {
+      showNotification(
+        'Translation Failed',
+        'Could not translate content to English',
+        'error'
+      );
+      return;
+    }
+
+    if (failedCount === 0) {
+      // Update language detection to English
+      currentLanguageDetection = {
+        detectedLanguage: 'en',
+        confidence: 1.0,
+        languageName: getLanguageName('en'),
+      };
+      selectedTargetLanguage = 'en';
+    }
 
     // Re-render overlay with translated content
     if (overlayRoot && overlayContainer) {
@@ -1291,11 +1349,19 @@ const handleTranslateToEnglish = async () => {
       );
     }
 
-    showNotification(
-      'Translation Complete',
-      'Content translated to English',
-      'info'
-    );
+    if (failedCount === 0) {
+      showNotification(
+        'Translation Complete',
+        'Content translated to English',
+        'info'
+      );
+    } else {
+      showNotification(
+        'Translation Partially Complete',
+        'Some items could not be translated to English',
+        'warning'
+      );
+    }
   } catch (error) {
     console.error('Error translating to English:', error);
     showNotification(

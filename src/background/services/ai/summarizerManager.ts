@@ -23,6 +23,21 @@ const SUMMARIZE_TIMEOUT = 30000;
  */
 const RETRY_TIMEOUT = 60000;
 
+interface SummarizerLanguageOptions {
+  expectedInputLanguages?: string[];
+  expectedContextLanguages?: string[];
+}
+
+const normalizeLanguageKey = (languages?: string[]): string => {
+  if (!languages || languages.length === 0) {
+    return 'default';
+  }
+  return languages
+    .map((lang) => lang.toLowerCase())
+    .sort()
+    .join('|');
+};
+
 /**
  * SummarizerManager class
  * Manages Chrome Summarizer API sessions with format support, error handling, and timeouts
@@ -72,9 +87,14 @@ export class SummarizerManager {
     type: 'tldr' | 'key-points' | 'teaser' | 'headline' = 'key-points',
     format: 'plain-text' | 'markdown' = 'plain-text',
     length: 'short' | 'medium' | 'long' = 'medium',
-    outputLanguage?: string
+    outputLanguage?: string,
+    options?: SummarizerLanguageOptions
   ): Promise<AISummarizer | null> {
-    const sessionKey = `${type}-${format}-${length}-${outputLanguage ?? 'default'}`;
+    const sessionKey = `${type}-${format}-${length}-${
+      outputLanguage ?? 'default'
+    }-${normalizeLanguageKey(options?.expectedInputLanguages)}-${normalizeLanguageKey(
+      options?.expectedContextLanguages
+    )}`;
 
     // Return cached session if available
     if (this.sessions.has(sessionKey)) {
@@ -100,6 +120,14 @@ export class SummarizerManager {
         format,
         length,
         ...(outputLanguage && { outputLanguage }),
+        ...(options?.expectedInputLanguages &&
+          options.expectedInputLanguages.length > 0 && {
+            expectedInputLanguages: options.expectedInputLanguages,
+          }),
+        ...(options?.expectedContextLanguages &&
+          options.expectedContextLanguages.length > 0 && {
+            expectedContextLanguages: options.expectedContextLanguages,
+          }),
       });
 
       // Cache the session
@@ -127,7 +155,8 @@ export class SummarizerManager {
   async summarize(
     text: string,
     format: SummaryFormat,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions
   ): Promise<string[]> {
     // Check availability first
     if (!this.available) {
@@ -143,6 +172,7 @@ export class SummarizerManager {
         text,
         format,
         outputLanguage,
+        languageOptions,
         SUMMARIZE_TIMEOUT
       );
     } catch (error) {
@@ -154,6 +184,7 @@ export class SummarizerManager {
           text,
           format,
           outputLanguage,
+          languageOptions,
           RETRY_TIMEOUT
         );
       } catch (retryError) {
@@ -177,6 +208,7 @@ export class SummarizerManager {
     text: string,
     format: SummaryFormat,
     outputLanguage: string | undefined,
+    languageOptions: SummarizerLanguageOptions | undefined,
     timeout: number
   ): Promise<string[]> {
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -186,7 +218,8 @@ export class SummarizerManager {
     const summarizePromise = this.executeSummarize(
       text,
       format,
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     return Promise.race([summarizePromise, timeoutPromise]);
@@ -203,15 +236,20 @@ export class SummarizerManager {
   private async executeSummarize(
     text: string,
     format: SummaryFormat,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions
   ): Promise<string[]> {
     switch (format) {
       case 'bullets':
-        return this.summarizeBullets(text, outputLanguage);
+        return this.summarizeBullets(text, outputLanguage, languageOptions);
       case 'paragraph':
-        return this.summarizeParagraph(text, outputLanguage);
+        return this.summarizeParagraph(text, outputLanguage, languageOptions);
       case 'headline-bullets':
-        return this.summarizeHeadlineBullets(text, outputLanguage);
+        return this.summarizeHeadlineBullets(
+          text,
+          outputLanguage,
+          languageOptions
+        );
       default:
         throw new Error(`Unsupported format: ${String(format)}`);
     }
@@ -225,13 +263,15 @@ export class SummarizerManager {
    */
   private async summarizeBullets(
     text: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions
   ): Promise<string[]> {
     const session = await this.createSession(
       'key-points',
       'markdown',
       'short',
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     if (!session) {
@@ -272,13 +312,15 @@ export class SummarizerManager {
    */
   private async summarizeParagraph(
     text: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions
   ): Promise<string[]> {
     const session = await this.createSession(
       'tldr',
       'plain-text',
       'medium',
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     if (!session) {
@@ -297,14 +339,16 @@ export class SummarizerManager {
    */
   private async summarizeHeadlineBullets(
     text: string,
-    outputLanguage?: string
+    outputLanguage?: string,
+    languageOptions?: SummarizerLanguageOptions
   ): Promise<string[]> {
     // Create headline session
     const headlineSession = await this.createSession(
       'headline',
       'plain-text',
       'short',
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     if (!headlineSession) {
@@ -316,7 +360,8 @@ export class SummarizerManager {
       'key-points',
       'markdown',
       'short',
-      outputLanguage
+      outputLanguage,
+      languageOptions
     );
 
     if (!bulletsSession) {
