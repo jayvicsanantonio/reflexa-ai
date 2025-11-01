@@ -1511,74 +1511,109 @@ const handleTranslate = async (targetLanguage: string) => {
   }
 
   try {
-    // Translate summary
-    const translatedSummary: string[] = [];
-    let translatedCount = 0;
-    let failedCount = 0;
+    const sourceLanguageCode =
+      originalContentLanguage?.detectedLanguage ??
+      originalDetectedLanguage ??
+      currentLanguageDetection.detectedLanguage;
 
-    for (const bullet of currentSummary) {
-      const translateResponse = await sendMessageToBackground<string>({
-        type: 'translate',
-        payload: {
-          text: bullet,
-          source:
-            originalDetectedLanguage ??
-            currentLanguageDetection.detectedLanguage,
-          target: targetLanguage,
-        },
-      });
+    const summaryResponse = await sendMessageToBackground<string[]>({
+      type: 'summarize',
+      payload: {
+        content: currentExtractedContent.text,
+        format: currentSummaryFormat,
+        detectedLanguage: sourceLanguageCode,
+        targetLanguage,
+      },
+    });
 
-      if (translateResponse.success) {
-        translatedSummary.push(translateResponse.data);
-        translatedCount += 1;
-      } else {
-        console.error('Translation failed:', translateResponse.error);
-        failedCount += 1;
-        translatedSummary.push(bullet); // Keep original on error
-      }
-    }
-
-    currentSummary = translatedSummary;
-
-    if (translatedCount > 0 && failedCount === 0) {
-      selectedTargetLanguage = targetLanguage;
-      isTargetLanguageOverridden =
-        preferredLanguageBaseline !== null
-          ? targetLanguage !== preferredLanguageBaseline
-          : true;
-      currentLanguageDetection = {
-        detectedLanguage: targetLanguage,
-        confidence: 1,
-        languageName: getLanguageName(targetLanguage),
-      };
-    }
-
-    const targetLanguageName = getLanguageName(targetLanguage);
-
-    if (translatedCount === 0) {
+    if (!summaryResponse.success) {
+      console.error('Regeneration in target language failed:', summaryResponse);
       showNotification(
         'Translation Failed',
-        'Could not translate content',
+        'Could not regenerate summary in the selected language',
         'error'
       );
-    } else if (failedCount > 0) {
-      showNotification(
-        'Translation Partially Complete',
-        'Some items could not be translated',
-        'warning'
-      );
-    } else {
-      showNotification(
-        'Translation Complete',
-        `Content translated to ${targetLanguageName}`,
-        'info'
-      );
+      return;
     }
+
+    currentSummary = summaryResponse.data;
+    currentSummaryDisplay = summaryResponse.data;
+    currentSummaryBuffer = '';
+    summaryStreamComplete = true;
+
+    let detectedSummaryLanguage = sourceLanguageCode;
+    let requiresPostTranslation = true;
+
+    try {
+      const detectionSample = summaryResponse.data.join('\n').slice(0, 500);
+      if (detectionSample.trim().length > 0) {
+        const detectResponse = await sendMessageToBackground<LanguageDetection>(
+          {
+            type: 'detectLanguage',
+            payload: {
+              text: detectionSample,
+              pageUrl: currentExtractedContent?.url ?? location.href,
+            },
+          }
+        );
+        if (detectResponse.success) {
+          detectedSummaryLanguage = detectResponse.data.detectedLanguage;
+          requiresPostTranslation =
+            detectResponse.data.detectedLanguage !== targetLanguage;
+        } else {
+          requiresPostTranslation = true;
+        }
+      }
+    } catch (detectError) {
+      console.warn(
+        'Failed to detect summary language, falling back to translation:',
+        detectError
+      );
+      requiresPostTranslation = true;
+    }
+
+    if (requiresPostTranslation) {
+      const translatedSummary: string[] = [];
+      for (const bullet of currentSummary) {
+        const translateResponse = await sendMessageToBackground<string>({
+          type: 'translate',
+          payload: {
+            text: bullet,
+            source: detectedSummaryLanguage ?? sourceLanguageCode ?? 'en',
+            target: targetLanguage,
+          },
+        });
+
+        translatedSummary.push(
+          translateResponse.success ? translateResponse.data : bullet
+        );
+      }
+
+      currentSummary = translatedSummary;
+      currentSummaryDisplay = translatedSummary;
+    }
+
+    selectedTargetLanguage = targetLanguage;
+    isTargetLanguageOverridden =
+      preferredLanguageBaseline !== null
+        ? targetLanguage !== preferredLanguageBaseline
+        : true;
+    currentLanguageDetection = {
+      detectedLanguage: targetLanguage,
+      confidence: 1,
+      languageName: getLanguageName(targetLanguage),
+    };
+
+    showNotification(
+      'Translation Complete',
+      `Summary regenerated in ${getLanguageName(targetLanguage)}`,
+      'info'
+    );
   } catch (error) {
     console.error('Error translating:', error);
     showNotification(
       'Translation Failed',
-      'Could not translate content',
+      'Could not regenerate summary in the selected language',
       'error'
     );
   } finally {

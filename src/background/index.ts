@@ -578,6 +578,7 @@ async function handleSummarize(
     let content: string;
     let format: SummaryFormat = 'bullets'; // default format
     let detectedLanguage: string | undefined;
+    let outputLanguageOverride: string | undefined;
 
     if (typeof payload === 'string') {
       content = payload;
@@ -586,6 +587,8 @@ async function handleSummarize(
         content: string;
         format?: SummaryFormat;
         detectedLanguage?: string;
+        targetLanguage?: string;
+        outputLanguage?: string;
       };
       content = payloadObj.content;
       if (payloadObj.format) {
@@ -593,6 +596,18 @@ async function handleSummarize(
       }
       if (payloadObj.detectedLanguage) {
         detectedLanguage = payloadObj.detectedLanguage;
+      }
+      if (payloadObj.outputLanguage) {
+        const candidate = payloadObj.outputLanguage.trim();
+        if (candidate.length > 0) {
+          outputLanguageOverride = candidate;
+        }
+      }
+      if (!outputLanguageOverride && payloadObj.targetLanguage) {
+        const candidate = payloadObj.targetLanguage.trim();
+        if (candidate.length > 0) {
+          outputLanguageOverride = candidate;
+        }
       }
     } else {
       console.error('[Summarize] Invalid payload:', typeof payload);
@@ -623,9 +638,11 @@ async function handleSummarize(
       ? preferredLanguageRaw.trim()
       : undefined;
     const outputLanguage =
-      preferredLanguage && preferredLanguage.length > 0
-        ? preferredLanguage
-        : detectedLanguage;
+      outputLanguageOverride && outputLanguageOverride.length > 0
+        ? outputLanguageOverride
+        : preferredLanguage && preferredLanguage.length > 0
+          ? preferredLanguage
+          : detectedLanguage;
     const expectedInputLanguages = detectedLanguage
       ? [detectedLanguage]
       : undefined;
