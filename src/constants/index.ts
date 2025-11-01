@@ -82,12 +82,13 @@ export const PERFORMANCE = {
 /**
  * Storage keys
  */
+export const STORAGE_NAMESPACE = 'reflexa:' as const;
 export const STORAGE_KEYS = {
-  REFLECTIONS: 'reflections',
-  SETTINGS: 'settings',
-  LAST_SYNC: 'lastSync',
-  STREAK: 'streak',
-  FIRST_LAUNCH: 'firstLaunch',
+  REFLECTIONS: `${STORAGE_NAMESPACE}reflections`,
+  SETTINGS: `${STORAGE_NAMESPACE}settings`,
+  LAST_SYNC: `${STORAGE_NAMESPACE}lastSync`,
+  STREAK: `${STORAGE_NAMESPACE}streak`,
+  FIRST_LAUNCH: `${STORAGE_NAMESPACE}firstLaunch`,
 };
 
 /**

@@ -10,6 +10,7 @@ import { SaveIndicator } from './components/SaveIndicator';
 import { Dropdown, type DropdownOption } from './components/Dropdown';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
+import { ErrorBoundary } from '../utils/ErrorBoundary';
 
 export const App: React.FC = () => {
   // Enable keyboard navigation detection
@@ -573,4 +574,8 @@ export const App: React.FC = () => {
 };
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

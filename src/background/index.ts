@@ -22,7 +22,7 @@ import type {
   StreakData,
 } from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
-import { ERROR_MESSAGES } from '../constants';
+import { ERROR_MESSAGES, STORAGE_KEYS } from '../constants';
 
 console.log('Reflexa AI background service worker initialized');
 
@@ -1708,6 +1708,9 @@ chrome.runtime.onInstalled.addListener(async () => {
   // Initialize AI Service
   aiService.initialize();
 
+  // Migrate storage keys to namespaced versions if needed
+  await migrateStorageKeysIfNeeded();
+
   // Check if Gemini Nano is available
   const available = await aiService.prompt.checkAvailability();
   aiAvailable = available;
@@ -1719,9 +1722,9 @@ chrome.runtime.onInstalled.addListener(async () => {
   console.log('AI Capabilities:', capabilities);
 
   // Set first launch flag if not already set
-  const result = await chrome.storage.local.get('firstLaunch');
-  if (!result.firstLaunch) {
-    await chrome.storage.local.set({ firstLaunch: true });
+  const result = await chrome.storage.local.get(STORAGE_KEYS.FIRST_LAUNCH);
+  if (!result[STORAGE_KEYS.FIRST_LAUNCH]) {
+    await chrome.storage.local.set({ [STORAGE_KEYS.FIRST_LAUNCH]: true });
     console.log('First launch detected');
   }
 });
@@ -1734,6 +1737,9 @@ chrome.runtime.onStartup.addListener(async () => {
 
   // Initialize AI Service
   aiService.initialize();
+
+  // Opportunistically migrate storage keys on startup as well
+  await migrateStorageKeysIfNeeded();
 
   // Check if Gemini Nano is available
   const available = await aiService.prompt.checkAvailability();
@@ -1766,3 +1772,53 @@ self.addEventListener('unhandledrejection', (event) => {
     return;
   }
 });
+
+/**
+ * Migrate un-namespaced storage keys to namespaced keys.
+ * This preserves existing user data while adopting safer key names.
+ */
+async function migrateStorageKeysIfNeeded(): Promise<void> {
+  try {
+    const legacyKeys = {
+      REFLECTIONS: 'reflections',
+      SETTINGS: 'settings',
+      LAST_SYNC: 'lastSync',
+      STREAK: 'streak',
+      FIRST_LAUNCH: 'firstLaunch',
+    } as const;
+
+    const [legacyValues, namespacedValues] = await Promise.all([
+      chrome.storage.local.get(Object.values(legacyKeys)),
+      chrome.storage.local.get([
+        STORAGE_KEYS.REFLECTIONS,
+        STORAGE_KEYS.SETTINGS,
+        STORAGE_KEYS.LAST_SYNC,
+        STORAGE_KEYS.STREAK,
+        STORAGE_KEYS.FIRST_LAUNCH,
+      ]),
+    ]);
+
+    const updates: Record<string, unknown> = {};
+    const removals: string[] = [];
+
+    // For each legacy key: if value exists and namespaced is missing, migrate
+    (Object.keys(legacyKeys) as (keyof typeof legacyKeys)[]).forEach((k) => {
+      const legacyKey = legacyKeys[k];
+      const namespacedKey = (STORAGE_KEYS as Record<string, string>)[k];
+      const legacyHasValue = legacyValues[legacyKey] !== undefined;
+      const namespacedHasValue = namespacedValues[namespacedKey] !== undefined;
+      if (legacyHasValue && !namespacedHasValue) {
+        updates[namespacedKey] = legacyValues[legacyKey];
+        removals.push(legacyKey);
+      }
+    });
+
+    if (Object.keys(updates).length > 0) {
+      await chrome.storage.local.set(updates);
+      await chrome.storage.local.remove(removals);
+      console.log('[Storage] Migrated legacy keys to namespaced keys');
+    }
+  } catch (e) {
+    console.warn('[Storage] Key migration failed:', e);
+  }
+}

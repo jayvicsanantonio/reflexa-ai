@@ -21,6 +21,7 @@ import { STORAGE_KEYS, PRIVACY_NOTICE } from '../constants';
 import { formatISODate } from '../utils';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
+import { ErrorBoundary } from '../utils/ErrorBoundary';
 
 /**
  * Dashboard Popup Application
@@ -619,4 +620,8 @@ export const App: React.FC = () => {
 };
 
 const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
+root.render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);

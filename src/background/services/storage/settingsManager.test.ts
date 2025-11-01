@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SettingsManager } from './settingsManager';
-import { DEFAULT_SETTINGS } from '../../../constants';
+import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../../../constants';
 import type { Settings } from '../../../types';
 
 describe('SettingsManager', () => {
@@ -61,7 +61,7 @@ describe('SettingsManager', () => {
         voiceAutoStopDelay: 5000,
       };
 
-      mockStorage.set('settings', customSettings);
+      mockStorage.set(STORAGE_KEYS.SETTINGS, customSettings);
 
       const settings = await settingsManager.getSettings();
       expect(settings).toEqual(customSettings);
