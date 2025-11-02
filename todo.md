@@ -1,6 +1,6 @@
 # Reflexa AI Refactoring TODO
 
-## Current Status: Phase 1-3 Complete ✅, Phase 5.1 Complete ✅
+## Current Status: Phase 1-5.2 Complete ✅, Component Refactoring Complete ✅
 
 **Last Updated**: 2025-11-02
 
@@ -160,7 +160,7 @@
 - [x] Run `npm run build` and verify
 - [ ] Test all modal functionality
 
-**Status**: ✅ Complete - All four modals refactored! AIStatusModal: 947 → 122 lines (87% reduction), MoreToolsMenu: 881 → 254 lines (71% reduction), QuickSettingsModal: 840 → 149 lines (82% reduction), DashboardModal: 575 → 89 lines (85% reduction). Build passes!
+**Status**: ✅ Complete - All major components refactored! AIStatusModal: 947 → 122 lines (87% reduction), MoreToolsMenu: 881 → 254 lines (71% reduction), QuickSettingsModal: 840 → 149 lines (82% reduction), DashboardModal: 575 → 89 lines (85% reduction), CalmStatsLite: 419 → 65 lines (85% reduction), LotusNudge: 322 → 86 lines (73% reduction), ProofreadDiffView: 277 → 71 lines (74% reduction), BilingualView: 265 → 47 lines (82% reduction), HelpSetupModal: 226 → 66 lines (71% reduction). Build passes!
 
 ---
 
@@ -223,14 +223,35 @@
 - [ ] Test error handling
 - [ ] Test notifications
 - [ ] Test UI cleanup
-- [ ] Run `npm run test`
-- [ ] Run `npm run test:coverage`
+- [x] Run `npm run test` - **510 tests passing** ✅
+- [x] Run `npm run test:coverage` - **Coverage: 58.65% statements, 45.75% branches, 61.77% functions, 59.65% lines** ✅
 - [ ] Check for memory leaks
 - [ ] Verify performance
-- [ ] Run `npm run build`
-- [ ] Verify bundle size
+- [x] Run `npm run build` - **Build successful** ✅
+- [x] Verify bundle size - **Documented below** ✅
 
-**Status**: 🔴 Not Started
+**Status**: 🟡 In Progress (Automated tasks complete)
+
+**Test Coverage Summary**:
+
+- Overall: 58.65% statements, 45.75% branches, 61.77% functions, 59.65% lines
+- Test Files: 29 passed (29)
+- Tests: 510 passed (510)
+- Duration: ~12-13s
+
+**Bundle Size Summary**:
+
+- Total `dist/` size: ~1.9 MB
+- `dist/assets/`: ~584 KB (JavaScript bundles)
+- `dist/icons/`: ~164 KB
+- `dist/audio/`: ~1.0 MB
+- Largest JS bundles:
+  - `jsx-runtime-B787zd_7.js`: 141.80 kB (gzip: 45.70 kB)
+  - `index.tsx-QsCrwwHp.js`: 113.92 kB (gzip: 30.47 kB)
+  - `index.ts-BAzr9NhF.js`: 73.99 kB (gzip: 17.87 kB)
+  - `DashboardModal-BzxFNbV2.js`: 17.23 kB (gzip: 4.56 kB)
+  - `QuickSettingsModal-HBRovMq0.js`: 14.72 kB (gzip: 3.94 kB)
+  - `AIStatusModal-D3670xXb.js`: 10.66 kB (gzip: 3.07 kB)
 
 ---
 
