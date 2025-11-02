@@ -26,6 +26,23 @@ import {
   createShowErrorModal,
   createShowNotification,
 } from './ui';
+import {
+  initiateReflectionFlow,
+  setErrorModalHandler,
+  showReflectModeOverlay,
+  hideReflectModeOverlay,
+  handleProofread,
+  handleTranslate,
+  handleTranslateToEnglish,
+  handleRewrite,
+  handleSaveReflection,
+  handleCancelReflection,
+  setNotificationHandler,
+  handleFormatChange as handleFormatChangeWorkflow,
+  applyTranslationPreference,
+  shouldAutoTranslate,
+  handleAutoTranslate,
+} from './workflows';
 
 console.log('Reflexa AI content script initialized');
 
@@ -255,11 +272,14 @@ const LOTUS_NUDGE_STYLES = `
 `;
 
 /**
- * Update the session target language based on current settings.
- * Defaults to the preferred translation language when translation
- * features are enabled. Clears the override when translation is off.
+ * Update the session target language based on current settings (LEGACY - migrated to workflows)
+ * @deprecated Use applyTranslationPreference from './workflows' instead
+ * Kept for compatibility during migration
  */
-const applyTranslationPreference = (settings: Settings | null | undefined) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _applyTranslationPreferenceLegacy = (
+  settings: Settings | null | undefined
+) => {
   const translationActive = Boolean(
     settings?.enableTranslation ?? settings?.translationEnabled
   );
@@ -312,8 +332,21 @@ const applyTranslationPreference = (settings: Settings | null | undefined) => {
 /**
  * Initiate the complete reflection flow
  * Extracts content, requests AI processing, and shows overlay
+ * NOTE: Full implementation is in workflows/reflectionWorkflow.ts
+ * This legacy implementation is being kept temporarily during migration
+ * TODO: Remove once all dependencies are migrated
  */
-const initiateReflectionFlow = async () => {
+// NOTE: The reflection workflow has been migrated to workflows/reflectionWorkflow.ts
+// The new initiateReflectionFlow() is imported and used above.
+//
+// The legacy implementation (below) contains additional logic that depends on
+// functions like summarizeWithStreaming, handleAutoTranslate, renderOverlay, etc.
+// which will be migrated in subsequent steps. For now, it's commented out to avoid
+// build errors. The new workflow handles the core initiation logic.
+//
+/*
+// Legacy implementation - will be fully migrated in Phase 3 steps 3.2-3.4
+const _initiateReflectionFlowLegacyReference = async () => {
   try {
     console.log('Starting reflection flow...');
 
@@ -552,7 +585,11 @@ const initiateReflectionFlow = async () => {
         shouldAutoTranslate(detectionBeforeSummary, settingsForAutoTranslate)
       ) {
         console.log('Auto-translating during breathing phase...');
-        await handleAutoTranslate(detectionBeforeSummary);
+        await handleAutoTranslate(
+          detectionBeforeSummary,
+          stopSummaryAnimation,
+          renderOverlay
+        );
       }
     }
 
@@ -1027,68 +1064,8 @@ const renderOverlay = () => {
   );
 };
 
-/**
- * Show the Reflect Mode overlay
- * Creates shadow DOM and renders the overlay component
- * Optimized to minimize layout shifts and track render time
- */
-const showReflectModeOverlay = async () => {
-  const overlayState = contentState.getOverlayState();
-  if (overlayState.isVisible) {
-    console.log('Overlay already visible');
-    return;
-  }
-
-  // Start performance measurement
-  performanceMonitor.startMeasure('overlay-render');
-
-  console.log('Showing Reflect Mode overlay...');
-
-  // Load current settings
-  const settings = await (async () => {
-    const settingsResponse = await sendMessageToBackground<Settings>({
-      type: 'getSettings',
-    });
-    return settingsResponse.success ? settingsResponse.data : null;
-  })();
-
-  if (settings) {
-    instanceManager.setSettings(settings);
-  }
-
-  // Initialize audio manager if sound is enabled
-  if (settings?.enableSound) {
-    instanceManager.initializeAudioManager(settings);
-  }
-
-  // Play entry chime and ambient loop if enabled
-  const audioManagerForPlay = instanceManager.getAudioManager();
-  if (settings?.enableSound && audioManagerForPlay) {
-    void audioManagerForPlay.playEntryChime();
-    void audioManagerForPlay.playAmbientLoop();
-  }
-
-  // Create overlay container using uiManager
-  // We'll render an empty placeholder first, then use renderOverlay() to render with state
-  uiManager.showOverlay(<div />);
-
-  // Use the helper function for initial render
-  renderOverlay();
-
-  // End performance measurement
-  performanceMonitor.endMeasure('overlay-render');
-
-  // Start frame rate monitoring if animations are enabled
-  const settingsForMotion = instanceManager.getSettings();
-  if (!settingsForMotion?.reduceMotion) {
-    performanceMonitor.startFrameRateMonitoring();
-  }
-
-  // Log memory usage
-  performanceMonitor.logMemoryUsage();
-
-  console.log('Reflect Mode overlay displayed');
-};
+// NOTE: showReflectModeOverlay and hideReflectModeOverlay are now imported from './workflows'
+// The legacy implementation is commented out below for reference during migration
 
 /**
  * Get default settings as fallback
@@ -1114,10 +1091,12 @@ const getDefaultSettings = (): Settings => ({
 });
 
 /**
- * Handle save reflection action
- * Sends reflection data to background worker for storage
+ * Handle save reflection action (LEGACY - migrated to workflows)
+ * @deprecated Use handleSaveReflection from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleSaveReflection = async (
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleSaveReflectionLegacy = async (
   reflections: string[],
   voiceMetadata?: VoiceInputMetadata[],
   originalReflections?: (string | null)[]
@@ -1225,10 +1204,12 @@ const handleSaveReflection = async (
 };
 
 /**
- * Handle cancel reflection action
- * Closes overlay without saving and shows the nudge again
+ * Handle cancel reflection action (LEGACY - migrated to workflows)
+ * @deprecated Use handleCancelReflection from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleCancelReflection = () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleCancelReflectionLegacy = () => {
   console.log('Reflection cancelled');
 
   // Stop ambient audio if playing
@@ -1243,10 +1224,12 @@ const handleCancelReflection = () => {
 };
 
 /**
- * Handle proofread request
- * Sends text to background worker for AI proofreading
+ * Handle proofread request (LEGACY - migrated to workflows)
+ * @deprecated Use handleProofread from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleProofread = async (
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleProofreadLegacy = async (
   text: string,
   index: number
 ): Promise<ProofreadResult> => {
@@ -1314,10 +1297,12 @@ const handleProofread = async (
 };
 
 /**
- * Handle translate request
- * Translates summary and prompts to target language
+ * Handle translate request (LEGACY - migrated to workflows)
+ * @deprecated Use handleTranslate from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleTranslate = async (targetLanguage: string) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleTranslateLegacy = async (targetLanguage: string) => {
   if (
     !contentState.getLanguageDetection() ||
     !contentState.getExtractedContent()
@@ -1573,10 +1558,12 @@ const handleTranslate = async (targetLanguage: string) => {
 };
 
 /**
- * Handle translate to English request
- * Translates summary and prompts to English
+ * Handle translate to English request (LEGACY - migrated to workflows)
+ * @deprecated Use handleTranslateToEnglish from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleTranslateToEnglish = async () => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleTranslateToEnglishLegacy = async () => {
   if (
     !contentState.getLanguageDetection() ||
     !contentState.getExtractedContent()
@@ -1725,10 +1712,12 @@ const handleTranslateToEnglish = async () => {
 };
 
 /**
- * Handle rewrite request
- * Rewrites text with selected tone preset
+ * Handle rewrite request (LEGACY - migrated to workflows)
+ * @deprecated Use handleRewrite from './workflows' instead
+ * Kept for compatibility during migration
  */
-const handleRewrite = async (
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _handleRewriteLegacy = async (
   text: string,
   tone: TonePreset,
   index: number
@@ -2024,10 +2013,10 @@ const handleFormatChange = async (format: SummaryFormat) => {
 };
 
 /**
- * Hide the Reflect Mode overlay
- * Removes the component and cleans up the DOM
+ * Hide the Reflect Mode overlay (LEGACY - now in workflows)
+ * @deprecated Use hideReflectModeOverlay from './workflows' instead
  */
-const hideReflectModeOverlay = () => {
+const hideReflectModeOverlayLegacy = () => {
   // Stop ambient audio if playing
   instanceManager.stopAudioManager();
 
@@ -2343,13 +2332,8 @@ const hideErrorModal = () => {
  */
 const showErrorModal = createShowErrorModal(hideErrorModal);
 
-/**
- * Show notification toast
- * @param title Notification title
- * @param message Notification message
- * @param type Notification type
- * @param duration Optional duration in milliseconds
- */
+// Set error modal handler for workflows
+setErrorModalHandler(showErrorModal);
 
 /**
  * Hide the notification toast
@@ -2363,6 +2347,9 @@ const hideNotification = () => {
  * Show notification - created with hide callback
  */
 const showNotification = createShowNotification(hideNotification);
+
+// Set notification handler for reflection actions
+setNotificationHandler(showNotification);
 
 /**
  * Clean up on page unload
