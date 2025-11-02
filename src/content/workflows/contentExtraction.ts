@@ -16,13 +16,14 @@ export function extractAndValidateContent(): ExtractedContent | null {
   const contentExtractor = instanceManager.getContentExtractor();
   const extractedContent = contentExtractor.extractMainContent();
 
-  if (!extractedContent || !extractedContent.text.trim()) {
+  if (!extractedContent?.text.trim()) {
     console.error('Failed to extract content from page');
     return null;
   }
 
   // Check if content exceeds token limit
-  const { exceeds, tokens } = contentExtractor.checkTokenLimit(extractedContent);
+  const { exceeds, tokens } =
+    contentExtractor.checkTokenLimit(extractedContent);
 
   if (exceeds) {
     console.warn(

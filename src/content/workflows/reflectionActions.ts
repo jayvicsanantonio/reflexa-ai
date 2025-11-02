@@ -9,10 +9,7 @@ import { sendMessageToBackground } from '../runtime/messageBus';
 import { hideReflectModeOverlay } from './overlayWorkflow';
 import { createShowErrorModal } from '../ui';
 import { uiManager } from '../ui';
-import type {
-  Reflection,
-  VoiceInputMetadata,
-} from '../../types';
+import type { Reflection, VoiceInputMetadata } from '../../types';
 import { generateUUID } from '../../utils';
 import { ERROR_MESSAGES } from '../../constants';
 
@@ -21,11 +18,13 @@ let showErrorModalHandler: ReturnType<typeof createShowErrorModal> | null =
   null;
 
 // Notification handler - will be injected from index.tsx
-let showNotificationHandler: ((
-  title: string,
-  message: string,
-  type: 'warning' | 'error' | 'info'
-) => void) | null = null;
+let showNotificationHandler:
+  | ((
+      title: string,
+      message: string,
+      type: 'warning' | 'error' | 'info'
+    ) => void)
+  | null = null;
 
 export function setNotificationHandler(
   handler: (
@@ -56,11 +55,9 @@ export function setErrorModalHandler(
 }
 
 function getShowErrorModal() {
-  if (!showErrorModalHandler) {
-    showErrorModalHandler = createShowErrorModal(() => {
-      uiManager.hideErrorModal();
-    });
-  }
+  showErrorModalHandler ??= createShowErrorModal(() => {
+    uiManager.hideErrorModal();
+  });
   return showErrorModalHandler;
 }
 
@@ -125,7 +122,7 @@ export async function handleSaveReflection(
           'Storage Full',
           ERROR_MESSAGES.STORAGE_FULL,
           'storage-full',
-          async () => {
+          () => {
             // Open popup to export reflections
             void chrome.runtime.sendMessage({ type: 'openPopup' });
           },

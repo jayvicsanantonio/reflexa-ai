@@ -19,6 +19,14 @@ export {
   handleAutoTranslate,
 } from './translationPreferences';
 export {
+  parseSummaryBuffer,
+  stopSummaryAnimation,
+  startSummaryAnimation,
+  stepSummaryAnimation,
+  summarizeWithStreaming,
+} from './summarizationStreaming';
+export { getDefaultSettings, createRenderOverlay } from './overlayRendering';
+export {
   handleProofread,
   handleTranslate,
   handleTranslateToEnglish,

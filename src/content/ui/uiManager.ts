@@ -304,7 +304,7 @@ class UIManager {
   /**
    * Show help modal (AI Status)
    */
-  async showHelpModal(component: ReactNode): Promise<void> {
+  showHelpModal(component: ReactNode): void {
     const helpModalState = contentState.getHelpModalState();
     if (helpModalState.isVisible) {
       return;

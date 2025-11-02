@@ -24,12 +24,9 @@ export function setErrorModalHandler(
 }
 
 function getShowErrorModal() {
-  if (!showErrorModal) {
-    // Fallback: create a temporary one
-    showErrorModal = createShowErrorModal(() => {
-      uiManager.hideErrorModal();
-    });
-  }
+  showErrorModal ??= createShowErrorModal(() => {
+    uiManager.hideErrorModal();
+  });
   return showErrorModal;
 }
 

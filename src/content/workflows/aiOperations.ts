@@ -88,9 +88,7 @@ export async function handleProofread(
  * Handle translate request
  * Translates summary and prompts to target language
  */
-export async function handleTranslate(
-  targetLanguage: string
-): Promise<void> {
+export async function handleTranslate(targetLanguage: string): Promise<void> {
   console.log('Translating to:', targetLanguage);
 
   const currentSummary = contentState.getSummary();
@@ -338,8 +336,7 @@ export async function handleFormatChange(
       payload: {
         content: contentState.getExtractedContent()?.text ?? '',
         format: format,
-        detectedLanguage:
-          contentState.getLanguageDetection()?.detectedLanguage,
+        detectedLanguage: contentState.getLanguageDetection()?.detectedLanguage,
       },
     });
 

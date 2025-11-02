@@ -55,7 +55,9 @@ export async function showReflectModeOverlay(): Promise<void> {
   // Note: renderOverlay is still in index.tsx for now, will be extracted later
   // We need to call renderOverlay from index.tsx after showing overlay
   // For now, we'll create a minimal placeholder
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
   const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
   uiManager.showOverlay(React.createElement('div'));
 
   // End performance measurement
