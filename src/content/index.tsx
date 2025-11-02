@@ -1,6 +1,5 @@
 import './styles.css';
-import { createRoot } from 'react-dom/client';
-import { LotusNudge, ErrorModal, Notification } from './components';
+import { LotusNudge } from './components';
 import { MeditationFlowOverlay } from './components/MeditationFlowOverlay';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import { getLanguageName } from '../utils/translationHelpers';
@@ -21,6 +20,12 @@ import { ERROR_MESSAGES } from '../constants';
 import { sendMessageToBackground, startAIStream } from './runtime/messageBus';
 import { contentState } from './state';
 import { instanceManager } from './core';
+import {
+  uiManager,
+  setNudgeLoadingState,
+  createShowErrorModal,
+  createShowNotification,
+} from './ui';
 
 console.log('Reflexa AI content script initialized');
 
@@ -579,15 +584,15 @@ const initiateReflectionFlow = async () => {
       undefined;
 
     // Re-render overlay with summary loaded
-    const overlayState = contentState.getOverlayState();
-    if (overlayState.root && overlayState.container) {
+    const overlayInfo = uiManager.getOverlayRoot();
+    if (overlayInfo) {
       const settingsForOverlay = instanceManager.getSettings();
       const audioManagerForOverlay = instanceManager.getAudioManager();
       const soundEnabled = Boolean(
         settingsForOverlay?.enableSound && audioManagerForOverlay
       );
       const translationEnabled = Boolean(settingsForOverlay?.enableTranslation);
-      overlayState.root.render(
+      overlayInfo.root.render(
         <MeditationFlowOverlay
           summary={contentState.getSummary()}
           summaryDisplay={
@@ -963,8 +968,8 @@ const summarizeWithStreaming = async (
  * Used for initial render and re-renders when state changes
  */
 const renderOverlay = () => {
-  const overlayState = contentState.getOverlayState();
-  if (!overlayState.root || !overlayState.container) return;
+  const overlayInfo = uiManager.getOverlayRoot();
+  if (!overlayInfo) return;
 
   const handleToggleAmbient = async (mute: boolean) => {
     const audioManagerForToggle = instanceManager.getAudioManager();
@@ -987,7 +992,7 @@ const renderOverlay = () => {
   );
   const translationEnabled = Boolean(settingsForRender?.enableTranslation);
 
-  overlayState.root.render(
+  overlayInfo.root.render(
     <MeditationFlowOverlay
       summary={contentState.getSummary()}
       summaryDisplay={
@@ -1063,43 +1068,9 @@ const showReflectModeOverlay = async () => {
     void audioManagerForPlay.playAmbientLoop();
   }
 
-  // Create container for shadow DOM with optimized positioning
-  const overlayContainer = document.createElement('div');
-  overlayContainer.id = 'reflexa-overlay-container';
-  // Set position and dimensions before appending to minimize layout shift
-  overlayContainer.style.cssText =
-    'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647;';
-  document.body.appendChild(overlayContainer);
-
-  // Create shadow root for style isolation
-  const shadowRoot = overlayContainer.attachShadow({ mode: 'open' });
-
-  // Inject styles into shadow DOM
-  // We need to link the stylesheet since shadow DOM requires explicit style injection
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
-  // Validate URL before setting href
-  if (cssUrl && !cssUrl.includes('invalid')) {
-    linkElement.href = cssUrl;
-    shadowRoot.appendChild(linkElement);
-  } else {
-    console.warn('Invalid CSS URL, skipping stylesheet injection');
-  }
-
-  // Create root element for React
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  // Render the ReflectModeOverlay component
-  const overlayRoot = createRoot(rootElement);
-
-  // Store in state
-  contentState.setOverlayState({
-    container: overlayContainer,
-    root: overlayRoot,
-    isVisible: true,
-  });
+  // Create overlay container using uiManager
+  // We'll render an empty placeholder first, then use renderOverlay() to render with state
+  uiManager.showOverlay(<div />);
 
   // Use the helper function for initial render
   renderOverlay();
@@ -1537,8 +1508,8 @@ const handleTranslate = async (targetLanguage: string) => {
     contentState.setIsTranslating(false);
 
     // Re-render overlay with translated content
-    const overlayStateFinal = contentState.getOverlayState();
-    if (overlayStateFinal.root && overlayStateFinal.container) {
+    const overlayInfoFinal = uiManager.getOverlayRoot();
+    if (overlayInfoFinal) {
       const soundEnabled = Boolean(
         instanceManager.getSettings()?.enableSound &&
           instanceManager.getAudioManager()
@@ -1549,7 +1520,7 @@ const handleTranslate = async (targetLanguage: string) => {
         contentState.getLanguageDetection() ??
         contentState.getOriginalContentLanguage() ??
         undefined;
-      overlayStateFinal.root.render(
+      overlayInfoFinal.root.render(
         <MeditationFlowOverlay
           summary={contentState.getSummary()}
           summaryDisplay={
@@ -1668,8 +1639,8 @@ const handleTranslateToEnglish = async () => {
     }
 
     // Re-render overlay with translated content
-    const overlayStateFinal = contentState.getOverlayState();
-    if (overlayStateFinal.root && overlayStateFinal.container) {
+    const overlayInfoFinal = uiManager.getOverlayRoot();
+    if (overlayInfoFinal) {
       const soundEnabled = Boolean(
         instanceManager.getSettings()?.enableSound &&
           instanceManager.getAudioManager()
@@ -1680,7 +1651,7 @@ const handleTranslateToEnglish = async () => {
         contentState.getLanguageDetection() ??
         contentState.getOriginalContentLanguage() ??
         undefined;
-      overlayStateFinal.root.render(
+      overlayInfoFinal.root.render(
         <MeditationFlowOverlay
           summary={contentState.getSummary()}
           summaryDisplay={
@@ -1987,15 +1958,15 @@ const handleFormatChange = async (format: SummaryFormat) => {
     contentState.setIsLoadingSummary(false);
 
     // Re-render overlay with updated summary
-    const overlayStateFinal = contentState.getOverlayState();
-    if (overlayStateFinal.root && overlayStateFinal.container) {
+    const overlayInfoFinal = uiManager.getOverlayRoot();
+    if (overlayInfoFinal) {
       const settingsForOverlay = instanceManager.getSettings();
       const audioManagerForOverlay = instanceManager.getAudioManager();
       const soundEnabled = Boolean(
         settingsForOverlay?.enableSound && audioManagerForOverlay
       );
       const translationEnabled = Boolean(settingsForOverlay?.enableTranslation);
-      overlayStateFinal.root.render(
+      overlayInfoFinal.root.render(
         <MeditationFlowOverlay
           summary={contentState.getSummary()}
           summaryDisplay={
@@ -2057,35 +2028,13 @@ const handleFormatChange = async (format: SummaryFormat) => {
  * Removes the component and cleans up the DOM
  */
 const hideReflectModeOverlay = () => {
-  const overlayStateHide = contentState.getOverlayState();
-  if (!overlayStateHide.isVisible) {
-    return;
-  }
-
   // Stop ambient audio if playing
   instanceManager.stopAudioManager();
 
   // Stop frame rate monitoring if active
   performanceMonitor.stopFrameRateMonitoring();
 
-  // Unmount React component
-  if (overlayStateHide.root) {
-    overlayStateHide.root.unmount();
-  }
-
-  // Remove container from DOM
-  if (overlayStateHide.container?.parentNode) {
-    overlayStateHide.container.parentNode.removeChild(
-      overlayStateHide.container
-    );
-  }
-
-  contentState.setOverlayState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
-  console.log('Reflect Mode overlay hidden');
+  uiManager.hideOverlay();
 };
 
 /**
@@ -2179,36 +2128,6 @@ const getSettings = async (): Promise<Settings> => {
 };
 
 /**
- * Set loading state for the lotus nudge
- * @param loading Whether the nudge is in loading state
- */
-const setNudgeLoadingState = (loading: boolean) => {
-  const nudgeState = contentState.getNudgeState();
-  contentState.setNudgeState({
-    ...nudgeState,
-    isLoading: loading,
-  });
-
-  if (!nudgeState.container) return;
-
-  const shadowRoot = nudgeState.container.shadowRoot;
-  if (!shadowRoot) return;
-
-  const nudgeElement = shadowRoot.querySelector('.reflexa-lotus-nudge');
-  if (!nudgeElement) return;
-
-  if (loading) {
-    nudgeElement.classList.add('reflexa-lotus-nudge--loading');
-    nudgeElement.setAttribute('aria-label', 'Processing content...');
-    nudgeElement.setAttribute('aria-busy', 'true');
-  } else {
-    nudgeElement.classList.remove('reflexa-lotus-nudge--loading');
-    nudgeElement.setAttribute('aria-label', 'Start reflection');
-    nudgeElement.setAttribute('aria-busy', 'false');
-  }
-};
-
-/**
  * Handle when dwell threshold is reached
  * Shows the lotus nudge icon to invite reflection
  */
@@ -2222,39 +2141,7 @@ const handleDwellThresholdReached = () => {
  * Creates a shadow DOM container and renders the React component
  */
 const showLotusNudge = () => {
-  const nudgeStateCheck = contentState.getNudgeState();
-  if (nudgeStateCheck.isVisible) {
-    console.log('Nudge already visible');
-    return;
-  }
-
-  // Ensure document.body is available
-  if (!document.body) {
-    console.error('document.body not available yet, retrying...');
-    setTimeout(showLotusNudge, 100);
-    return;
-  }
-
-  // Create container for shadow DOM
-  const nudgeContainer = document.createElement('div');
-  nudgeContainer.id = 'reflexa-nudge-container';
-  document.body.appendChild(nudgeContainer);
-
-  // Create shadow root for style isolation
-  const shadowRoot = nudgeContainer.attachShadow({ mode: 'open' });
-
-  // Create style element and inject our styles
-  const styleElement = document.createElement('style');
-  styleElement.textContent = LOTUS_NUDGE_STYLES;
-  shadowRoot.appendChild(styleElement);
-
-  // Create root element for React
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  // Render the LotusNudge component
-  const nudgeRoot = createRoot(rootElement);
-  nudgeRoot.render(
+  uiManager.showNudge(
     <LotusNudge
       visible={true}
       onClick={handleNudgeClick}
@@ -2272,16 +2159,9 @@ const showLotusNudge = () => {
       onAnimationComplete={() => {
         console.log('Lotus nudge fade-in animation completed');
       }}
-    />
+    />,
+    LOTUS_NUDGE_STYLES
   );
-
-  contentState.setNudgeState({
-    container: nudgeContainer,
-    root: nudgeRoot,
-    isVisible: true,
-    isLoading: false,
-  });
-  console.log('Lotus nudge displayed');
 };
 
 /**
@@ -2309,130 +2189,35 @@ const handleNudgeClick = async () => {
  * Removes the component and cleans up the DOM
  */
 const hideLotusNudge = () => {
-  const nudgeState = contentState.getNudgeState();
-  if (!nudgeState.isVisible) {
-    return;
-  }
-
-  // Unmount React component
-  if (nudgeState.root) {
-    nudgeState.root.unmount();
-  }
-
-  // Remove container from DOM
-  if (nudgeState.container?.parentNode) {
-    nudgeState.container.parentNode.removeChild(nudgeState.container);
-  }
-
-  contentState.setNudgeState({
-    container: null,
-    root: null,
-    isVisible: false,
-    isLoading: false,
-  });
-  console.log('Lotus nudge hidden');
+  uiManager.hideNudge();
 };
 
 /** Show AI Status modal in the center of the page */
 const showHelpModal = async () => {
-  const helpModalStateCheck = contentState.getHelpModalState();
-  if (helpModalStateCheck.isVisible) return;
-  const helpModalContainer = document.createElement('div');
-  helpModalContainer.id = 'reflexa-ai-status-container';
-  document.body.appendChild(helpModalContainer);
-
-  const shadowRoot = helpModalContainer.attachShadow({ mode: 'open' });
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
-  if (cssUrl && !cssUrl.includes('invalid')) {
-    linkElement.href = cssUrl;
-    shadowRoot.appendChild(linkElement);
-  }
-
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  const helpModalRoot = createRoot(rootElement);
   const { AIStatusModal } = await import('./components/AIStatusModal');
-  helpModalRoot.render(<AIStatusModal onClose={hideHelpModal} />);
-
-  contentState.setHelpModalState({
-    container: helpModalContainer,
-    root: helpModalRoot,
-    isVisible: true,
-  });
+  uiManager.showHelpModal(<AIStatusModal onClose={hideHelpModal} />);
 };
 
 /** Hide AI Status modal */
 const hideHelpModal = () => {
-  const helpModalState = contentState.getHelpModalState();
-  if (!helpModalState.isVisible) return;
-  if (helpModalState.root) {
-    helpModalState.root.unmount();
-  }
-  if (helpModalState.container?.parentNode) {
-    helpModalState.container.parentNode.removeChild(helpModalState.container);
-  }
-  contentState.setHelpModalState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
+  uiManager.hideHelpModal();
 };
 
 /**
  * Show Quick Settings modal in the center of the page
  */
 const showSettingsModal = async () => {
-  const settingsModalStateCheck = contentState.getSettingsModalState();
-  if (settingsModalStateCheck.isVisible) return;
-  const settingsModalContainer = document.createElement('div');
-  settingsModalContainer.id = 'reflexa-settings-container';
-  document.body.appendChild(settingsModalContainer);
-
-  const shadowRoot = settingsModalContainer.attachShadow({ mode: 'open' });
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
-  if (cssUrl && !cssUrl.includes('invalid')) {
-    linkElement.href = cssUrl;
-    shadowRoot.appendChild(linkElement);
-  }
-
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  const settingsModalRoot = createRoot(rootElement);
   const { QuickSettingsModal } = await import(
     './components/QuickSettingsModal'
   );
-  settingsModalRoot.render(<QuickSettingsModal onClose={hideSettingsModal} />);
-
-  contentState.setSettingsModalState({
-    container: settingsModalContainer,
-    root: settingsModalRoot,
-    isVisible: true,
-  });
+  uiManager.showSettingsModal(
+    <QuickSettingsModal onClose={hideSettingsModal} />
+  );
 };
 
 /** Hide Quick Settings modal */
 const hideSettingsModal = () => {
-  const settingsModalState = contentState.getSettingsModalState();
-  if (!settingsModalState.isVisible) return;
-  if (settingsModalState.root) {
-    settingsModalState.root.unmount();
-  }
-  if (settingsModalState.container?.parentNode) {
-    settingsModalState.container.parentNode.removeChild(
-      settingsModalState.container
-    );
-  }
-  contentState.setSettingsModalState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
+  uiManager.hideSettingsModal();
 };
 
 /**
@@ -2544,93 +2329,19 @@ const setupNavigationListeners = () => {
  * @param onAction Optional action callback
  * @param actionLabel Optional action button label
  */
-const showErrorModal = (
-  title: string,
-  message: string,
-  type: 'ai-unavailable' | 'ai-timeout' | 'content-truncated' | 'storage-full',
-  onAction?: () => void,
-  actionLabel?: string
-) => {
-  const errorModalStateCheck = contentState.getErrorModalState();
-  if (errorModalStateCheck.isVisible) {
-    console.log('Error modal already visible');
-    return;
-  }
-
-  console.log('Showing error modal:', type);
-
-  // Create container for shadow DOM
-  const errorModalContainer = document.createElement('div');
-  errorModalContainer.id = 'reflexa-error-modal-container';
-  document.body.appendChild(errorModalContainer);
-
-  // Create shadow root for style isolation
-  const shadowRoot = errorModalContainer.attachShadow({ mode: 'open' });
-
-  // Inject styles into shadow DOM
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
-  // Validate URL before setting href
-  if (cssUrl && !cssUrl.includes('invalid')) {
-    linkElement.href = cssUrl;
-    shadowRoot.appendChild(linkElement);
-  } else {
-    console.warn('Invalid CSS URL, skipping stylesheet injection');
-  }
-
-  // Create root element for React
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  // Render the ErrorModal component
-  const errorModalRoot = createRoot(rootElement);
-  errorModalRoot.render(
-    <ErrorModal
-      title={title}
-      message={message}
-      type={type}
-      onClose={hideErrorModal}
-      onAction={onAction}
-      actionLabel={actionLabel}
-    />
-  );
-
-  contentState.setErrorModalState({
-    container: errorModalContainer,
-    root: errorModalRoot,
-    isVisible: true,
-  });
-  console.log('Error modal displayed');
-};
 
 /**
  * Hide the error modal
  * Removes the component and cleans up the DOM
  */
 const hideErrorModal = () => {
-  const errorModalState = contentState.getErrorModalState();
-  if (!errorModalState.isVisible) {
-    return;
-  }
-
-  // Unmount React component
-  if (errorModalState.root) {
-    errorModalState.root.unmount();
-  }
-
-  // Remove container from DOM
-  if (errorModalState.container?.parentNode) {
-    errorModalState.container.parentNode.removeChild(errorModalState.container);
-  }
-
-  contentState.setErrorModalState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
-  console.log('Error modal hidden');
+  uiManager.hideErrorModal();
 };
+
+/**
+ * Show error modal - created with hide callback
+ */
+const showErrorModal = createShowErrorModal(hideErrorModal);
 
 /**
  * Show notification toast
@@ -2639,103 +2350,26 @@ const hideErrorModal = () => {
  * @param type Notification type
  * @param duration Optional duration in milliseconds
  */
-const showNotification = (
-  title: string,
-  message: string,
-  type: 'warning' | 'error' | 'info',
-  duration = 5000
-) => {
-  // Hide existing notification if visible
-  const notificationStateCheck = contentState.getNotificationState();
-  if (notificationStateCheck.isVisible) {
-    hideNotification();
-  }
-
-  console.log('Showing notification:', type, title);
-
-  // Create container for shadow DOM
-  const notificationContainer = document.createElement('div');
-  notificationContainer.id = 'reflexa-notification-container';
-  document.body.appendChild(notificationContainer);
-
-  // Create shadow root for style isolation
-  const shadowRoot = notificationContainer.attachShadow({ mode: 'open' });
-
-  // Inject styles into shadow DOM
-  const linkElement = document.createElement('link');
-  linkElement.rel = 'stylesheet';
-  const cssUrl = chrome.runtime.getURL('src/content/styles.css');
-  // Validate URL before setting href
-  if (cssUrl && !cssUrl.includes('invalid')) {
-    linkElement.href = cssUrl;
-    shadowRoot.appendChild(linkElement);
-  } else {
-    console.warn('Invalid CSS URL, skipping stylesheet injection');
-  }
-
-  // Create root element for React
-  const rootElement = document.createElement('div');
-  shadowRoot.appendChild(rootElement);
-
-  // Render the Notification component
-  const notificationRoot = createRoot(rootElement);
-  notificationRoot.render(
-    <Notification
-      title={title}
-      message={message}
-      type={type}
-      duration={duration}
-      onClose={hideNotification}
-    />
-  );
-
-  contentState.setNotificationState({
-    container: notificationContainer,
-    root: notificationRoot,
-    isVisible: true,
-  });
-  console.log('Notification displayed');
-};
 
 /**
  * Hide the notification toast
  * Removes the component and cleans up the DOM
  */
 const hideNotification = () => {
-  const notificationState = contentState.getNotificationState();
-  if (!notificationState.isVisible) {
-    return;
-  }
-
-  // Unmount React component
-  if (notificationState.root) {
-    notificationState.root.unmount();
-  }
-
-  // Remove container from DOM
-  if (notificationState.container?.parentNode) {
-    notificationState.container.parentNode.removeChild(
-      notificationState.container
-    );
-  }
-
-  contentState.setNotificationState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
-  console.log('Notification hidden');
+  uiManager.hideNotification();
 };
+
+/**
+ * Show notification - created with hide callback
+ */
+const showNotification = createShowNotification(hideNotification);
 
 /**
  * Clean up on page unload
  */
 window.addEventListener('beforeunload', () => {
   instanceManager.cleanup();
-  hideLotusNudge();
-  hideReflectModeOverlay();
-  hideErrorModal();
-  hideNotification();
+  uiManager.cleanup();
 });
 
 // Initialize the content script
@@ -2743,41 +2377,10 @@ void initializeContentScript();
 
 /** Show Dashboard modal */
 async function showDashboardModal() {
-  const dashboardState = contentState.getDashboardModalState();
-  if (dashboardState.isVisible) return;
-  const dashboardModalContainer = document.createElement('div');
-  dashboardModalContainer.id = 'reflexa-dashboard-modal-container';
-  document.body.appendChild(dashboardModalContainer);
-
-  const shadowRoot = dashboardModalContainer.attachShadow({ mode: 'open' });
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = chrome.runtime.getURL('src/content/styles.css');
-  shadowRoot.appendChild(link);
-  const root = document.createElement('div');
-  shadowRoot.appendChild(root);
-  const dashboardModalRoot = createRoot(root);
   const { DashboardModal } = await import('./components/DashboardModal');
-  dashboardModalRoot.render(<DashboardModal onClose={hideDashboardModal} />);
-  contentState.setDashboardModalState({
-    container: dashboardModalContainer,
-    root: dashboardModalRoot,
-    isVisible: true,
-  });
+  uiManager.showDashboardModal(<DashboardModal onClose={hideDashboardModal} />);
 }
 
 function hideDashboardModal() {
-  const dashboardState = contentState.getDashboardModalState();
-  if (!dashboardState.isVisible) return;
-  if (dashboardState.root) {
-    dashboardState.root.unmount();
-  }
-  if (dashboardState.container?.parentNode) {
-    dashboardState.container.parentNode.removeChild(dashboardState.container);
-  }
-  contentState.setDashboardModalState({
-    container: null,
-    root: null,
-    isVisible: false,
-  });
+  uiManager.hideDashboardModal();
 }
