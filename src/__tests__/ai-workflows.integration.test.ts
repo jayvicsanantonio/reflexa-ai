@@ -22,7 +22,7 @@ describe('AI Workflows Integration Tests', () => {
   let settingsManager: SettingsManager;
   let storageManager: StorageManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockStorage = new Map();
 
     // Mock chrome.storage.local
@@ -54,6 +54,19 @@ describe('AI Workflows Integration Tests', () => {
 
     // Initialize AI service
     aiService.initialize(false);
+    vi.spyOn(aiService.summarizer, 'checkAvailability').mockResolvedValue(true);
+    vi.spyOn(aiService.writer, 'checkAvailability').mockResolvedValue(true);
+    vi.spyOn(aiService.rewriter, 'checkAvailability').mockResolvedValue(true);
+    vi.spyOn(aiService.proofreader, 'checkAvailability').mockResolvedValue(
+      true
+    );
+    const checkAvailSpy = vi.spyOn(
+      aiService.languageDetector,
+      'checkAvailability'
+    );
+    checkAvailSpy.mockResolvedValue(true);
+    // Set aiAvailable flag via handler
+    await handleMessage({ type: 'checkAI' } as Message);
   });
 
   describe('Complete Multilingual Reflection Flow', () => {

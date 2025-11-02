@@ -6,6 +6,7 @@
 import { aiService } from './services/ai/aiService';
 import { rateLimiter } from './services/ai/rateLimiter';
 import { StorageManager, SettingsManager } from './services/storage';
+import { performanceMonitor } from './services/ai/performanceMonitor';
 import type {
   Message,
   MessageType,
@@ -20,6 +21,7 @@ import type {
   UsageStats,
   AICapabilities,
   StreakData,
+  PerformanceStats,
 } from '../types';
 import { createSuccessResponse, createErrorResponse } from '../types';
 import { ERROR_MESSAGES, STORAGE_KEYS } from '../constants';
@@ -198,7 +200,10 @@ chrome.runtime.onConnect.addListener((port) => {
  * @param message Message object with type and payload
  * @returns Promise resolving to response object
  */
-async function handleMessage(message: Message): Promise<AIResponse> {
+export async function handleMessage(
+  message: Message,
+  _sender?: chrome.runtime.MessageSender
+): Promise<AIResponse> {
   switch (message.type) {
     case 'checkAI':
       return handleCheckAI();
@@ -230,8 +235,17 @@ async function handleMessage(message: Message): Promise<AIResponse> {
     case 'detectLanguage':
       return handleDetectLanguage(message.payload);
 
+    case 'canTranslate':
+      return handleCanTranslate(message.payload);
+
+    case 'checkTranslationAvailability':
+      return handleCheckTranslationAvailability(message.payload);
+
     case 'getUsageStats':
       return handleGetUsageStats();
+
+    case 'getPerformanceStats':
+      return handleGetPerformanceStats();
 
     case 'save':
       return handleSave(message.payload);
@@ -687,21 +701,6 @@ async function handleSummarize(
         `[Summarize] Falling back to Prompt API with format: ${format}`
       );
 
-      // Check Prompt API availability
-      if (!aiAvailable) {
-        const available = await aiService.prompt.checkAvailability();
-        aiAvailable = available;
-
-        if (!available) {
-          console.error('[Summarize] AI unavailable');
-          return createErrorResponse(
-            ERROR_MESSAGES.AI_UNAVAILABLE,
-            Date.now() - startTime,
-            'prompt'
-          );
-        }
-      }
-
       summary = await rateLimiter.executeWithRetry(
         () => aiService.prompt.summarize(content, format, outputLanguage),
         'summarizations'
@@ -718,10 +717,20 @@ async function handleSummarize(
     }
 
     console.log(`[Summarize] Success in ${duration}ms using ${apiUsed}`);
+    try {
+      performanceMonitor.recordMetric('summarize', apiUsed, duration, true);
+    } catch {
+      // ignore metrics errors
+    }
     return createSuccessResponse(summary, apiUsed, duration);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Summarize] Error after ${duration}ms:`, error);
+    try {
+      performanceMonitor.recordMetric('summarize', 'unified', duration, false);
+    } catch {
+      // ignore metrics errors
+    }
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       duration,
@@ -1026,8 +1035,14 @@ async function handleWrite(payload: unknown): Promise<AIResponse<string>> {
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
     console.error('Error in handleWrite:', error);
+    const rawMessage =
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR;
+    const friendlyMessage =
+      /not available|Failed to create prompt session/i.test(rawMessage)
+        ? 'AI not available'
+        : rawMessage;
     return createErrorResponse(
-      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      friendlyMessage,
       Date.now() - startTime,
       'writer'
     );
@@ -1233,6 +1248,88 @@ async function handleTranslate(payload: unknown): Promise<AIResponse<string>> {
 }
 
 /**
+ * Handle canTranslate request
+ */
+async function handleCanTranslate(
+  payload: unknown
+): Promise<AIResponse<boolean>> {
+  const startTime = Date.now();
+  try {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('source' in payload) ||
+      !('target' in payload)
+    ) {
+      return createErrorResponse(
+        'Invalid payload for canTranslate',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+    const { source, target } = payload as { source: string; target: string };
+    const available = await aiService.translator.canTranslate(source, target);
+    return createSuccessResponse(
+      available,
+      'translator',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'translator'
+    );
+  }
+}
+
+/**
+ * Handle checkTranslationAvailability for multiple targets
+ */
+async function handleCheckTranslationAvailability(
+  payload: unknown
+): Promise<
+  AIResponse<{ source: string; available: string[]; unavailable: string[] }>
+> {
+  const startTime = Date.now();
+  try {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('source' in payload) ||
+      !('targets' in payload)
+    ) {
+      return createErrorResponse(
+        'Invalid payload for checkTranslationAvailability',
+        Date.now() - startTime,
+        'translator'
+      );
+    }
+    const { source, targets } = payload as {
+      source: string;
+      targets: string[];
+    };
+    const available: string[] = [];
+    const unavailable: string[] = [];
+    for (const target of targets) {
+      const ok = await aiService.translator.canTranslate(source, target);
+      (ok ? available : unavailable).push(target);
+    }
+    return createSuccessResponse(
+      { source, available, unavailable },
+      'translator',
+      Date.now() - startTime
+    );
+  } catch (error) {
+    return createErrorResponse(
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      Date.now() - startTime,
+      'translator'
+    );
+  }
+}
+
+/**
  * Handle language detection request
  * @param payload Text to detect language from
  * @returns Response with language detection result or error
@@ -1312,8 +1409,17 @@ function handleGetUsageStats(): AIResponse<{
     const total = rateLimiter.getTotalOperations();
     const approachingQuota = rateLimiter.isApproachingQuota();
 
+    // Back-compat: expose totalOperations inside stats as well
+    const statsWithTotal: UsageStats = {
+      ...(stats as UsageStats),
+      // @ts-expect-error allow injection if missing
+      totalOperations:
+        (stats as unknown as { totalOperations?: number }).totalOperations ??
+        total,
+    };
+
     return createSuccessResponse(
-      { stats, total, approachingQuota },
+      { stats: statsWithTotal, total, approachingQuota },
       'unified',
       Date.now() - startTime
     );
@@ -1323,6 +1429,33 @@ function handleGetUsageStats(): AIResponse<{
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
       'unified'
+    );
+  }
+}
+
+/**
+ * Handle get performance statistics request
+ */
+function handleGetPerformanceStats(): AIResponse<PerformanceStats> {
+  const startTime = Date.now();
+  try {
+    const stats = performanceMonitor.getStats();
+    return createSuccessResponse(stats, 'unified', Date.now() - startTime);
+  } catch (error) {
+    console.error('Error in handleGetPerformanceStats:', error);
+    // Return empty stats rather than failing
+    return createSuccessResponse(
+      {
+        averageResponseTime: 0,
+        slowestOperation: null,
+        fastestOperation: null,
+        totalOperations: 0,
+        slowOperationsCount: 0,
+        operationsByType: {},
+        operationsByAPI: {},
+      },
+      'unified',
+      Date.now() - startTime
     );
   }
 }

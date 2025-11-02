@@ -3,35 +3,20 @@
  * Provides a clean interface for chrome.runtime.sendMessage
  */
 
-import type { AIResponse } from '../types';
+import { sendMessage } from './messageBus';
+import type { MessageType } from '../types';
 
 /**
  * Send a message to the background service worker and wait for response
  */
-async function sendMessage<T>(
-  type: string,
-  payload?: unknown
-): Promise<AIResponse<T>> {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type, payload }, (response: AIResponse<T>) => {
-      if (chrome.runtime.lastError) {
-        resolve({
-          success: false,
-          error: chrome.runtime.lastError.message ?? 'Unknown error',
-          duration: 0,
-        });
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
+const send = <T>(type: MessageType, payload?: unknown) =>
+  sendMessage<T>({ type, payload });
 
 /**
  * Prompt API - Summarize content
  */
 export async function summarize(content: string): Promise<string[]> {
-  const response = await sendMessage<string[]>('summarize', { content });
+  const response = await send<string[]>('summarize', { content });
 
   if (!response.success) {
     console.error('Summarization failed:', response.error);
@@ -47,7 +32,7 @@ export async function summarize(content: string): Promise<string[]> {
 export async function generateReflectionPrompts(
   summary: string[]
 ): Promise<string[]> {
-  const response = await sendMessage<string[]>('reflect', { summary });
+  const response = await send<string[]>('reflect', { summary });
 
   if (!response.success) {
     console.error('Reflection generation failed:', response.error);
@@ -62,7 +47,7 @@ export async function generateReflectionPrompts(
  * Automatically uses native Proofreader API if available, falls back to Prompt API
  */
 export async function proofread(text: string): Promise<string> {
-  const response = await sendMessage<string>('proofread', { text });
+  const response = await send<string>('proofread', { text });
 
   if (!response.success) {
     console.error('Proofreading failed:', response.error);
@@ -80,7 +65,7 @@ export async function translate(
   sourceLanguage: string,
   targetLanguage: string
 ): Promise<string> {
-  const response = await sendMessage<string>('translate', {
+  const response = await send<string>('translate', {
     text,
     source: sourceLanguage,
     target: targetLanguage,
@@ -105,7 +90,7 @@ export async function rewrite(
     length?: 'as-is' | 'shorter' | 'longer';
   }
 ): Promise<string> {
-  const response = await sendMessage<string>('rewrite', { text, options });
+  const response = await send<string>('rewrite', { text, options });
 
   if (!response.success) {
     console.error('Rewriting failed:', response.error);
@@ -126,7 +111,7 @@ export async function write(
     length?: 'short' | 'medium' | 'long';
   }
 ): Promise<string> {
-  const response = await sendMessage<string>('write', { prompt, options });
+  const response = await send<string>('write', { prompt, options });
 
   if (!response.success) {
     console.error('Writing failed:', response.error);
@@ -140,7 +125,7 @@ export async function write(
  * Check Prompt API availability
  */
 export async function checkAIAvailability(): Promise<boolean> {
-  const response = await sendMessage<boolean>('checkAI');
+  const response = await send<boolean>('checkAI');
 
   if (!response.success) {
     console.error('AI availability check failed:', response.error);
@@ -161,7 +146,7 @@ export async function checkAllAIAvailability(): Promise<{
   writer: boolean;
   rewriter: boolean;
 }> {
-  const response = await sendMessage<{
+  const response = await send<{
     prompt: boolean;
     proofreader: boolean;
     summarizer: boolean;
