@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import '../styles.css';
+import '../../styles.css';
 import { DropdownTrigger, SearchInput, LanguageOption } from './components';
 import { useDropdownState, useLanguageFilter } from './hooks';
 import { languageOptions } from './constants';

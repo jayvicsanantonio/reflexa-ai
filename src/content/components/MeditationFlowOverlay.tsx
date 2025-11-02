@@ -102,7 +102,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     writerStreamCleanupRef,
     startWriterAnimation,
     setIsDraftGenerating,
-    isDraftGenerating: _isDraftGenerating,
   } = useWriterStreaming(setAnswers, lastTextValueRef);
   // Resume silently if initial step/answers exist (popup removed)
   const [voiceInputStates, setVoiceInputStates] = useState<
@@ -300,7 +299,8 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       });
       writerAnimationTimerRef.current = timersSnapshot;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // writerAnimationTimerRef and writerStreamCleanupRef are stable refs from hook
 
   // Writer animation is now managed by useWriterStreaming hook
 
@@ -355,11 +355,14 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
       }
-      if (typingTimerRef.current) {
-        clearTimeout(typingTimerRef.current);
+      // Capture current timer value for cleanup
+      const timer = typingTimerRef.current;
+      if (timer) {
+        clearTimeout(timer);
       }
     };
-  }, [settings]);
+    // typingTimerRef is stable ref, but included for linter completeness
+  }, [settings, typingTimerRef]);
 
   // Check Writer and Rewriter API availability
   useEffect(() => {
@@ -576,7 +579,18 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         });
       }
     },
-    [writerAvailable, prompts, summary, startWriterAnimation]
+    [
+      writerAvailable,
+      prompts,
+      summary,
+      startWriterAnimation,
+      setIsDraftGenerating,
+      // Refs are stable from hook, but included for completeness
+      writerTargetTextRef,
+      writerDisplayIndexRef,
+      writerAnimationTimerRef,
+      writerStreamCleanupRef,
+    ]
   );
 
   // Rewrite with selected tone

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import type { SummaryFormat } from '../../../types';
-import '../styles.css';
+import '../../styles.css';
 import { DropdownTrigger, FormatOption } from './components';
 import { useDropdownState } from './hooks';
 import { formatOptions } from './constants';

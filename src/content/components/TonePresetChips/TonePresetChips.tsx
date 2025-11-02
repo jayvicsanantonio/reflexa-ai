@@ -5,7 +5,7 @@
 
 import React from 'react';
 import type { TonePreset } from '../../../types';
-import '../styles.css';
+import '../../styles.css';
 import { ToneChip } from './components';
 import { toneOptions } from './constants';
 
