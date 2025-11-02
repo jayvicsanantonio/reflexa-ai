@@ -1,10 +1,7 @@
 import './styles.css';
 import { createRoot } from 'react-dom/client';
-import { DwellTracker } from './features/dwellTracking';
-import { ContentExtractor } from './features/contentExtraction/contentExtractor';
 import { LotusNudge, ErrorModal, Notification } from './components';
 import { MeditationFlowOverlay } from './components/MeditationFlowOverlay';
-import { AudioManager } from '../utils/audioManager';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import { getLanguageName } from '../utils/translationHelpers';
 import type {
@@ -12,7 +9,6 @@ import type {
   Settings,
   AIResponse,
   Reflection,
-  ExtractedContent,
   SummaryFormat,
   LanguageDetection,
   AICapabilities,
@@ -23,89 +19,10 @@ import type {
 import { generateUUID } from '../utils';
 import { ERROR_MESSAGES } from '../constants';
 import { sendMessageToBackground, startAIStream } from './runtime/messageBus';
+import { contentState } from './state';
+import { instanceManager } from './core';
 
 console.log('Reflexa AI content script initialized');
-
-// Global instances
-let dwellTracker: DwellTracker | null = null;
-let contentExtractor: ContentExtractor | null = null;
-let audioManager: AudioManager | null = null;
-let currentSettings: Settings | null = null;
-
-// Nudge UI state
-let nudgeContainer: HTMLDivElement | null = null;
-let nudgeRoot: ReturnType<typeof createRoot> | null = null;
-let isNudgeVisible = false;
-let isNudgeLoading = false;
-
-// Overlay UI state
-let overlayContainer: HTMLDivElement | null = null;
-let overlayRoot: ReturnType<typeof createRoot> | null = null;
-let isOverlayVisible = false;
-
-// Error modal UI state
-let errorModalContainer: HTMLDivElement | null = null;
-let errorModalRoot: ReturnType<typeof createRoot> | null = null;
-let isErrorModalVisible = false;
-
-// Notification UI state
-let notificationContainer: HTMLDivElement | null = null;
-let notificationRoot: ReturnType<typeof createRoot> | null = null;
-let isNotificationVisible = false;
-
-// Current reflection data
-let currentExtractedContent: ExtractedContent | null = null;
-let currentSummary: string[] = [];
-let currentSummaryDisplay: string[] = [];
-let currentPrompts: string[] = [];
-let currentSummaryFormat: SummaryFormat = 'bullets';
-let isLoadingSummary = false;
-let currentSummaryBuffer = '';
-let summaryAnimationIndex = 0;
-let summaryAnimationTimer: number | null = null;
-let summaryAnimationFormat: SummaryFormat = 'bullets';
-let summaryStreamComplete = false;
-let activeSummaryStreamCleanup: (() => void) | null = null;
-
-// Language detection state
-let currentLanguageDetection: LanguageDetection | null = null;
-let isTranslating = false;
-// Persistent target language for current overlay session. When set, all
-// subsequent AI-generated outputs should appear in this language.
-// Default target language for formatting/rewrites
-let selectedTargetLanguage: string | null = null;
-let preferredLanguageBaseline: string | null = null;
-let isTargetLanguageOverridden = false;
-// Remember the original detected language for reliable translations after
-// user changes target language.
-let originalDetectedLanguage: string | null = null;
-let originalContentLanguage: LanguageDetection | null = null;
-
-// Rewrite state
-const isRewritingArray: boolean[] = [false, false];
-
-// Ambient audio state
-let isAmbientMuted = false;
-
-// AI capabilities
-let aiCapabilities: AICapabilities | null = null;
-
-// AI availability status
-let aiAvailable: boolean | null = null;
-
-// AI Status modal UI state (replaces Help)
-let helpModalContainer: HTMLDivElement | null = null;
-let helpModalRoot: ReturnType<typeof createRoot> | null = null;
-let isHelpModalVisible = false;
-
-// Settings modal UI state
-let settingsModalContainer: HTMLDivElement | null = null;
-let settingsModalRoot: ReturnType<typeof createRoot> | null = null;
-let isSettingsModalVisible = false;
-// Dashboard modal UI state (content overlay)
-let dashboardModalContainer: HTMLDivElement | null = null;
-let dashboardModalRoot: ReturnType<typeof createRoot> | null = null;
-let isDashboardModalVisible = false;
 
 // Language names map removed (no longer shown in UI)
 
@@ -343,9 +260,9 @@ const applyTranslationPreference = (settings: Settings | null | undefined) => {
   );
 
   if (!translationActive) {
-    selectedTargetLanguage = null;
-    preferredLanguageBaseline = null;
-    isTargetLanguageOverridden = false;
+    contentState.setSelectedTargetLanguage(null);
+    contentState.setPreferredLanguageBaseline(null);
+    contentState.setIsTargetLanguageOverridden(false);
     return;
   }
 
@@ -371,11 +288,14 @@ const applyTranslationPreference = (settings: Settings | null | undefined) => {
     derived = 'en';
   }
 
-  preferredLanguageBaseline = derived;
+  contentState.setPreferredLanguageBaseline(derived);
 
-  if (!isTargetLanguageOverridden || !selectedTargetLanguage) {
-    selectedTargetLanguage = derived;
-    isTargetLanguageOverridden = false;
+  if (
+    !contentState.getIsTargetLanguageOverridden() ||
+    !contentState.getSelectedTargetLanguage()
+  ) {
+    contentState.setSelectedTargetLanguage(derived);
+    contentState.setIsTargetLanguageOverridden(false);
   }
 
   if (!translationActive) {
@@ -392,41 +312,42 @@ const initiateReflectionFlow = async () => {
   try {
     console.log('Starting reflection flow...');
 
-    applyTranslationPreference(currentSettings);
+    const settingsForReflection = instanceManager.getSettings();
+    applyTranslationPreference(settingsForReflection);
 
     // Show loading state
     setNudgeLoadingState(true);
 
     // Check AI availability first if not already checked
-    if (aiAvailable === null) {
+    if (contentState.getAIAvailable() === null) {
       const aiCheckResponse = await sendMessageToBackground<boolean>({
         type: 'checkAI',
       });
 
       if (aiCheckResponse.success) {
-        aiAvailable = aiCheckResponse.data;
-        console.log('AI availability:', aiAvailable);
-        if (!aiAvailable) {
+        contentState.setAIAvailable(aiCheckResponse.data);
+        console.log('AI availability:', contentState.getAIAvailable());
+        if (!contentState.getAIAvailable()) {
           console.log(
             '💡 To enable AI: Check background service worker logs for instructions'
           );
         }
       } else {
-        aiAvailable = false;
+        contentState.setAIAvailable(false);
         console.error('AI check failed:', aiCheckResponse.error);
       }
     }
 
     // Get AI capabilities
-    if (aiCapabilities === null) {
+    if (contentState.getAICapabilities() === null) {
       const capabilitiesResponse =
         await sendMessageToBackground<AICapabilities>({
           type: 'getCapabilities',
         });
 
       if (capabilitiesResponse.success) {
-        aiCapabilities = capabilitiesResponse.data;
-        console.log('AI capabilities:', aiCapabilities);
+        contentState.setAICapabilities(capabilitiesResponse.data);
+        console.log('AI capabilities:', contentState.getAICapabilities());
       } else {
         console.error(
           'Failed to get capabilities:',
@@ -436,35 +357,37 @@ const initiateReflectionFlow = async () => {
     }
 
     // Extract content from the page
-    contentExtractor ??= new ContentExtractor();
+    const contentExtractor = instanceManager.getContentExtractor();
 
-    currentExtractedContent = contentExtractor.extractMainContent();
-    console.log(
-      `Extracted ${currentExtractedContent.wordCount} words from page`
-    );
-
-    // Check if content exceeds token limit
-    const { exceeds, tokens } = contentExtractor.checkTokenLimit(
-      currentExtractedContent
-    );
-    if (exceeds) {
-      console.warn(
-        `Content exceeds token limit (${tokens} tokens), will be truncated`
-      );
-      currentExtractedContent = contentExtractor.getTruncatedContent(
-        currentExtractedContent
+    contentState.setExtractedContent(contentExtractor.extractMainContent());
+    const extractedContentInitial = contentState.getExtractedContent();
+    if (extractedContentInitial) {
+      console.log(
+        `Extracted ${extractedContentInitial.wordCount} words from page`
       );
 
-      // Show notification about truncation
-      showNotification(
-        'Long Article Detected',
-        ERROR_MESSAGES.CONTENT_TOO_LARGE,
-        'warning'
+      // Check if content exceeds token limit
+      const { exceeds, tokens } = contentExtractor.checkTokenLimit(
+        extractedContentInitial
       );
+      if (exceeds) {
+        console.warn(
+          `Content exceeds token limit (${tokens} tokens), will be truncated`
+        );
+        contentState.setExtractedContent(
+          contentExtractor.getTruncatedContent(extractedContentInitial)
+        );
+      }
+    } else {
+      console.error('Failed to extract content');
+      return;
     }
 
+    // Show notification about truncation if needed
+    // (notification was shown above if truncation occurred)
+
     // If AI is unavailable, show modal and proceed with manual mode
-    if (!aiAvailable) {
+    if (!contentState.getAIAvailable()) {
       console.warn('AI unavailable, showing manual mode modal');
       showErrorModal(
         'AI Unavailable',
@@ -473,12 +396,12 @@ const initiateReflectionFlow = async () => {
         () => {
           hideErrorModal();
           // Proceed with manual mode
-          currentSummary = ['', '', ''];
-          currentSummaryDisplay = currentSummary;
-          currentPrompts = [
+          contentState.setSummary(['', '', '']);
+          contentState.setSummaryDisplay(contentState.getSummary());
+          contentState.setPrompts([
             'What did you find most interesting?',
             'How might you apply this?',
-          ];
+          ]);
           void showReflectModeOverlay();
         },
         'Continue with Manual Mode'
@@ -487,13 +410,13 @@ const initiateReflectionFlow = async () => {
     }
 
     // Show the Reflect Mode overlay immediately with loading state
-    isLoadingSummary = true;
-    currentSummary = [];
-    currentSummaryDisplay = [];
-    currentPrompts = [
+    contentState.setIsLoadingSummary(true);
+    contentState.setSummary([]);
+    contentState.setSummaryDisplay([]);
+    contentState.setPrompts([
       'What did you find most interesting?',
       'How might you apply this?',
-    ];
+    ]);
     void showReflectModeOverlay();
 
     // Request language detection first, then use it for summarization
@@ -501,24 +424,35 @@ const initiateReflectionFlow = async () => {
     console.log('Requesting language detection...');
 
     // Detect language first
+    const extractedContentForLang = contentState.getExtractedContent();
+    if (!extractedContentForLang) {
+      console.error('No extracted content available for language detection');
+      return;
+    }
+
     const languageResponse = await sendMessageToBackground<LanguageDetection>({
       type: 'detectLanguage',
       payload: {
-        text: currentExtractedContent.text.substring(0, 500),
-        pageUrl: currentExtractedContent.url,
+        text: extractedContentForLang.text.substring(0, 500),
+        pageUrl: extractedContentForLang.url,
       },
     });
 
     // Handle language detection
     let detectedLanguageCode: string | undefined;
     if (languageResponse.success) {
-      currentLanguageDetection = languageResponse.data;
-      originalContentLanguage ??= languageResponse.data;
+      contentState.setLanguageDetection(languageResponse.data);
+      if (!contentState.getOriginalContentLanguage()) {
+        contentState.setOriginalContentLanguage(languageResponse.data);
+      }
       detectedLanguageCode = languageResponse.data.detectedLanguage;
+      const detection = contentState.getLanguageDetection();
       // Capture original language once per session
-      console.log(
-        `Language detected: ${currentLanguageDetection.languageName} (${currentLanguageDetection.detectedLanguage})`
-      );
+      if (detection) {
+        console.log(
+          `Language detected: ${detection.languageName} (${detection.detectedLanguage})`
+        );
+      }
     } else {
       console.warn('Language detection failed:', languageResponse.error);
     }
@@ -527,23 +461,31 @@ const initiateReflectionFlow = async () => {
     console.log('Requesting AI summarization...');
 
     // Use default format from settings or fallback to bullets
-    const defaultFormat = currentSettings?.defaultSummaryFormat ?? 'bullets';
-    currentSummaryFormat = defaultFormat;
+    const settingsForFormat = instanceManager.getSettings();
+    const defaultFormat = settingsForFormat?.defaultSummaryFormat ?? 'bullets';
+    contentState.setSummaryFormat(defaultFormat);
+
+    const extractedContentForSummary = contentState.getExtractedContent();
+    if (!extractedContentForSummary) {
+      console.error('No extracted content for summarization');
+      return;
+    }
 
     let summaryStreamed = false;
-    if (currentSettings?.useNativeSummarizer) {
+    const settingsForNative = instanceManager.getSettings();
+    if (settingsForNative?.useNativeSummarizer) {
       try {
         summaryStreamed = await summarizeWithStreaming(
-          currentExtractedContent.text,
+          extractedContentForSummary.text,
           defaultFormat,
           detectedLanguageCode
         );
       } catch (streamError) {
         console.warn('Streaming summarization unavailable:', streamError);
-        currentSummaryBuffer = '';
-        currentSummary = [];
-        currentSummaryDisplay = [];
-        isLoadingSummary = true;
+        contentState.setSummaryBuffer('');
+        contentState.setSummary([]);
+        contentState.setSummaryDisplay([]);
+        contentState.setIsLoadingSummary(true);
       }
     }
 
@@ -553,7 +495,7 @@ const initiateReflectionFlow = async () => {
       summaryResponse = await sendMessageToBackground<string[]>({
         type: 'summarize',
         payload: {
-          content: currentExtractedContent.text,
+          content: extractedContentForSummary.text,
           format: defaultFormat,
           detectedLanguage: detectedLanguageCode,
         },
@@ -561,87 +503,104 @@ const initiateReflectionFlow = async () => {
 
       if (!summaryResponse.success) {
         console.error('Summarization failed:', summaryResponse.error);
-        isLoadingSummary = false;
+        contentState.setIsLoadingSummary(false);
 
         if (summaryResponse.error.includes('timeout')) {
-          currentSummary = ['', '', ''];
-          currentSummaryDisplay = currentSummary;
+          contentState.setSummary(['', '', '']);
+          contentState.setSummaryDisplay(contentState.getSummary());
           void showReflectModeOverlay();
           return;
         }
 
-        currentSummary = ['', '', ''];
-        currentSummaryDisplay = currentSummary;
+        contentState.setSummary(['', '', '']);
+        contentState.setSummaryDisplay(contentState.getSummary());
         void showReflectModeOverlay();
         return;
       }
 
-      currentSummary = summaryResponse.data;
-      currentSummaryDisplay = summaryResponse.data;
-      summaryStreamComplete = true;
+      contentState.setSummary(summaryResponse.data);
+      contentState.setSummaryDisplay(summaryResponse.data);
+      contentState.setSummaryStreamComplete(true);
       stopSummaryAnimation();
-      console.log('Summary received:', currentSummary);
-      isLoadingSummary = false;
+      console.log('Summary received:', contentState.getSummary());
+      contentState.setIsLoadingSummary(false);
     } else {
-      console.log('Summary received (streaming):', currentSummary);
+      console.log('Summary received (streaming):', contentState.getSummary());
     }
 
-    const detectionBeforeSummary = currentLanguageDetection;
+    const detectionBeforeSummary = contentState.getLanguageDetection();
 
     if (detectionBeforeSummary) {
-      originalDetectedLanguage ??= detectionBeforeSummary.detectedLanguage;
-      originalContentLanguage ??= detectionBeforeSummary;
+      if (!contentState.getOriginalDetectedLanguage()) {
+        contentState.setOriginalDetectedLanguage(
+          detectionBeforeSummary.detectedLanguage
+        );
+      }
+      if (!contentState.getOriginalContentLanguage()) {
+        contentState.setOriginalContentLanguage(detectionBeforeSummary);
+      }
       console.log('Language detected:', detectionBeforeSummary);
 
       // Auto-translate if needed (during breathing phase)
-      if (shouldAutoTranslate(detectionBeforeSummary, currentSettings)) {
+      const settingsForAutoTranslate = instanceManager.getSettings();
+      if (
+        shouldAutoTranslate(detectionBeforeSummary, settingsForAutoTranslate)
+      ) {
         console.log('Auto-translating during breathing phase...');
         await handleAutoTranslate(detectionBeforeSummary);
       }
     }
 
     const summaryLanguageCode =
-      selectedTargetLanguage ??
-      preferredLanguageBaseline ??
-      currentSettings?.preferredTranslationLanguage ??
-      currentSettings?.targetLanguage ??
+      contentState.getSelectedTargetLanguage() ??
+      contentState.getPreferredLanguageBaseline() ??
+      instanceManager.getSettings()?.preferredTranslationLanguage ??
+      instanceManager.getSettings()?.targetLanguage ??
       detectionBeforeSummary?.detectedLanguage;
 
     if (summaryLanguageCode) {
-      currentLanguageDetection = {
+      contentState.setLanguageDetection({
         detectedLanguage: summaryLanguageCode,
         confidence:
           summaryLanguageCode === detectionBeforeSummary?.detectedLanguage
             ? (detectionBeforeSummary?.confidence ?? 1)
             : 1,
         languageName: getLanguageName(summaryLanguageCode),
-      };
+      });
     } else {
-      currentLanguageDetection = detectionBeforeSummary;
+      contentState.setLanguageDetection(detectionBeforeSummary);
     }
 
-    const badgeLanguageDetection = originalContentLanguage ?? undefined;
+    const badgeLanguageDetection =
+      contentState.getOriginalContentLanguage() ?? undefined;
     const summaryLanguageDetection =
-      currentLanguageDetection ?? originalContentLanguage ?? undefined;
+      contentState.getLanguageDetection() ??
+      contentState.getOriginalContentLanguage() ??
+      undefined;
 
     // Re-render overlay with summary loaded
-    if (overlayRoot && overlayContainer) {
+    const overlayState = contentState.getOverlayState();
+    if (overlayState.root && overlayState.container) {
+      const settingsForOverlay = instanceManager.getSettings();
+      const audioManagerForOverlay = instanceManager.getAudioManager();
       const soundEnabled = Boolean(
-        currentSettings?.enableSound && audioManager
+        settingsForOverlay?.enableSound && audioManagerForOverlay
       );
-      const translationEnabled = Boolean(currentSettings?.enableTranslation);
-      overlayRoot.render(
+      const translationEnabled = Boolean(settingsForOverlay?.enableTranslation);
+      overlayState.root.render(
         <MeditationFlowOverlay
-          summary={currentSummary}
+          summary={contentState.getSummary()}
           summaryDisplay={
-            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+            contentState.getSummaryDisplay().length
+              ? contentState.getSummaryDisplay()
+              : undefined
           }
-          prompts={currentPrompts}
+          prompts={contentState.getPrompts()}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
-          settings={currentSettings ?? getDefaultSettings()}
+          settings={instanceManager.getSettings() ?? getDefaultSettings()}
           onFormatChange={handleFormatChange}
-          currentFormat={currentSummaryFormat}
+          currentFormat={contentState.getSummaryFormat()}
           isLoadingSummary={false}
           languageDetection={badgeLanguageDetection}
           summaryLanguageDetection={summaryLanguageDetection}
@@ -649,19 +608,25 @@ const initiateReflectionFlow = async () => {
             translationEnabled ? handleTranslateToEnglish : undefined
           }
           onTranslate={translationEnabled ? handleTranslate : undefined}
-          isTranslating={translationEnabled ? isTranslating : false}
+          isTranslating={
+            translationEnabled ? contentState.getIsTranslating() : false
+          }
           onProofread={handleProofread}
-          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          ambientMuted={
+            soundEnabled ? contentState.getIsAmbientMuted() : undefined
+          }
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
-                  if (!audioManager) return;
+                  const audioManagerForAmbient =
+                    instanceManager.getAudioManager();
+                  if (!audioManagerForAmbient) return;
                   if (mute) {
-                    await audioManager.stopAmbientLoopGracefully(400);
-                    isAmbientMuted = true;
+                    await audioManagerForAmbient.stopAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(true);
                   } else {
-                    await audioManager.playAmbientLoopGracefully(400);
-                    isAmbientMuted = false;
+                    await audioManagerForAmbient.playAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(false);
                   }
                   renderOverlay();
                 }
@@ -675,19 +640,19 @@ const initiateReflectionFlow = async () => {
     console.log('Requesting reflection prompts...');
     const promptsResponse = await sendMessageToBackground<string[]>({
       type: 'reflect',
-      payload: currentSummary,
+      payload: contentState.getSummary(),
     });
 
     if (!promptsResponse.success) {
       console.error('Reflection prompts failed:', promptsResponse.error);
       // Use default prompts
-      currentPrompts = [
+      contentState.setPrompts([
         'What did you find most interesting?',
         'How might you apply this?',
-      ];
+      ]);
     } else {
-      currentPrompts = promptsResponse.data;
-      console.log('Prompts received:', currentPrompts);
+      contentState.setPrompts(promptsResponse.data);
+      console.log('Prompts received:', contentState.getPrompts());
     }
 
     // Update the overlay with prompts
@@ -695,11 +660,11 @@ const initiateReflectionFlow = async () => {
   } catch (error) {
     console.error('Error in reflection flow:', error);
     // Show overlay with manual mode
-    currentSummary = ['', '', ''];
-    currentPrompts = [
+    contentState.setSummary(['', '', '']);
+    contentState.setPrompts([
       'What did you find most interesting?',
       'How might you apply this?',
-    ];
+    ]);
     void showReflectModeOverlay();
   } finally {
     // Hide loading state
@@ -740,11 +705,12 @@ const shouldAutoTranslate = (
 const handleAutoTranslate = async (detection: LanguageDetection) => {
   try {
     const targetLang =
-      currentSettings?.preferredTranslationLanguage ??
+      instanceManager.getSettings()?.preferredTranslationLanguage ??
       navigator.language.split('-')[0];
 
     // Check cache first
-    const cacheKey = `translation:${currentExtractedContent?.url}:${detection.detectedLanguage}:${targetLang}`;
+    const extractedContent = contentState.getExtractedContent();
+    const cacheKey = `translation:${extractedContent?.url}:${detection.detectedLanguage}:${targetLang}`;
     const cached = await chrome.storage.local.get(cacheKey);
 
     if (cached[cacheKey]) {
@@ -757,16 +723,16 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
       // Use cache if less than 24 hours old
       if (age < 24 * 60 * 60 * 1000) {
         console.log('Using cached translation');
-        currentSummary = cachedData.summary;
-        currentSummaryDisplay = cachedData.summary;
+        contentState.setSummary(cachedData.summary);
+        contentState.setSummaryDisplay(cachedData.summary);
         stopSummaryAnimation();
-        summaryStreamComplete = true;
-        selectedTargetLanguage = targetLang;
-        currentLanguageDetection = {
+        contentState.setSummaryStreamComplete(true);
+        contentState.setSelectedTargetLanguage(targetLang);
+        contentState.setLanguageDetection({
           detectedLanguage: targetLang,
           confidence: 1,
           languageName: getLanguageName(targetLang),
-        };
+        });
         return;
       }
     }
@@ -774,7 +740,7 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
     // Translate each bullet
     const translatedSummary: string[] = [];
     let successCount = 0;
-    for (const bullet of currentSummary) {
+    for (const bullet of contentState.getSummary()) {
       const response = await sendMessageToBackground<string>({
         type: 'translate',
         payload: {
@@ -798,28 +764,22 @@ const handleAutoTranslate = async (detection: LanguageDetection) => {
     }
 
     // Update summary
-    currentSummary = translatedSummary;
-    currentSummaryDisplay = translatedSummary;
+    contentState.setSummary(translatedSummary);
+    contentState.setSummaryDisplay(translatedSummary);
     stopSummaryAnimation();
-    summaryStreamComplete = true;
-    currentSummary = translatedSummary;
-    currentSummaryDisplay = translatedSummary;
-    stopSummaryAnimation();
-    summaryStreamComplete = true;
-    currentSummaryDisplay = translatedSummary;
-    stopSummaryAnimation();
-    summaryStreamComplete = true;
+    contentState.setSummaryStreamComplete(true);
 
     if (successCount === translatedSummary.length) {
-      selectedTargetLanguage = targetLang;
-      isTargetLanguageOverridden =
-        preferredLanguageBaseline !== null &&
-        targetLang !== preferredLanguageBaseline;
-      currentLanguageDetection = {
+      contentState.setSelectedTargetLanguage(targetLang);
+      contentState.setIsTargetLanguageOverridden(
+        contentState.getPreferredLanguageBaseline() !== null &&
+          targetLang !== contentState.getPreferredLanguageBaseline()
+      );
+      contentState.setLanguageDetection({
         detectedLanguage: targetLang,
         confidence: 1,
         languageName: getLanguageName(targetLang),
-      };
+      });
 
       // Cache result only if we translated all bullets
       await chrome.storage.local.set({
@@ -861,39 +821,51 @@ const parseSummaryBuffer = (
 };
 
 const stopSummaryAnimation = () => {
-  if (summaryAnimationTimer !== null) {
-    window.clearTimeout(summaryAnimationTimer);
-    summaryAnimationTimer = null;
+  if (contentState.getSummaryAnimationTimer() !== null) {
+    window.clearTimeout(contentState.getSummaryAnimationTimer()!);
+    contentState.setSummaryAnimationTimer(null);
   }
 };
 
 const stepSummaryAnimation = () => {
-  const targetLength = currentSummaryBuffer.length;
-  if (summaryAnimationIndex >= targetLength) {
-    summaryAnimationTimer = null;
-    if (summaryStreamComplete) {
-      currentSummaryDisplay = parseSummaryBuffer(
-        currentSummaryBuffer,
-        summaryAnimationFormat
+  const targetLength = contentState.getSummaryBuffer().length;
+  if (contentState.getSummaryAnimationIndex() >= targetLength) {
+    contentState.setSummaryAnimationTimer(null);
+    if (contentState.getSummaryStreamComplete()) {
+      contentState.setSummaryDisplay(
+        parseSummaryBuffer(
+          contentState.getSummaryBuffer(),
+          contentState.getSummaryAnimationFormat()
+        )
       );
       renderOverlay();
     }
     return;
   }
 
-  summaryAnimationIndex = Math.min(summaryAnimationIndex + 3, targetLength);
+  contentState.setSummaryAnimationIndex(
+    Math.min(contentState.getSummaryAnimationIndex() + 3, targetLength)
+  );
 
-  const partial = currentSummaryBuffer.slice(0, summaryAnimationIndex);
-  currentSummaryDisplay = parseSummaryBuffer(partial, summaryAnimationFormat);
+  const partial = contentState
+    .getSummaryBuffer()
+    .slice(0, contentState.getSummaryAnimationIndex());
+  contentState.setSummaryDisplay(
+    parseSummaryBuffer(partial, contentState.getSummaryAnimationFormat())
+  );
   renderOverlay();
 
-  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 20);
+  contentState.setSummaryAnimationTimer(
+    window.setTimeout(stepSummaryAnimation, 20)
+  );
 };
 
 const startSummaryAnimation = (format: SummaryFormat) => {
-  summaryAnimationFormat = format;
-  if (summaryAnimationTimer !== null) return;
-  summaryAnimationTimer = window.setTimeout(stepSummaryAnimation, 0);
+  contentState.setSummaryAnimationFormat(format);
+  if (contentState.getSummaryAnimationTimer() !== null) return;
+  contentState.setSummaryAnimationTimer(
+    window.setTimeout(stepSummaryAnimation, 0)
+  );
 };
 
 const summarizeWithStreaming = async (
@@ -906,18 +878,18 @@ const summarizeWithStreaming = async (
   }
 
   return new Promise<boolean>((resolve, reject) => {
-    currentSummaryBuffer = '';
-    currentSummary = [];
-    currentSummaryDisplay = [];
-    summaryAnimationIndex = 0;
-    summaryStreamComplete = false;
+    contentState.setSummaryBuffer('');
+    contentState.setSummary([]);
+    contentState.setSummaryDisplay([]);
+    contentState.setSummaryAnimationIndex(0);
+    contentState.setSummaryStreamComplete(false);
     stopSummaryAnimation();
     let receivedChunk = false;
     let completed = false;
 
-    if (activeSummaryStreamCleanup) {
-      activeSummaryStreamCleanup();
-      activeSummaryStreamCleanup = null;
+    if (contentState.getActiveSummaryStreamCleanup()) {
+      contentState.getActiveSummaryStreamCleanup()?.();
+      contentState.setActiveSummaryStreamCleanup(null);
     }
 
     const { cancel } = startAIStream(
@@ -931,37 +903,45 @@ const summarizeWithStreaming = async (
         onChunk: (chunk) => {
           if (!chunk) return;
           receivedChunk = true;
-          currentSummaryBuffer += chunk;
-          if (isLoadingSummary) {
-            isLoadingSummary = false;
+          contentState.setSummaryBuffer(
+            contentState.getSummaryBuffer() + chunk
+          );
+          if (contentState.getIsLoadingSummary()) {
+            contentState.setIsLoadingSummary(false);
           }
           startSummaryAnimation(format);
         },
         onComplete: (finalData) => {
           completed = true;
           if (typeof finalData === 'string' && finalData.length > 0) {
-            currentSummaryBuffer = finalData;
+            contentState.setSummaryBuffer(finalData);
           }
-          const finalSummary = parseSummaryBuffer(currentSummaryBuffer, format);
-          currentSummary = finalSummary;
-          summaryStreamComplete = true;
+          const finalSummary = parseSummaryBuffer(
+            contentState.getSummaryBuffer(),
+            format
+          );
+          contentState.setSummary(finalSummary);
+          contentState.setSummaryStreamComplete(true);
           if (!receivedChunk) {
             startSummaryAnimation(format);
-          } else if (summaryAnimationTimer === null) {
-            currentSummaryDisplay = finalSummary;
+          } else if (contentState.getSummaryAnimationTimer() === null) {
+            contentState.setSummaryDisplay(finalSummary);
             renderOverlay();
           }
-          isLoadingSummary = false;
-          activeSummaryStreamCleanup = null;
-          resolve(parseSummaryBuffer(currentSummaryBuffer, format).length > 0);
+          contentState.setIsLoadingSummary(false);
+          contentState.setActiveSummaryStreamCleanup(null);
+          resolve(
+            parseSummaryBuffer(contentState.getSummaryBuffer(), format).length >
+              0
+          );
         },
         onError: (error) => {
           console.warn('Summarize stream error:', error);
           if (!completed) {
-            currentSummaryBuffer = '';
+            contentState.setSummaryBuffer('');
           }
-          activeSummaryStreamCleanup = null;
-          summaryStreamComplete = true;
+          contentState.setActiveSummaryStreamCleanup(null);
+          contentState.setSummaryStreamComplete(true);
           if (receivedChunk) {
             resolve(false);
           } else {
@@ -971,10 +951,10 @@ const summarizeWithStreaming = async (
       }
     );
 
-    activeSummaryStreamCleanup = () => {
+    contentState.setActiveSummaryStreamCleanup(() => {
       cancel();
-      activeSummaryStreamCleanup = null;
-    };
+      contentState.setActiveSummaryStreamCleanup(null);
+    });
   });
 };
 
@@ -983,48 +963,60 @@ const summarizeWithStreaming = async (
  * Used for initial render and re-renders when state changes
  */
 const renderOverlay = () => {
-  if (!overlayRoot || !overlayContainer) return;
+  const overlayState = contentState.getOverlayState();
+  if (!overlayState.root || !overlayState.container) return;
 
   const handleToggleAmbient = async (mute: boolean) => {
-    if (!audioManager) return;
+    const audioManagerForToggle = instanceManager.getAudioManager();
+    if (!audioManagerForToggle) return;
     if (mute) {
-      await audioManager.stopAmbientLoopGracefully(400);
-      isAmbientMuted = true;
+      await audioManagerForToggle.stopAmbientLoopGracefully(400);
+      contentState.setIsAmbientMuted(true);
     } else {
-      await audioManager.playAmbientLoopGracefully(400);
-      isAmbientMuted = false;
+      await audioManagerForToggle.playAmbientLoopGracefully(400);
+      contentState.setIsAmbientMuted(false);
     }
     // Re-render overlay to update mute button state
     renderOverlay();
   };
 
-  const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
-  const translationEnabled = Boolean(currentSettings?.enableTranslation);
+  const settingsForRender = instanceManager.getSettings();
+  const audioManagerForRender = instanceManager.getAudioManager();
+  const soundEnabled = Boolean(
+    settingsForRender?.enableSound && audioManagerForRender
+  );
+  const translationEnabled = Boolean(settingsForRender?.enableTranslation);
 
-  overlayRoot.render(
+  overlayState.root.render(
     <MeditationFlowOverlay
-      summary={currentSummary}
+      summary={contentState.getSummary()}
       summaryDisplay={
-        currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+        contentState.getSummaryDisplay().length
+          ? contentState.getSummaryDisplay()
+          : undefined
       }
-      prompts={currentPrompts}
+      prompts={contentState.getPrompts()}
       onSave={handleSaveReflection}
       onCancel={handleCancelReflection}
-      settings={currentSettings ?? getDefaultSettings()}
+      settings={instanceManager.getSettings() ?? getDefaultSettings()}
       onFormatChange={handleFormatChange}
-      currentFormat={currentSummaryFormat}
-      isLoadingSummary={isLoadingSummary}
-      languageDetection={originalContentLanguage ?? undefined}
+      currentFormat={contentState.getSummaryFormat()}
+      isLoadingSummary={contentState.getIsLoadingSummary()}
+      languageDetection={contentState.getOriginalContentLanguage() ?? undefined}
       summaryLanguageDetection={
-        currentLanguageDetection ?? originalContentLanguage ?? undefined
+        contentState.getLanguageDetection() ??
+        contentState.getOriginalContentLanguage() ??
+        undefined
       }
       onTranslateToEnglish={
         translationEnabled ? handleTranslateToEnglish : undefined
       }
       onTranslate={translationEnabled ? handleTranslate : undefined}
-      isTranslating={translationEnabled ? isTranslating : false}
+      isTranslating={
+        translationEnabled ? contentState.getIsTranslating() : false
+      }
       onProofread={handleProofread}
-      ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+      ambientMuted={soundEnabled ? contentState.getIsAmbientMuted() : undefined}
       onToggleAmbient={soundEnabled ? handleToggleAmbient : undefined}
     />
   );
@@ -1036,7 +1028,8 @@ const renderOverlay = () => {
  * Optimized to minimize layout shifts and track render time
  */
 const showReflectModeOverlay = async () => {
-  if (isOverlayVisible) {
+  const overlayState = contentState.getOverlayState();
+  if (overlayState.isVisible) {
     console.log('Overlay already visible');
     return;
   }
@@ -1047,26 +1040,31 @@ const showReflectModeOverlay = async () => {
   console.log('Showing Reflect Mode overlay...');
 
   // Load current settings
-  currentSettings ??= await (async () => {
+  const settings = await (async () => {
     const settingsResponse = await sendMessageToBackground<Settings>({
       type: 'getSettings',
     });
     return settingsResponse.success ? settingsResponse.data : null;
   })();
 
+  if (settings) {
+    instanceManager.setSettings(settings);
+  }
+
   // Initialize audio manager if sound is enabled
-  if (currentSettings?.enableSound && !audioManager) {
-    audioManager = new AudioManager(currentSettings);
+  if (settings?.enableSound) {
+    instanceManager.initializeAudioManager(settings);
   }
 
   // Play entry chime and ambient loop if enabled
-  if (currentSettings?.enableSound && audioManager) {
-    void audioManager.playEntryChime();
-    void audioManager.playAmbientLoop();
+  const audioManagerForPlay = instanceManager.getAudioManager();
+  if (settings?.enableSound && audioManagerForPlay) {
+    void audioManagerForPlay.playEntryChime();
+    void audioManagerForPlay.playAmbientLoop();
   }
 
   // Create container for shadow DOM with optimized positioning
-  overlayContainer = document.createElement('div');
+  const overlayContainer = document.createElement('div');
   overlayContainer.id = 'reflexa-overlay-container';
   // Set position and dimensions before appending to minimize layout shift
   overlayContainer.style.cssText =
@@ -1094,18 +1092,24 @@ const showReflectModeOverlay = async () => {
   shadowRoot.appendChild(rootElement);
 
   // Render the ReflectModeOverlay component
-  overlayRoot = createRoot(rootElement);
+  const overlayRoot = createRoot(rootElement);
+
+  // Store in state
+  contentState.setOverlayState({
+    container: overlayContainer,
+    root: overlayRoot,
+    isVisible: true,
+  });
 
   // Use the helper function for initial render
   renderOverlay();
-
-  isOverlayVisible = true;
 
   // End performance measurement
   performanceMonitor.endMeasure('overlay-render');
 
   // Start frame rate monitoring if animations are enabled
-  if (!currentSettings?.reduceMotion) {
+  const settingsForMotion = instanceManager.getSettings();
+  if (!settingsForMotion?.reduceMotion) {
     performanceMonitor.startFrameRateMonitoring();
   }
 
@@ -1151,9 +1155,7 @@ const handleSaveReflection = async (
 
   try {
     // Stop ambient audio if playing
-    if (audioManager) {
-      audioManager.stopAmbientLoop();
-    }
+    instanceManager.stopAudioManager();
 
     // Determine if any reflection was proofread
     // If originalReflections has non-null values, it means proofreading was applied
@@ -1171,10 +1173,10 @@ const handleSaveReflection = async (
     // Create reflection object
     const reflection: Reflection = {
       id: generateUUID(),
-      url: currentExtractedContent?.url ?? window.location.href,
-      title: currentExtractedContent?.title ?? document.title,
+      url: contentState.getExtractedContent()?.url ?? window.location.href,
+      title: contentState.getExtractedContent()?.title ?? document.title,
       createdAt: Date.now(),
-      summary: currentSummary,
+      summary: contentState.getSummary(),
       reflection: finalReflections,
       proofreadVersion: hasProofreadVersion
         ? reflections.join('\n\n')
@@ -1221,8 +1223,10 @@ const handleSaveReflection = async (
       console.log('Reflection saved successfully');
 
       // Play completion bell if enabled (before hiding overlay)
-      if (currentSettings?.enableSound && audioManager) {
-        void audioManager.playCompletionBell();
+      const settingsForBell = instanceManager.getSettings();
+      const audioManagerForBell = instanceManager.getAudioManager();
+      if (settingsForBell?.enableSound && audioManagerForBell) {
+        void audioManagerForBell.playCompletionBell();
       }
     }
 
@@ -1257,9 +1261,7 @@ const handleCancelReflection = () => {
   console.log('Reflection cancelled');
 
   // Stop ambient audio if playing
-  if (audioManager) {
-    audioManager.stopAmbientLoop();
-  }
+  instanceManager.stopAudioManager();
 
   // Clean up and hide overlay
   hideReflectModeOverlay();
@@ -1282,7 +1284,9 @@ const handleProofread = async (
   try {
     // Determine expected language for proofreading
     const expectedLanguage =
-      selectedTargetLanguage ?? originalDetectedLanguage ?? 'en';
+      contentState.getSelectedTargetLanguage() ??
+      contentState.getOriginalDetectedLanguage() ??
+      'en';
 
     const proofreadResponse = await sendMessageToBackground<ProofreadResult>({
       type: 'proofread',
@@ -1297,25 +1301,25 @@ const handleProofread = async (
       let result = proofreadResponse.data;
 
       // Ensure proofread output is in selected target language, if any
-      if (selectedTargetLanguage && result.correctedText) {
+      if (contentState.getSelectedTargetLanguage() && result.correctedText) {
         try {
           const detect = await sendMessageToBackground<LanguageDetection>({
             type: 'detectLanguage',
             payload: {
               text: result.correctedText.substring(0, 500),
-              pageUrl: currentExtractedContent?.url ?? location.href,
+              pageUrl: contentState.getExtractedContent()?.url ?? location.href,
             },
           });
           const sourceLang = detect.success
             ? detect.data.detectedLanguage
-            : (originalDetectedLanguage ?? 'en');
-          if (sourceLang !== selectedTargetLanguage) {
+            : (contentState.getOriginalDetectedLanguage() ?? 'en');
+          if (sourceLang !== contentState.getSelectedTargetLanguage()) {
             const tr = await sendMessageToBackground<string>({
               type: 'translate',
               payload: {
                 text: result.correctedText,
                 source: sourceLang,
-                target: selectedTargetLanguage,
+                target: contentState.getSelectedTargetLanguage() ?? 'en',
               },
             });
             if (tr.success) {
@@ -1343,32 +1347,45 @@ const handleProofread = async (
  * Translates summary and prompts to target language
  */
 const handleTranslate = async (targetLanguage: string) => {
-  if (!currentLanguageDetection || !currentExtractedContent) {
+  if (
+    !contentState.getLanguageDetection() ||
+    !contentState.getExtractedContent()
+  ) {
     return;
   }
 
   console.log(`Translating to ${targetLanguage}...`);
-  isTranslating = true;
+  contentState.setIsTranslating(true);
 
   // Re-render with loading state
-  if (overlayRoot && overlayContainer) {
-    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
-    const badgeLanguageDetection = originalContentLanguage ?? undefined;
+  const overlayState = contentState.getOverlayState();
+  if (overlayState.root && overlayState.container) {
+    const settingsForTranslateRender = instanceManager.getSettings();
+    const audioManagerForTranslateRender = instanceManager.getAudioManager();
+    const soundEnabled = Boolean(
+      settingsForTranslateRender?.enableSound && audioManagerForTranslateRender
+    );
+    const badgeLanguageDetection =
+      contentState.getOriginalContentLanguage() ?? undefined;
     const summaryLanguageDetection =
-      currentLanguageDetection ?? originalContentLanguage ?? undefined;
-    overlayRoot.render(
+      contentState.getLanguageDetection() ??
+      contentState.getOriginalContentLanguage() ??
+      undefined;
+    overlayState.root.render(
       <MeditationFlowOverlay
-        summary={currentSummary}
+        summary={contentState.getSummary()}
         summaryDisplay={
-          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          contentState.getSummaryDisplay().length
+            ? contentState.getSummaryDisplay()
+            : undefined
         }
-        prompts={currentPrompts}
+        prompts={contentState.getPrompts()}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
-        settings={currentSettings ?? getDefaultSettings()}
+        settings={settingsForTranslateRender ?? getDefaultSettings()}
         onProofread={handleProofread}
         onFormatChange={handleFormatChange}
-        currentFormat={currentSummaryFormat}
+        currentFormat={contentState.getSummaryFormat()}
         isLoadingSummary={false}
         languageDetection={badgeLanguageDetection}
         summaryLanguageDetection={summaryLanguageDetection}
@@ -1376,19 +1393,29 @@ const handleTranslate = async (targetLanguage: string) => {
         onTranslate={handleTranslate}
         isTranslating={true}
         onRewrite={handleRewrite}
-        isRewriting={isRewritingArray}
-        proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+        isRewriting={contentState.getReflectionState().isRewriting}
+        proofreaderAvailable={
+          contentState.getAICapabilities()?.proofreader ?? false
+        }
+        ambientMuted={
+          soundEnabled ? contentState.getIsAmbientMuted() : undefined
+        }
         onToggleAmbient={
           soundEnabled
             ? async (mute) => {
-                if (!audioManager) return;
+                const audioManagerForAmbientToggle =
+                  instanceManager.getAudioManager();
+                if (!audioManagerForAmbientToggle) return;
                 if (mute) {
-                  await audioManager.stopAmbientLoopGracefully(400);
-                  isAmbientMuted = true;
+                  await audioManagerForAmbientToggle.stopAmbientLoopGracefully(
+                    400
+                  );
+                  contentState.setIsAmbientMuted(true);
                 } else {
-                  await audioManager.playAmbientLoopGracefully(400);
-                  isAmbientMuted = false;
+                  await audioManagerForAmbientToggle.playAmbientLoopGracefully(
+                    400
+                  );
+                  contentState.setIsAmbientMuted(false);
                 }
                 renderOverlay();
               }
@@ -1400,15 +1427,16 @@ const handleTranslate = async (targetLanguage: string) => {
 
   try {
     const sourceLanguageCode =
-      originalContentLanguage?.detectedLanguage ??
-      originalDetectedLanguage ??
-      currentLanguageDetection.detectedLanguage;
+      contentState.getOriginalContentLanguage()?.detectedLanguage ??
+      contentState.getOriginalDetectedLanguage() ??
+      contentState.getLanguageDetection()?.detectedLanguage ??
+      'en';
 
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
       payload: {
-        content: currentExtractedContent.text,
-        format: currentSummaryFormat,
+        content: contentState.getExtractedContent()?.text ?? '',
+        format: contentState.getSummaryFormat(),
         detectedLanguage: sourceLanguageCode,
         targetLanguage,
       },
@@ -1424,10 +1452,10 @@ const handleTranslate = async (targetLanguage: string) => {
       return;
     }
 
-    currentSummary = summaryResponse.data;
-    currentSummaryDisplay = summaryResponse.data;
-    currentSummaryBuffer = '';
-    summaryStreamComplete = true;
+    contentState.setSummary(summaryResponse.data);
+    contentState.setSummaryDisplay(summaryResponse.data);
+    contentState.setSummaryBuffer('');
+    contentState.setSummaryStreamComplete(true);
 
     let detectedSummaryLanguage = sourceLanguageCode;
     let requiresPostTranslation = true;
@@ -1440,7 +1468,7 @@ const handleTranslate = async (targetLanguage: string) => {
             type: 'detectLanguage',
             payload: {
               text: detectionSample,
-              pageUrl: currentExtractedContent?.url ?? location.href,
+              pageUrl: contentState.getExtractedContent()?.url ?? location.href,
             },
           }
         );
@@ -1462,7 +1490,7 @@ const handleTranslate = async (targetLanguage: string) => {
 
     if (requiresPostTranslation) {
       const translatedSummary: string[] = [];
-      for (const bullet of currentSummary) {
+      for (const bullet of contentState.getSummary()) {
         const translateResponse = await sendMessageToBackground<string>({
           type: 'translate',
           payload: {
@@ -1477,20 +1505,21 @@ const handleTranslate = async (targetLanguage: string) => {
         );
       }
 
-      currentSummary = translatedSummary;
-      currentSummaryDisplay = translatedSummary;
+      contentState.setSummary(translatedSummary);
+      contentState.setSummaryDisplay(translatedSummary);
     }
 
-    selectedTargetLanguage = targetLanguage;
-    isTargetLanguageOverridden =
-      preferredLanguageBaseline !== null
-        ? targetLanguage !== preferredLanguageBaseline
-        : true;
-    currentLanguageDetection = {
+    contentState.setSelectedTargetLanguage(targetLanguage);
+    contentState.setIsTargetLanguageOverridden(
+      contentState.getPreferredLanguageBaseline() !== null
+        ? targetLanguage !== contentState.getPreferredLanguageBaseline()
+        : true
+    );
+    contentState.setLanguageDetection({
       detectedLanguage: targetLanguage,
       confidence: 1,
       languageName: getLanguageName(targetLanguage),
-    };
+    });
 
     showNotification(
       'Translation Complete',
@@ -1505,29 +1534,36 @@ const handleTranslate = async (targetLanguage: string) => {
       'error'
     );
   } finally {
-    isTranslating = false;
+    contentState.setIsTranslating(false);
 
     // Re-render overlay with translated content
-    if (overlayRoot && overlayContainer) {
+    const overlayStateFinal = contentState.getOverlayState();
+    if (overlayStateFinal.root && overlayStateFinal.container) {
       const soundEnabled = Boolean(
-        currentSettings?.enableSound && audioManager
+        instanceManager.getSettings()?.enableSound &&
+          instanceManager.getAudioManager()
       );
-      const badgeLanguageDetection = originalContentLanguage ?? undefined;
+      const badgeLanguageDetection =
+        contentState.getOriginalContentLanguage() ?? undefined;
       const summaryLanguageDetection =
-        currentLanguageDetection ?? originalContentLanguage ?? undefined;
-      overlayRoot.render(
+        contentState.getLanguageDetection() ??
+        contentState.getOriginalContentLanguage() ??
+        undefined;
+      overlayStateFinal.root.render(
         <MeditationFlowOverlay
-          summary={currentSummary}
+          summary={contentState.getSummary()}
           summaryDisplay={
-            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+            contentState.getSummaryDisplay().length
+              ? contentState.getSummaryDisplay()
+              : undefined
           }
-          prompts={currentPrompts}
+          prompts={contentState.getPrompts()}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
-          settings={currentSettings ?? getDefaultSettings()}
+          settings={instanceManager.getSettings() ?? getDefaultSettings()}
           onProofread={handleProofread}
           onFormatChange={handleFormatChange}
-          currentFormat={currentSummaryFormat}
+          currentFormat={contentState.getSummaryFormat()}
           isLoadingSummary={false}
           languageDetection={badgeLanguageDetection}
           summaryLanguageDetection={summaryLanguageDetection}
@@ -1535,19 +1571,25 @@ const handleTranslate = async (targetLanguage: string) => {
           onTranslate={handleTranslate}
           isTranslating={false}
           onRewrite={handleRewrite}
-          isRewriting={isRewritingArray}
-          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          isRewriting={contentState.getReflectionState().isRewriting}
+          proofreaderAvailable={
+            contentState.getAICapabilities()?.proofreader ?? false
+          }
+          ambientMuted={
+            soundEnabled ? contentState.getIsAmbientMuted() : undefined
+          }
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
-                  if (!audioManager) return;
+                  const audioManagerForAmbient =
+                    instanceManager.getAudioManager();
+                  if (!audioManagerForAmbient) return;
                   if (mute) {
-                    await audioManager.stopAmbientLoopGracefully(400);
-                    isAmbientMuted = true;
+                    await audioManagerForAmbient.stopAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(true);
                   } else {
-                    await audioManager.playAmbientLoopGracefully(400);
-                    isAmbientMuted = false;
+                    await audioManagerForAmbient.playAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(false);
                   }
                   renderOverlay();
                 }
@@ -1564,7 +1606,10 @@ const handleTranslate = async (targetLanguage: string) => {
  * Translates summary and prompts to English
  */
 const handleTranslateToEnglish = async () => {
-  if (!currentLanguageDetection || !currentExtractedContent) {
+  if (
+    !contentState.getLanguageDetection() ||
+    !contentState.getExtractedContent()
+  ) {
     return;
   }
 
@@ -1576,12 +1621,12 @@ const handleTranslateToEnglish = async () => {
     let translatedCount = 0;
     let failedCount = 0;
 
-    for (const bullet of currentSummary) {
+    for (const bullet of contentState.getSummary()) {
       const translateResponse = await sendMessageToBackground<string>({
         type: 'translate',
         payload: {
           text: bullet,
-          source: currentLanguageDetection.detectedLanguage,
+          source: contentState.getLanguageDetection()?.detectedLanguage ?? 'en',
           target: 'en',
         },
       });
@@ -1596,7 +1641,7 @@ const handleTranslateToEnglish = async () => {
       }
     }
 
-    currentSummary = translatedSummary;
+    contentState.setSummary(translatedSummary);
 
     if (translatedCount === 0) {
       showNotification(
@@ -1609,59 +1654,73 @@ const handleTranslateToEnglish = async () => {
 
     if (failedCount === 0) {
       // Update language detection to English
-      currentLanguageDetection = {
+      contentState.setLanguageDetection({
         detectedLanguage: 'en',
         confidence: 1.0,
         languageName: getLanguageName('en'),
-      };
-      selectedTargetLanguage = 'en';
-      isTargetLanguageOverridden =
-        preferredLanguageBaseline !== null
-          ? 'en' !== preferredLanguageBaseline
-          : true;
+      });
+      contentState.setSelectedTargetLanguage('en');
+      contentState.setIsTargetLanguageOverridden(
+        contentState.getPreferredLanguageBaseline() !== null
+          ? 'en' !== contentState.getPreferredLanguageBaseline()
+          : true
+      );
     }
 
     // Re-render overlay with translated content
-    if (overlayRoot && overlayContainer) {
+    const overlayStateFinal = contentState.getOverlayState();
+    if (overlayStateFinal.root && overlayStateFinal.container) {
       const soundEnabled = Boolean(
-        currentSettings?.enableSound && audioManager
+        instanceManager.getSettings()?.enableSound &&
+          instanceManager.getAudioManager()
       );
-      const badgeLanguageDetection = originalContentLanguage ?? undefined;
+      const badgeLanguageDetection =
+        contentState.getOriginalContentLanguage() ?? undefined;
       const summaryLanguageDetection =
-        currentLanguageDetection ?? originalContentLanguage ?? undefined;
-      overlayRoot.render(
+        contentState.getLanguageDetection() ??
+        contentState.getOriginalContentLanguage() ??
+        undefined;
+      overlayStateFinal.root.render(
         <MeditationFlowOverlay
-          summary={currentSummary}
+          summary={contentState.getSummary()}
           summaryDisplay={
-            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+            contentState.getSummaryDisplay().length
+              ? contentState.getSummaryDisplay()
+              : undefined
           }
-          prompts={currentPrompts}
+          prompts={contentState.getPrompts()}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
-          settings={currentSettings ?? getDefaultSettings()}
+          settings={instanceManager.getSettings() ?? getDefaultSettings()}
           onProofread={handleProofread}
           onFormatChange={handleFormatChange}
-          currentFormat={currentSummaryFormat}
+          currentFormat={contentState.getSummaryFormat()}
           isLoadingSummary={false}
           languageDetection={badgeLanguageDetection}
           summaryLanguageDetection={summaryLanguageDetection}
           onTranslateToEnglish={handleTranslateToEnglish}
           onTranslate={handleTranslate}
-          isTranslating={isTranslating}
+          isTranslating={contentState.getIsTranslating()}
           onRewrite={handleRewrite}
-          isRewriting={isRewritingArray}
-          proofreaderAvailable={aiCapabilities?.proofreader ?? false}
-          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          isRewriting={contentState.getReflectionState().isRewriting}
+          proofreaderAvailable={
+            contentState.getAICapabilities()?.proofreader ?? false
+          }
+          ambientMuted={
+            soundEnabled ? contentState.getIsAmbientMuted() : undefined
+          }
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
-                  if (!audioManager) return;
+                  const audioManagerForAmbient =
+                    instanceManager.getAudioManager();
+                  if (!audioManagerForAmbient) return;
                   if (mute) {
-                    await audioManager.stopAmbientLoopGracefully(400);
-                    isAmbientMuted = true;
+                    await audioManagerForAmbient.stopAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(true);
                   } else {
-                    await audioManager.playAmbientLoopGracefully(400);
-                    isAmbientMuted = false;
+                    await audioManagerForAmbient.playAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(false);
                   }
                   renderOverlay();
                 }
@@ -1705,18 +1764,20 @@ const handleRewrite = async (
 ): Promise<{ original: string; rewritten: string }> => {
   console.log(`Rewriting reflection ${index} with tone: ${tone}...`);
 
-  isRewritingArray[index] = true;
+  contentState.setIsRewriting(index, true);
 
   try {
     // Build context from summary and reflection prompt
     const contextParts: string[] = [];
 
-    if (currentSummary?.length > 0) {
-      contextParts.push(`Summary: ${currentSummary.join(' ')}`);
+    const summary = contentState.getSummary();
+    if (summary?.length > 0) {
+      contextParts.push(`Summary: ${summary.join(' ')}`);
     }
 
-    if (currentPrompts?.[index]) {
-      contextParts.push(`Reflection prompt: ${currentPrompts[index]}`);
+    const prompts = contentState.getPrompts();
+    if (prompts?.[index]) {
+      contextParts.push(`Reflection prompt: ${prompts[index]}`);
     }
 
     const context =
@@ -1740,26 +1801,27 @@ const handleRewrite = async (
       let rewritten = rw;
 
       // Ensure output language matches selected target language, if any
-      if (selectedTargetLanguage) {
+      const targetLang = contentState.getSelectedTargetLanguage();
+      if (targetLang) {
         try {
           // Detect language of rewritten text to avoid unnecessary translation
           const detect = await sendMessageToBackground<LanguageDetection>({
             type: 'detectLanguage',
             payload: {
               text: rewritten.substring(0, 500),
-              pageUrl: currentExtractedContent?.url ?? location.href,
+              pageUrl: contentState.getExtractedContent()?.url ?? location.href,
             },
           });
           const sourceLang = detect.success
             ? detect.data.detectedLanguage
-            : (originalDetectedLanguage ?? 'en');
-          if (sourceLang !== selectedTargetLanguage) {
+            : (contentState.getOriginalDetectedLanguage() ?? 'en');
+          if (sourceLang !== targetLang) {
             const tr = await sendMessageToBackground<string>({
               type: 'translate',
               payload: {
                 text: rewritten,
                 source: sourceLang,
-                target: selectedTargetLanguage,
+                target: targetLang,
               },
             });
             if (tr.success) rewritten = tr.data;
@@ -1778,7 +1840,7 @@ const handleRewrite = async (
     console.error('Error rewriting:', error);
     throw error;
   } finally {
-    isRewritingArray[index] = false;
+    contentState.setIsRewriting(index, false);
   }
 };
 
@@ -1787,52 +1849,76 @@ const handleRewrite = async (
  * Re-requests summary with new format from background worker
  */
 const handleFormatChange = async (format: SummaryFormat) => {
-  if (!currentExtractedContent || isLoadingSummary) {
+  if (
+    !contentState.getExtractedContent() ||
+    contentState.getIsLoadingSummary()
+  ) {
     return;
   }
 
   console.log(`Changing summary format to: ${format}`);
-  currentSummaryFormat = format;
-  isLoadingSummary = true;
+  contentState.setSummaryFormat(format);
+  contentState.setIsLoadingSummary(true);
 
   // Re-render overlay with loading state
-  if (overlayRoot && overlayContainer) {
-    const soundEnabled = Boolean(currentSettings?.enableSound && audioManager);
-    const translationEnabled = Boolean(currentSettings?.enableTranslation);
-    overlayRoot.render(
+  const overlayStateFormat = contentState.getOverlayState();
+  if (overlayStateFormat.root && overlayStateFormat.container) {
+    const settingsForFormat = instanceManager.getSettings();
+    const audioManagerForFormat = instanceManager.getAudioManager();
+    const soundEnabled = Boolean(
+      settingsForFormat?.enableSound && audioManagerForFormat
+    );
+    const translationEnabled = Boolean(settingsForFormat?.enableTranslation);
+    overlayStateFormat.root.render(
       <MeditationFlowOverlay
-        summary={currentSummary}
+        summary={contentState.getSummary()}
         summaryDisplay={
-          currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+          contentState.getSummaryDisplay().length
+            ? contentState.getSummaryDisplay()
+            : undefined
         }
-        prompts={currentPrompts}
+        prompts={contentState.getPrompts()}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
-        settings={currentSettings ?? getDefaultSettings()}
+        settings={instanceManager.getSettings() ?? getDefaultSettings()}
         onFormatChange={handleFormatChange}
-        currentFormat={currentSummaryFormat}
+        currentFormat={contentState.getSummaryFormat()}
         isLoadingSummary={true}
-        languageDetection={originalContentLanguage ?? undefined}
+        languageDetection={
+          contentState.getOriginalContentLanguage() ?? undefined
+        }
         summaryLanguageDetection={
-          currentLanguageDetection ?? originalContentLanguage ?? undefined
+          contentState.getLanguageDetection() ??
+          contentState.getOriginalContentLanguage() ??
+          undefined
         }
         onTranslateToEnglish={
           translationEnabled ? handleTranslateToEnglish : undefined
         }
         onTranslate={translationEnabled ? handleTranslate : undefined}
-        isTranslating={translationEnabled ? isTranslating : false}
+        isTranslating={
+          translationEnabled ? contentState.getIsTranslating() : false
+        }
         onProofread={handleProofread}
-        ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+        ambientMuted={
+          soundEnabled ? contentState.getIsAmbientMuted() : undefined
+        }
         onToggleAmbient={
           soundEnabled
             ? async (mute) => {
-                if (!audioManager) return;
+                const audioManagerForFormatToggle =
+                  instanceManager.getAudioManager();
+                if (!audioManagerForFormatToggle) return;
                 if (mute) {
-                  await audioManager.stopAmbientLoopGracefully(400);
-                  isAmbientMuted = true;
+                  await audioManagerForFormatToggle.stopAmbientLoopGracefully(
+                    400
+                  );
+                  contentState.setIsAmbientMuted(true);
                 } else {
-                  await audioManager.playAmbientLoopGracefully(400);
-                  isAmbientMuted = false;
+                  await audioManagerForFormatToggle.playAmbientLoopGracefully(
+                    400
+                  );
+                  contentState.setIsAmbientMuted(false);
                 }
                 renderOverlay();
               }
@@ -1848,9 +1934,9 @@ const handleFormatChange = async (format: SummaryFormat) => {
     const summaryResponse = await sendMessageToBackground<string[]>({
       type: 'summarize',
       payload: {
-        content: currentExtractedContent.text,
+        content: contentState.getExtractedContent()?.text ?? '',
         format: format,
-        detectedLanguage: currentLanguageDetection?.detectedLanguage,
+        detectedLanguage: contentState.getLanguageDetection()?.detectedLanguage,
       },
     });
 
@@ -1858,26 +1944,29 @@ const handleFormatChange = async (format: SummaryFormat) => {
       let newSummary = summaryResponse.data;
       // If the user selected a target language, translate the freshly
       // generated summary to that language.
-      if (selectedTargetLanguage) {
+      if (contentState.getSelectedTargetLanguage()) {
         const translated: string[] = [];
         for (const item of newSummary) {
           const tr = await sendMessageToBackground<string>({
             type: 'translate',
             payload: {
               text: item,
-              source: originalDetectedLanguage ?? 'en',
-              target: selectedTargetLanguage,
+              source: contentState.getOriginalDetectedLanguage() ?? 'en',
+              target: contentState.getSelectedTargetLanguage() ?? 'en',
             },
           });
           translated.push(tr.success ? tr.data : item);
         }
         newSummary = translated;
       }
-      currentSummary = newSummary;
-      currentSummaryDisplay = newSummary;
+      contentState.setSummary(newSummary);
+      contentState.setSummaryDisplay(newSummary);
       stopSummaryAnimation();
-      summaryStreamComplete = true;
-      console.log('Summary updated with new format:', currentSummary);
+      contentState.setSummaryStreamComplete(true);
+      console.log(
+        'Summary updated with new format:',
+        contentState.getSummary()
+      );
     } else {
       console.error('Failed to update summary format:', summaryResponse.error);
       // Keep existing summary on error
@@ -1895,48 +1984,63 @@ const handleFormatChange = async (format: SummaryFormat) => {
       'error'
     );
   } finally {
-    isLoadingSummary = false;
+    contentState.setIsLoadingSummary(false);
 
     // Re-render overlay with updated summary
-    if (overlayRoot && overlayContainer) {
+    const overlayStateFinal = contentState.getOverlayState();
+    if (overlayStateFinal.root && overlayStateFinal.container) {
+      const settingsForOverlay = instanceManager.getSettings();
+      const audioManagerForOverlay = instanceManager.getAudioManager();
       const soundEnabled = Boolean(
-        currentSettings?.enableSound && audioManager
+        settingsForOverlay?.enableSound && audioManagerForOverlay
       );
-      const translationEnabled = Boolean(currentSettings?.enableTranslation);
-      overlayRoot.render(
+      const translationEnabled = Boolean(settingsForOverlay?.enableTranslation);
+      overlayStateFinal.root.render(
         <MeditationFlowOverlay
-          summary={currentSummary}
+          summary={contentState.getSummary()}
           summaryDisplay={
-            currentSummaryDisplay.length ? currentSummaryDisplay : undefined
+            contentState.getSummaryDisplay().length
+              ? contentState.getSummaryDisplay()
+              : undefined
           }
-          prompts={currentPrompts}
+          prompts={contentState.getPrompts()}
           onSave={handleSaveReflection}
           onCancel={handleCancelReflection}
-          settings={currentSettings ?? getDefaultSettings()}
+          settings={instanceManager.getSettings() ?? getDefaultSettings()}
           onFormatChange={handleFormatChange}
-          currentFormat={currentSummaryFormat}
+          currentFormat={contentState.getSummaryFormat()}
           isLoadingSummary={false}
-          languageDetection={originalContentLanguage ?? undefined}
+          languageDetection={
+            contentState.getOriginalContentLanguage() ?? undefined
+          }
           summaryLanguageDetection={
-            currentLanguageDetection ?? originalContentLanguage ?? undefined
+            contentState.getLanguageDetection() ??
+            contentState.getOriginalContentLanguage() ??
+            undefined
           }
           onTranslateToEnglish={
             translationEnabled ? handleTranslateToEnglish : undefined
           }
           onTranslate={translationEnabled ? handleTranslate : undefined}
-          isTranslating={translationEnabled ? isTranslating : false}
+          isTranslating={
+            translationEnabled ? contentState.getIsTranslating() : false
+          }
           onProofread={handleProofread}
-          ambientMuted={soundEnabled ? isAmbientMuted : undefined}
+          ambientMuted={
+            soundEnabled ? contentState.getIsAmbientMuted() : undefined
+          }
           onToggleAmbient={
             soundEnabled
               ? async (mute) => {
-                  if (!audioManager) return;
+                  const audioManagerForAmbient =
+                    instanceManager.getAudioManager();
+                  if (!audioManagerForAmbient) return;
                   if (mute) {
-                    await audioManager.stopAmbientLoopGracefully(400);
-                    isAmbientMuted = true;
+                    await audioManagerForAmbient.stopAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(true);
                   } else {
-                    await audioManager.playAmbientLoopGracefully(400);
-                    isAmbientMuted = false;
+                    await audioManagerForAmbient.playAmbientLoopGracefully(400);
+                    contentState.setIsAmbientMuted(false);
                   }
                   renderOverlay();
                 }
@@ -1953,31 +2057,34 @@ const handleFormatChange = async (format: SummaryFormat) => {
  * Removes the component and cleans up the DOM
  */
 const hideReflectModeOverlay = () => {
-  if (!isOverlayVisible) {
+  const overlayStateHide = contentState.getOverlayState();
+  if (!overlayStateHide.isVisible) {
     return;
   }
 
   // Stop ambient audio if playing
-  if (audioManager) {
-    audioManager.stopAmbientLoop();
-  }
+  instanceManager.stopAudioManager();
 
   // Stop frame rate monitoring if active
   performanceMonitor.stopFrameRateMonitoring();
 
   // Unmount React component
-  if (overlayRoot) {
-    overlayRoot.unmount();
-    overlayRoot = null;
+  if (overlayStateHide.root) {
+    overlayStateHide.root.unmount();
   }
 
   // Remove container from DOM
-  if (overlayContainer?.parentNode) {
-    overlayContainer.parentNode.removeChild(overlayContainer);
-    overlayContainer = null;
+  if (overlayStateHide.container?.parentNode) {
+    overlayStateHide.container.parentNode.removeChild(
+      overlayStateHide.container
+    );
   }
 
-  isOverlayVisible = false;
+  contentState.setOverlayState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
   console.log('Reflect Mode overlay hidden');
 };
 
@@ -1986,23 +2093,15 @@ const hideReflectModeOverlay = () => {
  * Clears current data and resets dwell tracker
  */
 const resetReflectionState = () => {
-  activeSummaryStreamCleanup?.();
-  activeSummaryStreamCleanup = null;
-  currentExtractedContent = null;
-  currentSummary = [];
-  currentSummaryDisplay = [];
-  currentPrompts = [];
-  currentSummaryFormat = 'bullets';
-  isLoadingSummary = false;
-  currentSummaryBuffer = '';
-  summaryAnimationIndex = 0;
-  summaryStreamComplete = false;
+  contentState.getActiveSummaryStreamCleanup()?.();
+  contentState.setActiveSummaryStreamCleanup(null);
+  contentState.resetReflectionState();
+  contentState.setSummaryAnimationIndex(0);
+  contentState.setSummaryStreamComplete(false);
   stopSummaryAnimation();
-  originalContentLanguage = null;
+  contentState.setOriginalContentLanguage(null);
   // Reset dwell tracker to start tracking again
-  if (dwellTracker) {
-    dwellTracker.reset();
-  }
+  instanceManager.resetDwellTracker();
 
   console.log('Reflection state reset');
 };
@@ -2017,22 +2116,13 @@ const initializeContentScript = async () => {
   try {
     // Load settings from background worker
     const settings = await getSettings();
-    currentSettings = settings;
+    instanceManager.setSettings(settings);
     applyTranslationPreference(settings);
 
-    // Initialize content extractor
-    contentExtractor = new ContentExtractor();
-
     // Initialize dwell tracker with threshold from settings
-    dwellTracker = new DwellTracker(settings.dwellThreshold);
-
-    // Register callback for when threshold is reached
-    dwellTracker.onThresholdReached(() => {
+    instanceManager.initializeDwellTracker(settings.dwellThreshold, () => {
       handleDwellThresholdReached();
     });
-
-    // Start tracking dwell time
-    dwellTracker.startTracking();
 
     // Listen for page navigation to reset tracker
     setupNavigationListeners();
@@ -2093,11 +2183,15 @@ const getSettings = async (): Promise<Settings> => {
  * @param loading Whether the nudge is in loading state
  */
 const setNudgeLoadingState = (loading: boolean) => {
-  isNudgeLoading = loading;
+  const nudgeState = contentState.getNudgeState();
+  contentState.setNudgeState({
+    ...nudgeState,
+    isLoading: loading,
+  });
 
-  if (!nudgeContainer) return;
+  if (!nudgeState.container) return;
 
-  const shadowRoot = nudgeContainer.shadowRoot;
+  const shadowRoot = nudgeState.container.shadowRoot;
   if (!shadowRoot) return;
 
   const nudgeElement = shadowRoot.querySelector('.reflexa-lotus-nudge');
@@ -2128,7 +2222,8 @@ const handleDwellThresholdReached = () => {
  * Creates a shadow DOM container and renders the React component
  */
 const showLotusNudge = () => {
-  if (isNudgeVisible) {
+  const nudgeStateCheck = contentState.getNudgeState();
+  if (nudgeStateCheck.isVisible) {
     console.log('Nudge already visible');
     return;
   }
@@ -2141,7 +2236,7 @@ const showLotusNudge = () => {
   }
 
   // Create container for shadow DOM
-  nudgeContainer = document.createElement('div');
+  const nudgeContainer = document.createElement('div');
   nudgeContainer.id = 'reflexa-nudge-container';
   document.body.appendChild(nudgeContainer);
 
@@ -2158,7 +2253,7 @@ const showLotusNudge = () => {
   shadowRoot.appendChild(rootElement);
 
   // Render the LotusNudge component
-  nudgeRoot = createRoot(rootElement);
+  const nudgeRoot = createRoot(rootElement);
   nudgeRoot.render(
     <LotusNudge
       visible={true}
@@ -2180,7 +2275,12 @@ const showLotusNudge = () => {
     />
   );
 
-  isNudgeVisible = true;
+  contentState.setNudgeState({
+    container: nudgeContainer,
+    root: nudgeRoot,
+    isVisible: true,
+    isLoading: false,
+  });
   console.log('Lotus nudge displayed');
 };
 
@@ -2192,7 +2292,7 @@ const handleNudgeClick = async () => {
   console.log('Lotus nudge clicked - initiating reflection');
 
   // Prevent multiple clicks while loading
-  if (isNudgeLoading) {
+  if (contentState.getNudgeState().isLoading) {
     console.log('Already processing, ignoring click');
     return;
   }
@@ -2209,30 +2309,35 @@ const handleNudgeClick = async () => {
  * Removes the component and cleans up the DOM
  */
 const hideLotusNudge = () => {
-  if (!isNudgeVisible) {
+  const nudgeState = contentState.getNudgeState();
+  if (!nudgeState.isVisible) {
     return;
   }
 
   // Unmount React component
-  if (nudgeRoot) {
-    nudgeRoot.unmount();
-    nudgeRoot = null;
+  if (nudgeState.root) {
+    nudgeState.root.unmount();
   }
 
   // Remove container from DOM
-  if (nudgeContainer?.parentNode) {
-    nudgeContainer.parentNode.removeChild(nudgeContainer);
-    nudgeContainer = null;
+  if (nudgeState.container?.parentNode) {
+    nudgeState.container.parentNode.removeChild(nudgeState.container);
   }
 
-  isNudgeVisible = false;
+  contentState.setNudgeState({
+    container: null,
+    root: null,
+    isVisible: false,
+    isLoading: false,
+  });
   console.log('Lotus nudge hidden');
 };
 
 /** Show AI Status modal in the center of the page */
 const showHelpModal = async () => {
-  if (isHelpModalVisible) return;
-  helpModalContainer = document.createElement('div');
+  const helpModalStateCheck = contentState.getHelpModalState();
+  if (helpModalStateCheck.isVisible) return;
+  const helpModalContainer = document.createElement('div');
   helpModalContainer.id = 'reflexa-ai-status-container';
   document.body.appendChild(helpModalContainer);
 
@@ -2248,33 +2353,41 @@ const showHelpModal = async () => {
   const rootElement = document.createElement('div');
   shadowRoot.appendChild(rootElement);
 
-  helpModalRoot = createRoot(rootElement);
+  const helpModalRoot = createRoot(rootElement);
   const { AIStatusModal } = await import('./components/AIStatusModal');
   helpModalRoot.render(<AIStatusModal onClose={hideHelpModal} />);
 
-  isHelpModalVisible = true;
+  contentState.setHelpModalState({
+    container: helpModalContainer,
+    root: helpModalRoot,
+    isVisible: true,
+  });
 };
 
 /** Hide AI Status modal */
 const hideHelpModal = () => {
-  if (!isHelpModalVisible) return;
-  if (helpModalRoot) {
-    helpModalRoot.unmount();
-    helpModalRoot = null;
+  const helpModalState = contentState.getHelpModalState();
+  if (!helpModalState.isVisible) return;
+  if (helpModalState.root) {
+    helpModalState.root.unmount();
   }
-  if (helpModalContainer?.parentNode) {
-    helpModalContainer.parentNode.removeChild(helpModalContainer);
-    helpModalContainer = null;
+  if (helpModalState.container?.parentNode) {
+    helpModalState.container.parentNode.removeChild(helpModalState.container);
   }
-  isHelpModalVisible = false;
+  contentState.setHelpModalState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
 };
 
 /**
  * Show Quick Settings modal in the center of the page
  */
 const showSettingsModal = async () => {
-  if (isSettingsModalVisible) return;
-  settingsModalContainer = document.createElement('div');
+  const settingsModalStateCheck = contentState.getSettingsModalState();
+  if (settingsModalStateCheck.isVisible) return;
+  const settingsModalContainer = document.createElement('div');
   settingsModalContainer.id = 'reflexa-settings-container';
   document.body.appendChild(settingsModalContainer);
 
@@ -2290,27 +2403,36 @@ const showSettingsModal = async () => {
   const rootElement = document.createElement('div');
   shadowRoot.appendChild(rootElement);
 
-  settingsModalRoot = createRoot(rootElement);
+  const settingsModalRoot = createRoot(rootElement);
   const { QuickSettingsModal } = await import(
     './components/QuickSettingsModal'
   );
   settingsModalRoot.render(<QuickSettingsModal onClose={hideSettingsModal} />);
 
-  isSettingsModalVisible = true;
+  contentState.setSettingsModalState({
+    container: settingsModalContainer,
+    root: settingsModalRoot,
+    isVisible: true,
+  });
 };
 
 /** Hide Quick Settings modal */
 const hideSettingsModal = () => {
-  if (!isSettingsModalVisible) return;
-  if (settingsModalRoot) {
-    settingsModalRoot.unmount();
-    settingsModalRoot = null;
+  const settingsModalState = contentState.getSettingsModalState();
+  if (!settingsModalState.isVisible) return;
+  if (settingsModalState.root) {
+    settingsModalState.root.unmount();
   }
-  if (settingsModalContainer?.parentNode) {
-    settingsModalContainer.parentNode.removeChild(settingsModalContainer);
-    settingsModalContainer = null;
+  if (settingsModalState.container?.parentNode) {
+    settingsModalState.container.parentNode.removeChild(
+      settingsModalState.container
+    );
   }
-  isSettingsModalVisible = false;
+  contentState.setSettingsModalState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
 };
 
 /**
@@ -2329,7 +2451,6 @@ const setupMessageListener = () => {
               | undefined;
             if (updated) {
               console.log('Applying live settings update:', updated);
-              currentSettings = updated;
               applyTranslationPreference(updated);
               // Toast for user feedback
               try {
@@ -2337,28 +2458,26 @@ const setupMessageListener = () => {
               } catch {
                 // no-op
               }
-              // Live-update dwell tracker so changes take effect immediately
-              if (dwellTracker) {
-                dwellTracker.setDwellThreshold(updated.dwellThreshold);
-                // Reset to apply new threshold from now
-                dwellTracker.reset();
-              }
-              // Live-update audio behavior
-              if (audioManager) {
-                audioManager.updateSettings(updated);
-              } else if (updated.enableSound) {
-                audioManager = new AudioManager(updated);
-              }
-              if (isOverlayVisible && audioManager) {
+              // Live-update audio behavior for overlay
+              const audioManagerForSettings = instanceManager.getAudioManager();
+              if (
+                contentState.getOverlayState().isVisible &&
+                audioManagerForSettings
+              ) {
                 if (updated.enableSound) {
-                  void audioManager.playAmbientLoopGracefully(300);
+                  void audioManagerForSettings.playAmbientLoopGracefully(300);
                 } else {
-                  void audioManager.stopAmbientLoopGracefully(300);
+                  void audioManagerForSettings.stopAmbientLoopGracefully(300);
                 }
               }
 
               // If overlay is mounted, re-render via unified renderer to reflect toggles consistently
-              if (isOverlayVisible && overlayRoot && overlayContainer) {
+              const overlayStateMessage = contentState.getOverlayState();
+              if (
+                overlayStateMessage.isVisible &&
+                overlayStateMessage.root &&
+                overlayStateMessage.container
+              ) {
                 renderOverlay();
               }
             }
@@ -2396,10 +2515,8 @@ const setupMessageListener = () => {
 const setupNavigationListeners = () => {
   // Listen for popstate events (back/forward navigation)
   window.addEventListener('popstate', () => {
-    if (dwellTracker) {
-      dwellTracker.reset();
-      console.log('Dwell tracker reset due to navigation');
-    }
+    instanceManager.resetDwellTracker();
+    console.log('Dwell tracker reset due to navigation');
   });
 
   // Listen for pushState/replaceState (SPA navigation)
@@ -2408,18 +2525,14 @@ const setupNavigationListeners = () => {
 
   history.pushState = function (...args) {
     originalPushState(...args);
-    if (dwellTracker) {
-      dwellTracker.reset();
-      console.log('Dwell tracker reset due to pushState');
-    }
+    instanceManager.resetDwellTracker();
+    console.log('Dwell tracker reset due to pushState');
   };
 
   history.replaceState = function (...args) {
     originalReplaceState(...args);
-    if (dwellTracker) {
-      dwellTracker.reset();
-      console.log('Dwell tracker reset due to replaceState');
-    }
+    instanceManager.resetDwellTracker();
+    console.log('Dwell tracker reset due to replaceState');
   };
 };
 
@@ -2438,7 +2551,8 @@ const showErrorModal = (
   onAction?: () => void,
   actionLabel?: string
 ) => {
-  if (isErrorModalVisible) {
+  const errorModalStateCheck = contentState.getErrorModalState();
+  if (errorModalStateCheck.isVisible) {
     console.log('Error modal already visible');
     return;
   }
@@ -2446,7 +2560,7 @@ const showErrorModal = (
   console.log('Showing error modal:', type);
 
   // Create container for shadow DOM
-  errorModalContainer = document.createElement('div');
+  const errorModalContainer = document.createElement('div');
   errorModalContainer.id = 'reflexa-error-modal-container';
   document.body.appendChild(errorModalContainer);
 
@@ -2470,7 +2584,7 @@ const showErrorModal = (
   shadowRoot.appendChild(rootElement);
 
   // Render the ErrorModal component
-  errorModalRoot = createRoot(rootElement);
+  const errorModalRoot = createRoot(rootElement);
   errorModalRoot.render(
     <ErrorModal
       title={title}
@@ -2482,7 +2596,11 @@ const showErrorModal = (
     />
   );
 
-  isErrorModalVisible = true;
+  contentState.setErrorModalState({
+    container: errorModalContainer,
+    root: errorModalRoot,
+    isVisible: true,
+  });
   console.log('Error modal displayed');
 };
 
@@ -2491,23 +2609,26 @@ const showErrorModal = (
  * Removes the component and cleans up the DOM
  */
 const hideErrorModal = () => {
-  if (!isErrorModalVisible) {
+  const errorModalState = contentState.getErrorModalState();
+  if (!errorModalState.isVisible) {
     return;
   }
 
   // Unmount React component
-  if (errorModalRoot) {
-    errorModalRoot.unmount();
-    errorModalRoot = null;
+  if (errorModalState.root) {
+    errorModalState.root.unmount();
   }
 
   // Remove container from DOM
-  if (errorModalContainer?.parentNode) {
-    errorModalContainer.parentNode.removeChild(errorModalContainer);
-    errorModalContainer = null;
+  if (errorModalState.container?.parentNode) {
+    errorModalState.container.parentNode.removeChild(errorModalState.container);
   }
 
-  isErrorModalVisible = false;
+  contentState.setErrorModalState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
   console.log('Error modal hidden');
 };
 
@@ -2525,14 +2646,15 @@ const showNotification = (
   duration = 5000
 ) => {
   // Hide existing notification if visible
-  if (isNotificationVisible) {
+  const notificationStateCheck = contentState.getNotificationState();
+  if (notificationStateCheck.isVisible) {
     hideNotification();
   }
 
   console.log('Showing notification:', type, title);
 
   // Create container for shadow DOM
-  notificationContainer = document.createElement('div');
+  const notificationContainer = document.createElement('div');
   notificationContainer.id = 'reflexa-notification-container';
   document.body.appendChild(notificationContainer);
 
@@ -2556,7 +2678,7 @@ const showNotification = (
   shadowRoot.appendChild(rootElement);
 
   // Render the Notification component
-  notificationRoot = createRoot(rootElement);
+  const notificationRoot = createRoot(rootElement);
   notificationRoot.render(
     <Notification
       title={title}
@@ -2567,7 +2689,11 @@ const showNotification = (
     />
   );
 
-  isNotificationVisible = true;
+  contentState.setNotificationState({
+    container: notificationContainer,
+    root: notificationRoot,
+    isVisible: true,
+  });
   console.log('Notification displayed');
 };
 
@@ -2576,23 +2702,28 @@ const showNotification = (
  * Removes the component and cleans up the DOM
  */
 const hideNotification = () => {
-  if (!isNotificationVisible) {
+  const notificationState = contentState.getNotificationState();
+  if (!notificationState.isVisible) {
     return;
   }
 
   // Unmount React component
-  if (notificationRoot) {
-    notificationRoot.unmount();
-    notificationRoot = null;
+  if (notificationState.root) {
+    notificationState.root.unmount();
   }
 
   // Remove container from DOM
-  if (notificationContainer?.parentNode) {
-    notificationContainer.parentNode.removeChild(notificationContainer);
-    notificationContainer = null;
+  if (notificationState.container?.parentNode) {
+    notificationState.container.parentNode.removeChild(
+      notificationState.container
+    );
   }
 
-  isNotificationVisible = false;
+  contentState.setNotificationState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
   console.log('Notification hidden');
 };
 
@@ -2600,12 +2731,7 @@ const hideNotification = () => {
  * Clean up on page unload
  */
 window.addEventListener('beforeunload', () => {
-  if (dwellTracker) {
-    dwellTracker.destroy();
-  }
-  if (audioManager) {
-    audioManager.stopAmbientLoop();
-  }
+  instanceManager.cleanup();
   hideLotusNudge();
   hideReflectModeOverlay();
   hideErrorModal();
@@ -2617,8 +2743,9 @@ void initializeContentScript();
 
 /** Show Dashboard modal */
 async function showDashboardModal() {
-  if (isDashboardModalVisible) return;
-  dashboardModalContainer = document.createElement('div');
+  const dashboardState = contentState.getDashboardModalState();
+  if (dashboardState.isVisible) return;
+  const dashboardModalContainer = document.createElement('div');
   dashboardModalContainer.id = 'reflexa-dashboard-modal-container';
   document.body.appendChild(dashboardModalContainer);
 
@@ -2629,21 +2756,28 @@ async function showDashboardModal() {
   shadowRoot.appendChild(link);
   const root = document.createElement('div');
   shadowRoot.appendChild(root);
-  dashboardModalRoot = createRoot(root);
+  const dashboardModalRoot = createRoot(root);
   const { DashboardModal } = await import('./components/DashboardModal');
   dashboardModalRoot.render(<DashboardModal onClose={hideDashboardModal} />);
-  isDashboardModalVisible = true;
+  contentState.setDashboardModalState({
+    container: dashboardModalContainer,
+    root: dashboardModalRoot,
+    isVisible: true,
+  });
 }
 
 function hideDashboardModal() {
-  if (!isDashboardModalVisible) return;
-  if (dashboardModalRoot) {
-    dashboardModalRoot.unmount();
-    dashboardModalRoot = null;
+  const dashboardState = contentState.getDashboardModalState();
+  if (!dashboardState.isVisible) return;
+  if (dashboardState.root) {
+    dashboardState.root.unmount();
   }
-  if (dashboardModalContainer?.parentNode) {
-    dashboardModalContainer.parentNode.removeChild(dashboardModalContainer);
-    dashboardModalContainer = null;
+  if (dashboardState.container?.parentNode) {
+    dashboardState.container.parentNode.removeChild(dashboardState.container);
   }
-  isDashboardModalVisible = false;
+  contentState.setDashboardModalState({
+    container: null,
+    root: null,
+    isVisible: false,
+  });
 }
