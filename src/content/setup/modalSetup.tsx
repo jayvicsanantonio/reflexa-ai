@@ -53,4 +53,3 @@ export async function showDashboardModal(): Promise<void> {
 export function hideDashboardModal(): void {
   uiManager.hideDashboardModal();
 }
-
