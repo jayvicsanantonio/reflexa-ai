@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { LotusOrb } from '../LotusOrb';
+import { LotusOrb } from '../LotusOrb/LotusOrb';
 import type { Settings } from '../../../types';
 
 interface BreathingPhaseProps {

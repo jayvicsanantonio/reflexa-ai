@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TonePresetChips } from './TonePresetChips';
+import { TonePresetChips } from './TonePresetChips/TonePresetChips';
 
 describe('TonePresetChips', () => {
   it('should render all four tone chips', () => {
