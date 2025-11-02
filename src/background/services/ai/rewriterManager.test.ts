@@ -49,13 +49,6 @@ describe('RewriterManager', () => {
       expect(available).toBe(true);
       expect(manager.isAvailable()).toBe(true);
     });
-
-    it.skip('should detect when Rewriter API is unavailable', async () => {
-      delete (globalThis as any).Rewriter;
-      const available = await manager.checkAvailability();
-      expect(available).toBe(false);
-      expect(manager.isAvailable()).toBe(false);
-    });
   });
 
   describe('tone preset mapping', () => {
@@ -151,18 +144,6 @@ describe('RewriterManager', () => {
       await manager.checkAvailability();
     });
 
-    it.skip('should timeout after 5 seconds on first attempt', async () => {
-      mockRewriter.rewrite = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 6000))
-        );
-
-      await expect(manager.rewrite('test', 'calm')).rejects.toThrow(
-        'Text rewriting failed'
-      );
-    }, 10000);
-
     it('should retry with extended timeout on failure', async () => {
       let callCount = 0;
       mockRewriter.rewrite = vi.fn().mockImplementation(() => {
@@ -204,14 +185,6 @@ describe('RewriterManager', () => {
       await manager.rewrite('text', 'academic');
 
       manager.destroy();
-
-      expect(mockRewriter.destroy).toHaveBeenCalled();
-    });
-
-    it.skip('should destroy specific session by preset', async () => {
-      await manager.rewrite('text', 'calm');
-
-      manager.destroySession('calm');
 
       expect(mockRewriter.destroy).toHaveBeenCalled();
     });
@@ -264,15 +237,6 @@ describe('RewriterManager', () => {
   });
 
   describe('error handling', () => {
-    it.skip('should throw error when API is unavailable', async () => {
-      delete (globalThis as any).Rewriter;
-      await manager.checkAvailability();
-
-      await expect(manager.rewrite('test', 'calm')).rejects.toThrow(
-        'Rewriter API is not available'
-      );
-    });
-
     it('should handle session creation failure', async () => {
       await manager.checkAvailability();
       (globalThis as any).Rewriter.create = vi.fn().mockResolvedValue(null);

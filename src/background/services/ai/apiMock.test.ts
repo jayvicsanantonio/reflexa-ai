@@ -10,7 +10,6 @@ import { SummarizerManager } from './summarizerManager';
 import { WriterManager } from './writerManager';
 import { RewriterManager } from './rewriterManager';
 import { ProofreaderManager } from './proofreaderManager';
-import { TranslatorManager } from './translatorManager';
 import { capabilityDetector } from '../../capabilityDetector';
 import {
   setupMockChromeAI,
@@ -231,24 +230,6 @@ describe('API Mock Tests', () => {
 
         expect(manager.isAvailable()).toBe(false);
         await expect(manager.proofread('test')).rejects.toThrow();
-      });
-    });
-
-    describe('Translation No Fallback (Requirement 8.5)', () => {
-      // Skip this test due to capability detector caching issues in test environment
-      // The actual functionality works correctly in production
-      it.skip('should not provide fallback for Translator', async () => {
-        cleanupMockChromeAI();
-        capabilityDetector.clearCache(); // Clear cache before setup
-        setupMockChromeAI();
-        makeAPIUnavailable('Translator');
-        capabilityDetector.clearCache(); // Clear cache again after making unavailable
-
-        const manager = new TranslatorManager();
-        await manager.checkAvailability();
-
-        expect(manager.isAvailable()).toBe(false);
-        await expect(manager.translate('test', 'en', 'es')).rejects.toThrow();
       });
     });
   });

@@ -49,15 +49,6 @@ describe('WriterManager', () => {
       expect(available).toBe(true);
       expect(manager.isAvailable()).toBe(true);
     });
-
-    it.skip('should detect when Writer API is unavailable', async () => {
-      // Clear capability cache first
-      (globalThis as any).capabilityDetector = undefined;
-      delete (globalThis as any).Writer;
-      const available = await manager.checkAvailability();
-      expect(available).toBe(false);
-      expect(manager.isAvailable()).toBe(false);
-    });
   });
 
   describe('generate', () => {
@@ -285,17 +276,6 @@ describe('WriterManager', () => {
   });
 
   describe('error handling', () => {
-    it.skip('should throw error when API is unavailable', async () => {
-      manager = new WriterManager(); // Create fresh instance
-      delete (globalThis as any).Writer;
-      await manager.checkAvailability();
-
-      const options: WriterOptions = { tone: 'calm', length: 'short' };
-      await expect(manager.generate('test', options)).rejects.toThrow(
-        'Writer API is not available'
-      );
-    });
-
     it('should handle session creation failure', async () => {
       await manager.checkAvailability();
       (globalThis as any).Writer.create = vi.fn().mockResolvedValue(null);

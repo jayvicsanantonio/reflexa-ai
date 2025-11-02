@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { PromptManager } from './promptManager';
 import type { AILanguageModel } from '../../../types/chrome-ai';
-import type { WriterOptions, TonePreset } from '../../../types';
+import type { WriterOptions } from '../../../types';
 
 describe('PromptManager', () => {
   let manager: PromptManager;
@@ -238,21 +238,6 @@ describe('PromptManager', () => {
       await manager.checkAvailability();
     });
 
-    const presets: TonePreset[] = ['calm', 'concise', 'empathetic', 'academic'];
-
-    presets.forEach((preset) => {
-      it.skip(`should rewrite with ${preset} preset`, async () => {
-        const result = await manager.rewrite('original text', preset);
-
-        expect(result).toBe('AI generated response');
-        expect((globalThis as any).LanguageModel.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            systemPrompt: expect.stringContaining(preset),
-          })
-        );
-      });
-    });
-
     it('should include context in rewriting', async () => {
       const context = 'Background context';
       await manager.rewrite('text', 'calm', context);
@@ -267,18 +252,6 @@ describe('PromptManager', () => {
     beforeEach(async () => {
       await manager.checkAvailability();
     });
-
-    it.skip('should timeout after 5 seconds on first attempt', async () => {
-      mockLanguageModel.prompt = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 6000))
-        );
-
-      await expect(manager.prompt('test')).rejects.toThrow(
-        'Prompt operation failed'
-      );
-    }, 10000);
 
     it('should retry with extended timeout on failure', async () => {
       let callCount = 0;

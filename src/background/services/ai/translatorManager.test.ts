@@ -42,13 +42,6 @@ describe('TranslatorManager', () => {
       expect(available).toBe(true);
       expect(translatorManager.isAvailable()).toBe(true);
     });
-
-    it.skip('should detect when Translator API is unavailable', async () => {
-      delete (globalThis as any).Translator;
-      const available = await translatorManager.checkAvailability();
-      expect(available).toBe(false);
-      expect(translatorManager.isAvailable()).toBe(false);
-    });
   });
 
   describe('canTranslate', () => {
@@ -174,20 +167,6 @@ describe('TranslatorManager', () => {
       const result = await translatorManager.translate(markdown, 'es', 'en');
 
       expect(result).toContain('## Título');
-    });
-
-    it.skip('should preserve empty lines', async () => {
-      mockTranslator.translate = vi
-        .fn()
-        .mockResolvedValueOnce('Párrafo uno')
-        .mockResolvedValueOnce('Párrafo dos');
-
-      const markdown = 'Paragraph one\n\nParagraph two';
-      const result = await translatorManager.translate(markdown, 'es', 'en');
-
-      // Check that result has both translated parts
-      expect(result).toContain('Párrafo uno');
-      expect(result).toContain('Párrafo dos');
     });
 
     it('should handle plain text without markdown', async () => {
@@ -319,16 +298,6 @@ describe('TranslatorManager', () => {
   });
 
   describe('error handling', () => {
-    it.skip('should throw error when API is unavailable', async () => {
-      delete (globalThis as any).Translator;
-      // Force availability check to return false
-      await translatorManager.checkAvailability();
-
-      await expect(
-        translatorManager.translate('test', 'es', 'en')
-      ).rejects.toThrow('Translator API is not available');
-    });
-
     it('should handle session creation failure', async () => {
       await translatorManager.checkAvailability();
       (globalThis as any).Translator.create = vi.fn().mockResolvedValue(null);
