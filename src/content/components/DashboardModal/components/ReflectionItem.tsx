@@ -6,6 +6,7 @@
 import React from 'react';
 import type { Reflection } from '../../../../types';
 import { IconDelete } from '../icons';
+import { devLog } from '../../../../utils/logger';
 
 interface ReflectionItemProps {
   reflection: Reflection;
@@ -51,7 +52,7 @@ export const ReflectionItem: React.FC<ReflectionItemProps> = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log(
+          devLog(
             '[DashboardModal] Delete button clicked for:',
             reflection.id
           );

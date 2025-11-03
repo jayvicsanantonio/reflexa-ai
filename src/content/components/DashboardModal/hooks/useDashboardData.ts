@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Reflection, StreakData } from '../../../../types';
+import { devLog, devError } from '../../../../utils/logger';
 
 export const useDashboardData = () => {
   const [reflections, setReflections] = useState<Reflection[] | null>(null);
@@ -36,16 +37,16 @@ export const useDashboardData = () => {
   }, []);
 
   const handleDeleteItem = async (id: string): Promise<void> => {
-    console.log('[DashboardModal] Deleting reflection:', id);
+    devLog('[DashboardModal] Deleting reflection:', id);
     try {
       const resp: unknown = await chrome.runtime.sendMessage({
         type: 'deleteReflection',
         payload: id,
       });
-      console.log('[DashboardModal] Delete response:', resp);
+      devLog('[DashboardModal] Delete response:', resp);
       const r = resp as { success?: boolean; error?: string } | undefined;
       if (r?.success) {
-        console.log('[DashboardModal] Delete successful, updating UI');
+        devLog('[DashboardModal] Delete successful, updating UI');
         setReflections((prev) => (prev ?? []).filter((it) => it.id !== id));
         const sResp: unknown = await chrome.runtime.sendMessage({
           type: 'getStreak',
@@ -53,10 +54,10 @@ export const useDashboardData = () => {
         const s = sResp as { success?: boolean; data?: unknown } | undefined;
         if (s?.success && s.data) setStreak(s.data as StreakData);
       } else {
-        console.error('[DashboardModal] Delete failed:', r?.error);
+        devError('[DashboardModal] Delete failed:', r?.error);
       }
     } catch (error) {
-      console.error('[DashboardModal] Delete error:', error);
+      devError('[DashboardModal] Delete error:', error);
     }
   };
 

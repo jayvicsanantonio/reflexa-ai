@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import type { AIResponse } from '../../../types';
 import { SparklesIcon, LoadingIcon } from './icons';
+import { devLog, devError } from '../../../utils/logger';
 
 interface GenerateDraftSectionProps {
   onGenerateDraft: (draft: string) => void;
@@ -30,7 +31,7 @@ export const GenerateDraftSection: React.FC<GenerateDraftSectionProps> = ({
         const summaryText = summary.join('\n');
         const prompt = `Based on this summary:\n${summaryText}\n\nWrite a brief reflection about what you found most interesting.`;
 
-        console.log('[MoreToolsMenu] Calling Writer API with prompt:', prompt);
+        devLog('[MoreToolsMenu] Calling Writer API with prompt:', prompt);
 
         // Call Writer API via background service worker
         const response: AIResponse<string> = await chrome.runtime.sendMessage({
@@ -45,21 +46,21 @@ export const GenerateDraftSection: React.FC<GenerateDraftSectionProps> = ({
           },
         });
 
-        console.log('[MoreToolsMenu] Writer API response:', response);
+        devLog('[MoreToolsMenu] Writer API response:', response);
 
         if (response.success) {
           const draft = response.data;
-          console.log('[MoreToolsMenu] Generated draft:', draft);
+          devLog('[MoreToolsMenu] Generated draft:', draft);
           // Pass the generated draft to parent
           onGenerateDraft(draft);
         } else {
-          console.error(
+          devError(
             '[MoreToolsMenu] Draft generation failed:',
             response.error
           );
         }
       } catch (error) {
-        console.error('[MoreToolsMenu] Failed to generate draft:', error);
+        devError('[MoreToolsMenu] Failed to generate draft:', error);
       } finally {
         setIsGenerating(false);
       }
@@ -74,7 +75,7 @@ export const GenerateDraftSection: React.FC<GenerateDraftSectionProps> = ({
         className="reflexa-more-tools__option"
         onClick={(e) => {
           e.stopPropagation();
-          console.log('[MoreToolsMenu] Generate draft clicked');
+          devLog('[MoreToolsMenu] Generate draft clicked');
           void handleGenerateDraft();
           onClose();
         }}

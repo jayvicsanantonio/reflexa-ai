@@ -6,6 +6,7 @@
 import React from 'react';
 import type { SummaryFormat } from '../../../types';
 import { formatOptions } from './constants';
+import { devLog } from '../../../utils/logger';
 import { BulletIcon, ParagraphIcon, HeadlineIcon } from './icons';
 
 interface FormatSectionProps {
@@ -22,19 +23,19 @@ export const FormatSection: React.FC<FormatSectionProps> = ({
   onClose,
 }) => {
   const handleFormatSelect = async (format: SummaryFormat) => {
-    console.log(
+    devLog(
       '[MoreToolsMenu] Format selected:',
       format,
       'Current:',
       currentFormat
     );
-    console.log('[MoreToolsMenu] onFormatChange exists:', !!onFormatChange);
+    devLog('[MoreToolsMenu] onFormatChange exists:', !!onFormatChange);
     if (format !== currentFormat && onFormatChange) {
-      console.log('[MoreToolsMenu] Calling onFormatChange...');
+      devLog('[MoreToolsMenu] Calling onFormatChange...');
       await onFormatChange(format);
-      console.log('[MoreToolsMenu] onFormatChange completed');
+      devLog('[MoreToolsMenu] onFormatChange completed');
     } else {
-      console.log('[MoreToolsMenu] Skipping - same format or no handler');
+      devLog('[MoreToolsMenu] Skipping - same format or no handler');
     }
   };
 
@@ -53,7 +54,7 @@ export const FormatSection: React.FC<FormatSectionProps> = ({
             }`}
             onClick={async (e) => {
               e.stopPropagation();
-              console.log('[MoreToolsMenu] Format tile clicked:', option.value);
+              devLog('[MoreToolsMenu] Format tile clicked:', option.value);
               await handleFormatSelect(option.value);
               onClose();
             }}

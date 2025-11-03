@@ -23,6 +23,7 @@ import type {
   WriterOptions,
 } from '../../../types';
 import { ERROR_MESSAGES } from '../../../constants';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Handle summarization request
@@ -58,7 +59,7 @@ export async function handleSummarize(
         outputLanguageOverride = payloadObj.targetLanguage.trim();
       }
     } else {
-      console.error('[Summarize] Invalid payload:', typeof payload);
+      devError('[Summarize] Invalid payload:', typeof payload);
       return createErrorResponse(
         'Invalid content for summarization',
         Date.now() - startTime,
@@ -85,7 +86,7 @@ export async function handleSummarize(
     }
     const settings = settingsResult.settings;
 
-    console.log(
+    devLog(
       `[Summarize] useNativeSummarizer setting: ${settings.useNativeSummarizer}`
     );
 
@@ -95,14 +96,14 @@ export async function handleSummarize(
     const { input: expectedInputLanguages, context: expectedContextLanguages } =
       await getExpectedLanguages(detectedLanguage);
 
-    console.log(
+    devLog(
       `[Summarize] Preferred language: ${settings.preferredTranslationLanguage ?? 'none'}, Output language: ${outputLanguage ?? 'auto-detect'}, Detected language: ${detectedLanguage ?? 'not provided'}`
     );
 
     // Check if Summarizer API is available and enabled
     const summarizerApiAvailable =
       await aiService.summarizer.checkAvailability();
-    console.log(
+    devLog(
       `[Summarize] Summarizer API available: ${summarizerApiAvailable}`
     );
 
@@ -112,7 +113,7 @@ export async function handleSummarize(
     let apiUsed: string;
 
     if (summarizerAvailable) {
-      console.log(
+      devLog(
         `[Summarize] Using Summarizer API with format: ${format}, language: ${outputLanguage ?? 'auto'}`
       );
 
@@ -126,7 +127,7 @@ export async function handleSummarize(
       );
       apiUsed = 'summarizer';
     } else {
-      console.log(
+      devLog(
         `[Summarize] Falling back to Prompt API with format: ${format}`
       );
 
@@ -140,11 +141,11 @@ export async function handleSummarize(
     const duration = Date.now() - startTime;
 
     if (!summary || summary.length === 0) {
-      console.error(`[Summarize] Failed after ${duration}ms - empty result`);
+      devError(`[Summarize] Failed after ${duration}ms - empty result`);
       return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, apiUsed);
     }
 
-    console.log(`[Summarize] Success in ${duration}ms using ${apiUsed}`);
+    devLog(`[Summarize] Success in ${duration}ms using ${apiUsed}`);
     try {
       performanceMonitor.recordMetric('summarize', apiUsed, duration, true);
     } catch {
@@ -153,7 +154,7 @@ export async function handleSummarize(
     return createSuccessResponse(summary, apiUsed, duration);
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[Summarize] Error after ${duration}ms:`, error);
+    devError(`[Summarize] Error after ${duration}ms:`, error);
     try {
       performanceMonitor.recordMetric('summarize', 'unified', duration, false);
     } catch {
@@ -181,7 +182,7 @@ export async function handleReflect(
       const payloadObj = payload as { summary: string[] };
       summary = payloadObj.summary;
     } else {
-      console.error('[Reflect] Invalid payload:', payload);
+      devError('[Reflect] Invalid payload:', payload);
       return createErrorResponse(
         'Invalid summary for reflection prompts',
         Date.now() - startTime,
@@ -200,7 +201,7 @@ export async function handleReflect(
     // Check AI availability
     const available = await ensureAIAvailable();
     if (!available) {
-      console.error('[Reflect] AI unavailable');
+      devError('[Reflect] AI unavailable');
       return createErrorResponse(
         ERROR_MESSAGES.AI_UNAVAILABLE,
         Date.now() - startTime,
@@ -209,20 +210,20 @@ export async function handleReflect(
     }
 
     // Call Prompt manager to generate reflection prompts
-    console.log('[Reflect] Calling Prompt manager...');
+    devLog('[Reflect] Calling Prompt manager...');
     const prompts = await aiService.prompt.generateReflectionPrompts(summary);
     const duration = Date.now() - startTime;
 
     if (!prompts || prompts.length === 0) {
-      console.error(`[Reflect] Failed after ${duration}ms - empty result`);
+      devError(`[Reflect] Failed after ${duration}ms - empty result`);
       return createErrorResponse(ERROR_MESSAGES.AI_TIMEOUT, duration, 'prompt');
     }
 
-    console.log(`[Reflect] Success in ${duration}ms`);
+    devLog(`[Reflect] Success in ${duration}ms`);
     return createSuccessResponse(prompts, 'prompt', duration);
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[Reflect] Error after ${duration}ms:`, error);
+    devError(`[Reflect] Error after ${duration}ms:`, error);
     return createHandlerErrorResponse(error, duration, 'prompt');
   }
 }
@@ -293,7 +294,7 @@ export async function handleProofread(
     if (useProofreader) {
       try {
         const languages = expectedLanguage ? [expectedLanguage] : ['en'];
-        console.log(
+        devLog(
           `[Proofread] Using Proofreader API with languages: ${languages.join(', ')}`
         );
         result = await aiService.proofreader.proofread(text, {
@@ -301,7 +302,7 @@ export async function handleProofread(
         });
         apiUsed = 'proofreader';
       } catch (proofreaderError) {
-        console.warn(
+        devWarn(
           '[Proofread] Proofreader API failed, falling back to Prompt API:',
           proofreaderError
         );
@@ -311,7 +312,7 @@ export async function handleProofread(
 
     if (!useProofreader || !result) {
       // Fallback to Prompt API
-      console.log('[Proofread] Falling back to Prompt API');
+      devLog('[Proofread] Falling back to Prompt API');
 
       const available = await ensureAIAvailable();
       if (!available) {
@@ -330,10 +331,10 @@ export async function handleProofread(
       apiUsed = 'prompt';
     }
 
-    console.log(`[Proofread] Success using ${apiUsed}`);
+    devLog(`[Proofread] Success using ${apiUsed}`);
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleProofread:', error);
+    devError('Error in handleProofread:', error);
     return createHandlerErrorResponse(
       error,
       Date.now() - startTime,
@@ -390,7 +391,7 @@ export async function handleWrite(
     let apiUsed: string;
 
     if (writerAvailable) {
-      console.log(
+      devLog(
         `[Write] Using Writer API (language: ${outputLanguage ?? 'auto'})`
       );
       result = await aiService.writer.write(payloadObj.prompt, {
@@ -402,7 +403,7 @@ export async function handleWrite(
       apiUsed = 'writer';
     } else {
       // Fallback to Prompt API
-      console.log('[Write] Falling back to Prompt API');
+      devLog('[Write] Falling back to Prompt API');
 
       const available = await ensureAIAvailable();
       if (!available) {
@@ -429,13 +430,13 @@ export async function handleWrite(
       apiUsed = 'prompt';
     }
 
-    console.log(`[Write] Success using ${apiUsed}`);
-    console.log(`[Write] Generated result:`, result);
-    console.log(`[Write] Result type:`, typeof result);
-    console.log(`[Write] Result length:`, result?.length);
+    devLog(`[Write] Success using ${apiUsed}`);
+    devLog(`[Write] Generated result:`, result);
+    devLog(`[Write] Result type:`, typeof result);
+    devLog(`[Write] Result length:`, result?.length);
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleWrite:', error);
+    devError('Error in handleWrite:', error);
     const rawMessage =
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR;
     const friendlyMessage =
@@ -494,7 +495,7 @@ export async function handleRewrite(
     let apiUsed: string;
 
     if (rewriterAvailable) {
-      console.log(
+      devLog(
         `[Rewrite] Using Rewriter API with preset: ${preset} (language: ${outputLanguage ?? 'auto'})`
       );
       result = await aiService.rewriter.rewrite(
@@ -510,7 +511,7 @@ export async function handleRewrite(
       apiUsed = 'rewriter';
     } else {
       // Fallback to Prompt API
-      console.log(
+      devLog(
         `[Rewrite] Falling back to Prompt API with preset: ${preset}`
       );
 
@@ -531,10 +532,10 @@ export async function handleRewrite(
       apiUsed = 'prompt';
     }
 
-    console.log(`[Rewrite] Success using ${apiUsed}`);
+    devLog(`[Rewrite] Success using ${apiUsed}`);
     return createSuccessResponse(result, apiUsed, Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleRewrite:', error);
+    devError('Error in handleRewrite:', error);
     return createHandlerErrorResponse(
       error,
       Date.now() - startTime,
@@ -620,7 +621,7 @@ export async function handleTranslate(
       );
     }
 
-    console.log(
+    devLog(
       `[Translate] Translating from ${payloadObj.source} to ${payloadObj.target}`
     );
     const result = await aiService.translator.translate(
@@ -629,10 +630,10 @@ export async function handleTranslate(
       payloadObj.source
     );
 
-    console.log('[Translate] Success');
+    devLog('[Translate] Success');
     return createSuccessResponse(result, 'translator', Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleTranslate:', error);
+    devError('Error in handleTranslate:', error);
     return createHandlerErrorResponse(
       error,
       Date.now() - startTime,
@@ -764,20 +765,20 @@ export async function handleDetectLanguage(
       );
     }
 
-    console.log('[DetectLanguage] Detecting language...');
+    devLog('[DetectLanguage] Detecting language...');
     const result = await aiService.languageDetector.detect(
       payloadObj.text,
       payloadObj.pageUrl
     );
 
-    console.log(`[DetectLanguage] Detected: ${result.languageName}`);
+    devLog(`[DetectLanguage] Detected: ${result.languageName}`);
     return createSuccessResponse(
       result,
       'languageDetector',
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error in handleDetectLanguage:', error);
+    devError('Error in handleDetectLanguage:', error);
     return createHandlerErrorResponse(
       error,
       Date.now() - startTime,

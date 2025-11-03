@@ -7,6 +7,7 @@ import { StorageManager } from '../../services/storage';
 import { createSuccessResponse, createErrorResponse } from '../../../types';
 import type { AIResponse, Reflection, StreakData } from '../../../types';
 import { ERROR_MESSAGES } from '../../../constants';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 const storageManager = new StorageManager();
 
@@ -19,7 +20,7 @@ export async function handleSave(payload: unknown): Promise<AIResponse<void>> {
   try {
     // Validate payload
     if (!payload || typeof payload !== 'object') {
-      console.error('[Save] Invalid payload:', typeof payload);
+      devError('[Save] Invalid payload:', typeof payload);
       return createErrorResponse(
         'Invalid reflection data',
         Date.now() - startTime,
@@ -31,7 +32,7 @@ export async function handleSave(payload: unknown): Promise<AIResponse<void>> {
 
     // Validate required fields
     if (!reflection.url || !reflection.title || !reflection.createdAt) {
-      console.error('[Save] Missing required fields:', reflection);
+      devError('[Save] Missing required fields:', reflection);
       return createErrorResponse(
         'Missing required reflection fields',
         Date.now() - startTime,
@@ -42,19 +43,19 @@ export async function handleSave(payload: unknown): Promise<AIResponse<void>> {
     // Check storage quota before saving
     const isNearLimit = await storageManager.isStorageNearLimit();
     if (isNearLimit) {
-      console.warn('[Save] Storage near limit (>90%)');
+      devWarn('[Save] Storage near limit (>90%)');
     }
 
     // Save reflection using storage manager
-    console.log('[Save] Saving reflection...');
+    devLog('[Save] Saving reflection...');
     await storageManager.saveReflection(reflection);
     const duration = Date.now() - startTime;
 
-    console.log(`[Save] Success in ${duration}ms`);
+    devLog(`[Save] Success in ${duration}ms`);
     return createSuccessResponse(undefined as void, 'storage', duration);
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[Save] Error after ${duration}ms:`, error);
+    devError(`[Save] Error after ${duration}ms:`, error);
 
     // Check if it's a storage full error
     if (
@@ -63,7 +64,7 @@ export async function handleSave(payload: unknown): Promise<AIResponse<void>> {
         error.message.includes('QUOTA') ||
         error.name === 'StorageFullError')
     ) {
-      console.error('[Save] Storage quota exceeded');
+      devError('[Save] Storage quota exceeded');
       return createErrorResponse(
         ERROR_MESSAGES.STORAGE_FULL,
         duration,
@@ -100,7 +101,7 @@ export async function handleLoad(
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error in handleLoad:', error);
+    devError('Error in handleLoad:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,

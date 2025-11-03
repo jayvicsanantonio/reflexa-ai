@@ -297,7 +297,7 @@ export async function handleMessage(
  * Check AI availability on extension startup
  */
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('Reflexa AI extension installed');
+  devLog('Reflexa AI extension installed');
 
   // Initialize AI Service
   aiService.initialize();
@@ -311,17 +311,17 @@ chrome.runtime.onInstalled.addListener(async () => {
     resetAIAvailability(); // Reset cache to mark as available
   }
 
-  console.log('Gemini Nano available:', available);
+  devLog('Gemini Nano available:', available);
 
   // Log all API capabilities
   const capabilities = aiService.getCapabilities();
-  console.log('AI Capabilities:', capabilities);
+  devLog('AI Capabilities:', capabilities);
 
   // Set first launch flag if not already set
   const result = await chrome.storage.local.get(STORAGE_KEYS.FIRST_LAUNCH);
   if (!result[STORAGE_KEYS.FIRST_LAUNCH]) {
     await chrome.storage.local.set({ [STORAGE_KEYS.FIRST_LAUNCH]: true });
-    console.log('First launch detected');
+    devLog('First launch detected');
   }
 });
 
@@ -329,7 +329,7 @@ chrome.runtime.onInstalled.addListener(async () => {
  * Check AI availability on service worker startup
  */
 chrome.runtime.onStartup.addListener(async () => {
-  console.log('Reflexa AI service worker started');
+  devLog('Reflexa AI service worker started');
 
   // Initialize AI Service
   aiService.initialize();
@@ -343,11 +343,11 @@ chrome.runtime.onStartup.addListener(async () => {
     resetAIAvailability(); // Reset cache to mark as available
   }
 
-  console.log('Gemini Nano available:', available);
+  devLog('Gemini Nano available:', available);
 
   // Log all API capabilities
   const capabilities = aiService.getCapabilities();
-  console.log('AI Capabilities:', capabilities);
+  devLog('AI Capabilities:', capabilities);
 });
 
 /**
@@ -414,9 +414,9 @@ async function migrateStorageKeysIfNeeded(): Promise<void> {
     if (Object.keys(updates).length > 0) {
       await chrome.storage.local.set(updates);
       await chrome.storage.local.remove(removals);
-      console.log('[Storage] Migrated legacy keys to namespaced keys');
+      devLog('[Storage] Migrated legacy keys to namespaced keys');
     }
   } catch (e) {
-    console.warn('[Storage] Key migration failed:', e);
+    devWarn('[Storage] Key migration failed:', e);
   }
 }

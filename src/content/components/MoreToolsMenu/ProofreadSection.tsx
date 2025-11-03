@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { EditIcon } from './icons';
+import { devLog } from '../../../utils/logger';
 
 interface ProofreadSectionProps {
   onProofread: (index: number) => void;
@@ -37,7 +38,7 @@ export const ProofreadSection: React.FC<ProofreadSectionProps> = ({
         className="reflexa-more-tools__option"
         onClick={(e) => {
           e.stopPropagation();
-          console.log('[MoreToolsMenu] Proofread clicked');
+          devLog('[MoreToolsMenu] Proofread clicked');
           handleProofreadClick();
           onClose();
         }}

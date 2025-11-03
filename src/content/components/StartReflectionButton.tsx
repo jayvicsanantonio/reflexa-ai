@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { AIResponse } from '../../types';
+import { devLog, devError } from '../../utils/logger';
 import '../styles.css';
 
 interface StartReflectionButtonProps {
@@ -50,8 +51,8 @@ export const StartReflectionButton: React.FC<StartReflectionButtonProps> = ({
 
       if (response.success) {
         const draft = response.data;
-        console.log('[StartReflectionButton] Draft received:', draft);
-        console.log('[StartReflectionButton] Draft type:', typeof draft);
+        devLog('[StartReflectionButton] Draft received:', draft);
+        devLog('[StartReflectionButton] Draft type:', typeof draft);
 
         // Show success animation
         setShowSuccess(true);
@@ -64,11 +65,11 @@ export const StartReflectionButton: React.FC<StartReflectionButtonProps> = ({
           setShowSuccess(false);
         }, 2000);
       } else {
-        console.error('Draft generation failed:', response.error);
+        devError('Draft generation failed:', response.error);
         // Could show error state here
       }
     } catch (error) {
-      console.error('Error generating draft:', error);
+      devError('Error generating draft:', error);
       // Could show error state here
     } finally {
       setIsLoading(false);

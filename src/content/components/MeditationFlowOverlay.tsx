@@ -8,6 +8,7 @@ import type {
   VoiceInputMetadata,
 } from '../../types';
 import { trapFocus } from '../../utils/accessibility';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 import { Notification } from './Notification';
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -187,17 +188,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, []);
 
   const handleVoiceError0 = useCallback((error: VoiceInputError) => {
-    console.error('Voice input error (field 0):', error);
+    devError('Voice input error (field 0):', error);
     setVoiceError(error);
   }, []);
 
   const handleAutoStop0 = useCallback(() => {
-    console.log('Auto-stop triggered for field 0');
+    devLog('Auto-stop triggered for field 0');
     setAutoStopNotification(true);
 
     if (settings.enableSound && audioManagerRef.current) {
       audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        console.error('Failed to play voice stop audio cue:', err);
+        devError('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -248,17 +249,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, []);
 
   const handleVoiceError1 = useCallback((error: VoiceInputError) => {
-    console.error('Voice input error (field 1):', error);
+    devError('Voice input error (field 1):', error);
     setVoiceError(error);
   }, []);
 
   const handleAutoStop1 = useCallback(() => {
-    console.log('Auto-stop triggered for field 1');
+    devLog('Auto-stop triggered for field 1');
     setAutoStopNotification(true);
 
     if (settings.enableSound && audioManagerRef.current) {
       audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        console.error('Failed to play voice stop audio cue:', err);
+        devError('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -382,7 +383,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           });
         setRewriterAvailable(rewriterResponse.success && rewriterResponse.data);
       } catch (error) {
-        console.error('Error checking API availability:', error);
+        devError('Error checking API availability:', error);
       }
     };
 
@@ -438,7 +439,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             try {
               port.disconnect();
             } catch (disconnectError) {
-              console.warn(
+              devWarn(
                 'Writer stream disconnect warning:',
                 disconnectError
               );
@@ -537,7 +538,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       try {
         await attemptStreaming();
       } catch (streamError) {
-        console.warn(
+        devWarn(
           'Writer streaming failed, falling back to batch mode:',
           streamError
         );
@@ -564,7 +565,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             startWriterAnimation(index, true);
           }
         } catch (error) {
-          console.error('Error generating draft:', error);
+          devError('Error generating draft:', error);
         }
       } finally {
         const finalCleanup = writerStreamCleanupRef.current[index];
@@ -633,7 +634,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           });
         }
       } catch (error) {
-        console.error('Error rewriting:', error);
+        devError('Error rewriting:', error);
       } finally {
         setIsRewriting((prev) => {
           const next = [...prev];
@@ -698,22 +699,22 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   // Voice toggle handlers
   const handleVoiceToggle0 = useCallback(() => {
-    console.log(
+    devLog(
       '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
       voiceInput0.isRecording
     );
     if (voiceInput0.isRecording) {
-      console.log('[MeditationFlowOverlay] Stopping recording for input 0');
+      devLog('[MeditationFlowOverlay] Stopping recording for input 0');
       voiceInput0.stopRecording();
 
       // Play voice stop audio cue if sound is enabled
       if (settings.enableSound && audioManagerRef.current) {
         audioManagerRef.current.playVoiceStopCue().catch((err) => {
-          console.error('Failed to play voice stop audio cue:', err);
+          devError('Failed to play voice stop audio cue:', err);
         });
       }
     } else {
-      console.log('[MeditationFlowOverlay] Starting recording for input 0');
+      devLog('[MeditationFlowOverlay] Starting recording for input 0');
       void voiceInput0.startRecording().catch((err) => {
         setVoiceError({
           code: 'network',
@@ -724,22 +725,22 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, [voiceInput0, settings.enableSound]);
 
   const handleVoiceToggle1 = useCallback(() => {
-    console.log(
+    devLog(
       '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
       voiceInput1.isRecording
     );
     if (voiceInput1.isRecording) {
-      console.log('[MeditationFlowOverlay] Stopping recording for input 1');
+      devLog('[MeditationFlowOverlay] Stopping recording for input 1');
       voiceInput1.stopRecording();
 
       // Play voice stop audio cue if sound is enabled
       if (settings.enableSound && audioManagerRef.current) {
         audioManagerRef.current.playVoiceStopCue().catch((err) => {
-          console.error('Failed to play voice stop audio cue:', err);
+          devError('Failed to play voice stop audio cue:', err);
         });
       }
     } else {
-      console.log('[MeditationFlowOverlay] Starting recording for input 1');
+      devLog('[MeditationFlowOverlay] Starting recording for input 1');
       void voiceInput1.startRecording().catch((err) => {
         setVoiceError({
           code: 'network',
@@ -813,7 +814,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   // Auto-advance to summary screen once loading completes
   useEffect(() => {
-    console.log('[MeditationFlow] Auto-advance check:', {
+    devLog('[MeditationFlow] Auto-advance check:', {
       step,
       isLoadingSummary,
       prevLoading: prevLoadingRef.current,
@@ -825,7 +826,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       prevLoadingRef.current === true &&
       isLoadingSummary === false
     ) {
-      console.log(
+      devLog(
         '[MeditationFlow] Loading complete, auto-advancing to summary'
       );
       setStep(1);

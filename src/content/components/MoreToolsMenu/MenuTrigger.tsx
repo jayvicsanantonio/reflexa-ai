@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { devLog } from '../../../utils/logger';
 
 interface MenuTriggerProps {
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -18,7 +19,7 @@ export const MenuTrigger: React.FC<MenuTriggerProps> = ({
     type="button"
     className="reflexa-more-tools__trigger"
     onClick={(e) => {
-      console.log('[MoreToolsMenu] Trigger clicked, isOpen:', isOpen);
+      devLog('[MoreToolsMenu] Trigger clicked, isOpen:', isOpen);
       e.stopPropagation();
       onClick(e);
     }}

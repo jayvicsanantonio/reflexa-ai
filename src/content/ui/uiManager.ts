@@ -6,6 +6,7 @@
 import { createRoot } from 'react-dom/client';
 import type { ReactNode } from 'react';
 import { contentState } from '../state';
+import { devLog, devWarn, devError } from '../../utils/logger';
 import type {
   ShadowContainerConfig,
   ErrorModalOptions,
@@ -56,7 +57,7 @@ class UIManager {
         linkElement.href = cssUrl;
         shadowRoot.appendChild(linkElement);
       } else {
-        console.warn(
+        devWarn(
           `Invalid CSS URL for ${config.id}, skipping stylesheet injection`
         );
       }
@@ -75,7 +76,7 @@ class UIManager {
   showNudge(component: ReactNode, inlineStyles: string): void {
     const nudgeState = contentState.getNudgeState();
     if (nudgeState.isVisible) {
-      console.log('Nudge already visible');
+      devLog('Nudge already visible');
       return;
     }
 
@@ -95,9 +96,9 @@ class UIManager {
         isLoading: false,
       });
 
-      console.log('Lotus nudge displayed');
+      devLog('Lotus nudge displayed');
     } catch (error) {
-      console.error('Failed to show nudge:', error);
+      devError('Failed to show nudge:', error);
       // Retry after a delay if document.body not ready
       if (error instanceof Error && error.message.includes('document.body')) {
         setTimeout(() => this.showNudge(component, inlineStyles), 100);
@@ -129,7 +130,7 @@ class UIManager {
       isLoading: false,
     });
 
-    console.log('Lotus nudge hidden');
+    devLog('Lotus nudge hidden');
   }
 
   /**
@@ -138,7 +139,7 @@ class UIManager {
   showOverlay(component: ReactNode): void {
     const overlayState = contentState.getOverlayState();
     if (overlayState.isVisible) {
-      console.log('Overlay already visible');
+      devLog('Overlay already visible');
       return;
     }
 
@@ -158,7 +159,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Overlay displayed');
+    devLog('Overlay displayed');
   }
 
   /**
@@ -184,7 +185,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Overlay hidden');
+    devLog('Overlay hidden');
   }
 
   /**
@@ -193,11 +194,11 @@ class UIManager {
   showErrorModal(options: ErrorModalOptions, component: ReactNode): void {
     const errorModalState = contentState.getErrorModalState();
     if (errorModalState.isVisible) {
-      console.log('Error modal already visible');
+      devLog('Error modal already visible');
       return;
     }
 
-    console.log('Showing error modal:', options.type);
+    devLog('Showing error modal:', options.type);
 
     const { container, rootElement } = this.createShadowContainer({
       id: 'reflexa-error-modal-container',
@@ -213,7 +214,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Error modal displayed');
+    devLog('Error modal displayed');
   }
 
   /**
@@ -241,7 +242,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Error modal hidden');
+    devLog('Error modal hidden');
   }
 
   /**
@@ -254,7 +255,7 @@ class UIManager {
       this.hideNotification();
     }
 
-    console.log('Showing notification:', options.type, options.title);
+    devLog('Showing notification:', options.type, options.title);
 
     const { container, rootElement } = this.createShadowContainer({
       id: 'reflexa-notification-container',
@@ -270,7 +271,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Notification displayed');
+    devLog('Notification displayed');
   }
 
   /**
@@ -298,7 +299,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Notification hidden');
+    devLog('Notification hidden');
   }
 
   /**
@@ -324,7 +325,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Help modal displayed');
+    devLog('Help modal displayed');
   }
 
   /**
@@ -350,7 +351,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Help modal hidden');
+    devLog('Help modal hidden');
   }
 
   /**
@@ -376,7 +377,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Settings modal displayed');
+    devLog('Settings modal displayed');
   }
 
   /**
@@ -404,7 +405,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Settings modal hidden');
+    devLog('Settings modal hidden');
   }
 
   /**
@@ -430,7 +431,7 @@ class UIManager {
       isVisible: true,
     });
 
-    console.log('Dashboard modal displayed');
+    devLog('Dashboard modal displayed');
   }
 
   /**
@@ -458,7 +459,7 @@ class UIManager {
       isVisible: false,
     });
 
-    console.log('Dashboard modal hidden');
+    devLog('Dashboard modal hidden');
   }
 
   /**

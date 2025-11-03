@@ -6,6 +6,7 @@
 import React from 'react';
 import type { TonePreset } from '../../../types';
 import { toneOptions } from './constants';
+import { devLog } from '../../../utils/logger';
 import {
   CalmIcon,
   ConciseIcon,
@@ -30,13 +31,13 @@ export const TonePresetSection: React.FC<TonePresetSectionProps> = ({
   onClose,
 }) => {
   const handleToneSelect = (tone: TonePreset) => {
-    console.log('[MoreToolsMenu] Tone selected:', tone);
-    console.log('[MoreToolsMenu] onToneSelect exists:', !!onToneSelect);
+    devLog('[MoreToolsMenu] Tone selected:', tone);
+    devLog('[MoreToolsMenu] onToneSelect exists:', !!onToneSelect);
     if (onToneSelect && !tonesDisabled && !isRewriting) {
-      console.log('[MoreToolsMenu] Calling onToneSelect...');
+      devLog('[MoreToolsMenu] Calling onToneSelect...');
       onToneSelect(tone);
     } else {
-      console.log('[MoreToolsMenu] Skipping - disabled or no handler');
+      devLog('[MoreToolsMenu] Skipping - disabled or no handler');
     }
   };
 
@@ -55,7 +56,7 @@ export const TonePresetSection: React.FC<TonePresetSectionProps> = ({
             }`}
             onClick={(e) => {
               e.stopPropagation();
-              console.log('[MoreToolsMenu] Tone tile clicked:', option.value);
+              devLog('[MoreToolsMenu] Tone tile clicked:', option.value);
               handleToneSelect(option.value);
               onClose();
             }}

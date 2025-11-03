@@ -7,6 +7,7 @@ import { settingsManager } from '../utils/shared';
 import { createSuccessResponse, createErrorResponse } from '../../../types';
 import type { AIResponse, Settings } from '../../../types';
 import { ERROR_MESSAGES } from '../../../constants';
+import { devError, devWarn } from '../../../utils/logger';
 
 /**
  * Handle get settings request
@@ -18,7 +19,7 @@ export async function handleGetSettings(): Promise<AIResponse<Settings>> {
 
     return createSuccessResponse(settings, 'storage', Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleGetSettings:', error);
+    devError('Error in handleGetSettings:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -65,7 +66,7 @@ export async function handleUpdateSettings(
         }
       });
     } catch (e) {
-      console.warn('Broadcast of settingsUpdated failed:', e);
+      devWarn('Broadcast of settingsUpdated failed:', e);
     }
 
     return createSuccessResponse(
@@ -74,7 +75,7 @@ export async function handleUpdateSettings(
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error in handleUpdateSettings:', error);
+    devError('Error in handleUpdateSettings:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -98,7 +99,7 @@ export async function handleResetSettings(): Promise<AIResponse<Settings>> {
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error in handleResetSettings:', error);
+    devError('Error in handleResetSettings:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,

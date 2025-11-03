@@ -8,6 +8,7 @@ import { rateLimiter } from '../../services/ai/rateLimiter';
 import { performanceMonitor } from '../../services/ai/performanceMonitor';
 import { ensureAIAvailable, resetAIAvailability } from './shared';
 import { createSuccessResponse, createErrorResponse } from '../../../types';
+import { devLog, devError } from '../../../utils/logger';
 import type {
   AIResponse,
   AICapabilities,
@@ -29,7 +30,7 @@ export async function handleCheckAI(): Promise<AIResponse<boolean>> {
 
     return createSuccessResponse(available, 'prompt', Date.now() - startTime);
   } catch (error) {
-    console.error('Error checking AI availability:', error);
+    devError('Error checking AI availability:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -61,7 +62,7 @@ export async function handleCheckAllAI(): Promise<
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error checking all AI availability:', error);
+    devError('Error checking all AI availability:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -95,12 +96,12 @@ export function handleGetCapabilities(
     let capabilities: AICapabilities;
 
     if (refresh) {
-      console.log(
+      devLog(
         `[GetCapabilities] Refreshing capabilities (experimental: ${experimentalMode})`
       );
       capabilities = aiService.refreshCapabilities(experimentalMode);
     } else {
-      console.log('[GetCapabilities] Using cached capabilities');
+      devLog('[GetCapabilities] Using cached capabilities');
       capabilities = aiService.getCapabilities();
     }
 
@@ -110,7 +111,7 @@ export function handleGetCapabilities(
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error getting capabilities:', error);
+    devError('Error getting capabilities:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -148,7 +149,7 @@ export function handleGetUsageStats(): AIResponse<{
       Date.now() - startTime
     );
   } catch (error) {
-    console.error('Error in handleGetUsageStats:', error);
+    devError('Error in handleGetUsageStats:', error);
     return createErrorResponse(
       error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
       Date.now() - startTime,
@@ -166,7 +167,7 @@ export function handleGetPerformanceStats(): AIResponse<PerformanceStats> {
     const stats = performanceMonitor.getStats();
     return createSuccessResponse(stats, 'unified', Date.now() - startTime);
   } catch (error) {
-    console.error('Error in handleGetPerformanceStats:', error);
+    devError('Error in handleGetPerformanceStats:', error);
     // Return empty stats rather than failing
     return createSuccessResponse(
       {

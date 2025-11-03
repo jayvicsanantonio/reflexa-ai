@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { SummaryFormat, TonePreset } from '../../types';
+import { devLog } from '../../utils/logger';
 import '../styles.css';
 import {
   FormatSection,
@@ -92,7 +93,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
 
   // Debug: Log proofreader availability
   useEffect(() => {
-    console.log('[MoreToolsMenu] Proofreader debug:', {
+    devLog('[MoreToolsMenu] Proofreader debug:', {
       currentScreen,
       proofreaderAvailable,
       onProofread: !!onProofread,

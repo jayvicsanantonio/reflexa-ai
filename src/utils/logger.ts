@@ -5,16 +5,44 @@
 
 /**
  * Check if we're in development mode
- * In Vite, import.meta.env.DEV is true in development
+ *
+ * Detection priority:
+ * 1. Vite environment variable (import.meta.env.DEV)
+ * 2. Unpacked extension check (Chrome extensions loaded locally don't have update_url)
+ * 3. Fallback to production mode
  */
 const isDev = (() => {
+  // 1. Check Vite environment variable (set during build)
   try {
     // @ts-expect-error - import.meta.env is a Vite feature
-    return typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) {
+      return true;
+    }
   } catch {
-    // Fallback: assume production if import.meta is not available
-    return false;
+    // ignore
   }
+
+  // 2. Check if extension is unpacked (loaded locally for testing)
+  // Unpacked extensions don't have update_url, which is only present in Chrome Web Store extensions
+  try {
+    if (
+      typeof chrome !== 'undefined' &&
+      chrome.runtime &&
+      chrome.runtime.getManifest
+    ) {
+      const manifest = chrome.runtime.getManifest();
+      // If update_url is undefined, it's an unpacked extension (local testing)
+      // Chrome Web Store extensions always have update_url
+      if (manifest.update_url === undefined) {
+        return true; // Unpacked = local testing = enable logging
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // 3. Fallback: assume production (no logging)
+  return false;
 })();
 
 /**
