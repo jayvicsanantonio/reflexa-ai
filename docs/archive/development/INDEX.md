@@ -72,6 +72,16 @@ Setup guides, configuration, and environment setup
 
 ---
 
+### 🛠️ [utils/](./utils/)
+
+Utility function documentation
+
+**Files:**
+
+- [LOGGER.md](./utils/LOGGER.md) - Conditional logger utility documentation
+
+---
+
 ### 🔨 [build/](./build/)
 
 Build scripts, tooling, and build process documentation

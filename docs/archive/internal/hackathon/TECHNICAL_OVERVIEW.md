@@ -523,11 +523,18 @@ reflexa-ai-chrome-extension/
 │   │
 │   ├── content/                   # Content script
 │   │   ├── index.tsx             # Entry point
-│   │   ├── dwellTracker.ts       # Dwell time tracking
-│   │   ├── contentExtractor.ts   # DOM extraction
-│   │   ├── LotusNudge.tsx        # Floating icon
-│   │   ├── ReflectModeOverlay.tsx # Reflection UI
-│   │   └── BreathingOrb.tsx      # Animation
+│   │   ├── features/
+│   │   │   ├── dwellTracking/
+│   │   │   │   └── dwellTracker.ts  # Dwell time tracking
+│   │   │   └── contentExtraction/
+│   │   │       └── contentExtractor.ts # DOM extraction
+│   │   ├── components/
+│   │   │   ├── LotusNudge/       # Floating icon (modular)
+│   │   │   ├── MeditationFlowOverlay/ # Reflection UI (modular)
+│   │   │   └── LotusOrb/         # Animation (modular)
+│   │   ├── workflows/            # Workflow modules
+│   │   ├── state/                # State management
+│   │   └── ui/                   # UI lifecycle
 │   │
 │   ├── popup/                     # Dashboard
 │   │   ├── App.tsx               # Main component
@@ -632,14 +639,14 @@ describe('SummarizerManager', () => {
 **2. Component Tests**
 
 ```typescript
-describe('ReflectModeOverlay', () => {
+describe('MeditationFlowOverlay', () => {
   it('should render breathing orb', () => {
-    render(<ReflectModeOverlay />);
+    render(<MeditationFlowOverlay />);
     expect(screen.getByTestId('breathing-orb')).toBeInTheDocument();
   });
 
   it('should handle keyboard shortcuts', () => {
-    render(<ReflectModeOverlay />);
+    render(<MeditationFlowOverlay />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });

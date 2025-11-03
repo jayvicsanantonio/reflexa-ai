@@ -17,7 +17,7 @@ This document provides detailed API documentation for all major classes and modu
 5. [WriterManager](#writermanager) (new)
 6. [RewriterManager](#rewritermanager) (new)
 7. [LanguageDetectorManager](#languagedetectormanager) (new)
-8. [UnifiedAIService](#unifiedaiservice) (new)
+8. [AIService](#aiservice) (unified interface)
 9. [StorageManager](#storagemanager)
 10. [SettingsManager](#settingsmanager)
 11. [DwellTracker](#dwelltracker)
@@ -237,9 +237,9 @@ Checks if Prompt API (LanguageModel) is available on the user's system.
 ```typescript
 const available = await promptManager.checkAvailability();
 if (available) {
-  console.log('Prompt API is ready to use');
+  devLog('Prompt API is ready to use');
 } else {
-  console.log('Prompt API unavailable, falling back to manual mode');
+  devWarn('Prompt API unavailable, falling back to manual mode');
 }
 ```
 
@@ -342,7 +342,7 @@ Generates summary with streaming response for progressive display.
 
 ```typescript
 for await (const chunk of promptManager.summarizeStreaming(content)) {
-  console.log('Received chunk:', chunk);
+    devLog('Received chunk:', chunk);
   // Update UI progressively
 }
 ```

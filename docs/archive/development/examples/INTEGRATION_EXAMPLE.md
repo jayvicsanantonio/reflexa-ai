@@ -9,14 +9,14 @@ This example shows how to integrate the new Gemini Nano APIs into your existing 
 ```typescript
 // Add this import at the top
 import { handleMessage } from './messageHandlers';
-import { unifiedAI } from './unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
 
 // Replace your existing message listener with this:
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender)
     .then((response) => sendResponse(response))
     .catch((error) => {
-      console.error('[Background] Error:', error);
+      devError('[Background] Error:', error);
       sendResponse({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -28,8 +28,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Clean up on extension unload
 chrome.runtime.onSuspend.addListener(() => {
-  console.log('[Background] Cleaning up AI services...');
-  unifiedAI.destroyAll();
+  devLog('[Background] Cleaning up AI services...');
+  aiService.destroyAll();
 });
 ```
 
@@ -89,7 +89,7 @@ export function ReflectionInput() {
       setSuggestions(suggestionList);
       setShowSuggestions(true);
     } catch (error) {
-      console.error('Error getting suggestions:', error);
+      devError('Error getting suggestions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +183,7 @@ export function SummaryDisplay({ summary }: SummaryDisplayProps) {
       setTranslated(result);
       setShowTranslation(true);
     } catch (error) {
-      console.error('Translation error:', error);
+      devError('Translation error:', error);
     } finally {
       setIsTranslating(false);
     }
