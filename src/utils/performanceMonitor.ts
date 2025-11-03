@@ -3,6 +3,8 @@
  * Monitors overlay render time, animation frame rates, and memory usage
  */
 
+import { devLog, devWarn, devError } from './logger';
+
 interface PerformanceMetric {
   name: string;
   duration: number;
@@ -60,11 +62,11 @@ export class PerformanceMonitor {
 
       // Log if duration exceeds threshold
       if (duration > 100) {
-        console.warn(
+        devWarn(
           `⚠️ Performance: ${name} took ${duration.toFixed(2)}ms (threshold: 100ms)`
         );
       } else {
-        console.log(`✓ Performance: ${name} took ${duration.toFixed(2)}ms`);
+        devLog(`✓ Performance: ${name} took ${duration.toFixed(2)}ms`);
       }
 
       // Clean up marks and measures
@@ -74,7 +76,7 @@ export class PerformanceMonitor {
 
       return duration;
     } catch (error) {
-      console.error(`Failed to measure ${name}:`, error);
+      devError(`Failed to measure ${name}:`, error);
       return 0;
     }
   }
@@ -140,7 +142,7 @@ export class PerformanceMonitor {
    */
   startFrameRateMonitoring(): void {
     if (this.rafId !== null) {
-      console.warn('Frame rate monitoring already started');
+      devWarn('Frame rate monitoring already started');
       return;
     }
 

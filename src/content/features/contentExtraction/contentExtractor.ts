@@ -11,6 +11,7 @@ import {
   sanitizeText,
 } from '../../../utils';
 import { CONTENT_LIMITS } from '../../../constants';
+import { devLog, devWarn } from '../../../utils/logger';
 
 /**
  * Selectors for elements to exclude from content extraction
@@ -83,7 +84,7 @@ export class ContentExtractor {
     // Return cached content if URL hasn't changed
     if (this.cachedContent && this.cachedUrl === currentUrl) {
       const duration = performance.now() - startTime;
-      console.log(
+      devLog(
         `Content extraction (cached) completed in ${duration.toFixed(2)}ms`
       );
       return this.cachedContent;
@@ -113,7 +114,7 @@ export class ContentExtractor {
     );
 
     if (duration > 100) {
-      console.warn(
+      devWarn(
         `Content extraction took longer than expected (${duration.toFixed(2)}ms). Consider optimizing for this page structure.`
       );
     }
@@ -256,7 +257,7 @@ export class ContentExtractor {
 
         // Early exit if we find a very high score (likely the main content)
         if (score > 5000) {
-          console.log(
+          devLog(
             `Found high-scoring element early (score: ${score}), stopping search`
           );
           break;

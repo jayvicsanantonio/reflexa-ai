@@ -7,6 +7,7 @@
 import type { WriterOptions } from '../../../types';
 import type { AIWriter } from '../../../types/chrome-ai';
 import { capabilityDetector } from '../../capabilityDetector';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Timeout duration for writer operations (5 seconds)
@@ -61,7 +62,7 @@ export class WriterManager {
       this.available = capabilities.writer;
       return Promise.resolve(this.available);
     } catch (error) {
-      console.error('Error checking Writer availability:', error);
+      devError('Error checking Writer availability:', error);
       this.available = false;
       return Promise.resolve(false);
     }
@@ -136,7 +137,7 @@ export class WriterManager {
       // Access Writer from globalThis (service worker context)
       // Note: Writer API is accessed via global Writer, not ai.writer
       if (typeof Writer === 'undefined') {
-        console.warn('Writer API not available');
+        devWarn('Writer API not available');
         return null;
       }
 
@@ -159,13 +160,13 @@ export class WriterManager {
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(
+      devLog(
         `Created writer session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
       );
 
       return session;
     } catch (error) {
-      console.error('Error creating writer session:', error);
+      devError('Error creating writer session:', error);
       return null;
     }
   }
@@ -261,7 +262,7 @@ export class WriterManager {
         WRITER_TIMEOUT
       );
     } catch (error) {
-      console.warn('First generation attempt failed, retrying...', error);
+      devWarn('First generation attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
@@ -274,7 +275,7 @@ export class WriterManager {
           RETRY_TIMEOUT
         );
       } catch (retryError) {
-        console.error('Generation failed after retry:', retryError);
+        devError('Generation failed after retry:', retryError);
         throw new Error(
           `Draft generation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -434,7 +435,7 @@ export class WriterManager {
 
       return fullText.trim();
     } catch (error) {
-      console.error('Streaming generation failed:', error);
+      devError('Streaming generation failed:', error);
       throw new Error(
         `Streaming generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -451,7 +452,7 @@ export class WriterManager {
         session.destroy();
         console.log(`Destroyed writer session: ${key}`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        devError(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
@@ -476,7 +477,7 @@ export class WriterManager {
           this.sessions.delete(sessionKey);
           console.log(`Destroyed writer session: ${sessionKey}`);
         } catch (error) {
-          console.error(`Error destroying session ${sessionKey}:`, error);
+          devError(`Error destroying session ${sessionKey}:`, error);
         }
       }
     } else {
@@ -494,7 +495,7 @@ export class WriterManager {
             this.sessions.delete(key);
             console.log(`Destroyed writer session: ${key}`);
           } catch (error) {
-            console.error(`Error destroying session ${key}:`, error);
+            devError(`Error destroying session ${key}:`, error);
           }
         }
       }

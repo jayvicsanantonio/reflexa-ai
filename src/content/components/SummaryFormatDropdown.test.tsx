@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SummaryFormatDropdown } from './SummaryFormatDropdown';
+import { SummaryFormatDropdown } from './SummaryFormatDropdown/SummaryFormatDropdown';
 
 describe('SummaryFormatDropdown', () => {
   it('should render with selected format', () => {

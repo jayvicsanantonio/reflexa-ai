@@ -12,6 +12,7 @@ import { RewriterManager } from './rewriterManager';
 import { languageDetectorManager } from './languageDetectorManager';
 import type { AICapabilities } from '../../../types';
 import { capabilityDetector } from '../capabilities/capabilityDetector';
+import { devLog } from '../../../utils/logger';
 
 export class AIService {
   public readonly prompt: PromptManager;
@@ -36,7 +37,7 @@ export class AIService {
 
   initialize(experimentalMode = false): void {
     if (this.initialized) {
-      console.log('AIService already initialized');
+      devLog('AIService already initialized');
       return;
     }
 

@@ -4,17 +4,27 @@
  */
 
 /**
- * Convert markdown text to HTML
+ * Convert markdown text to sanitized HTML
+ * Security: escape HTML first, then apply a minimal markdown transform
+ * Allowed tags in output: strong, em, code, br
  * @param markdown - Markdown text to convert
  * @returns HTML string
  */
 export function renderMarkdown(markdown: string): string {
-  let html = markdown;
+  const escapeHtml = (input: string): string =>
+    input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
 
-  // Remove markdown headings (##, ###, etc.) - just keep the text
+  let html = escapeHtml(markdown);
+
+  // Strip markdown headings (##, ###, etc.) - keep the text
   html = html.replace(/^#{1,6}\s+/gm, '');
 
-  // Remove list markers (* or - at start of line)
+  // Strip list markers (* or - at start of line)
   html = html.replace(/^[*-]\s+/gm, '');
 
   // Bold: **text** or __text__
@@ -22,7 +32,7 @@ export function renderMarkdown(markdown: string): string {
   html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
 
   // Italic: *text* or _text_ (but not list markers)
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/(?<!^)\*(.+?)\*/g, '<em>$1</em>');
   html = html.replace(/_(.+?)_/g, '<em>$1</em>');
 
   // Code: `code`

@@ -8,6 +8,7 @@ import {
   isSessionError,
   isTimeoutError,
 } from './rateLimiter';
+import { devWarn, devError } from '../../../utils/logger';
 
 /**
  * Error types for AI operations
@@ -135,7 +136,7 @@ export async function executeWithRetry<T>(
         const delay =
           BACKOFF_DELAYS[Math.min(attempt, BACKOFF_DELAYS.length - 1)];
 
-        console.warn(
+        devWarn(
           `[${operationName}] ${errorType} error. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`,
           error
         );
@@ -149,7 +150,7 @@ export async function executeWithRetry<T>(
         continue;
       } else {
         // All retries exhausted
-        console.error(
+        devError(
           `[${operationName}] Failed after ${maxRetries} retries`,
           error
         );
@@ -209,7 +210,7 @@ export async function executeWithTimeoutAndRetry<T>(
   try {
     return await executeWithTimeout(fn, initialTimeout, operationName);
   } catch (error) {
-    console.warn(
+    devWarn(
       `[${operationName}] First attempt failed, retrying with extended timeout...`,
       error
     );
@@ -222,7 +223,7 @@ export async function executeWithTimeoutAndRetry<T>(
     try {
       return await executeWithTimeout(fn, retryTimeout, operationName);
     } catch (retryError) {
-      console.error(
+      devError(
         `[${operationName}] Failed after retry with extended timeout`,
         retryError
       );
@@ -256,7 +257,7 @@ export async function handleSessionError<T>(
   operationName = 'operation'
 ): Promise<T> {
   if (isSessionError(error)) {
-    console.warn(
+    devWarn(
       `[${operationName}] Session error detected, attempting to recreate session...`
     );
 
@@ -267,7 +268,7 @@ export async function handleSessionError<T>(
       // Retry the operation with the new session
       return await retryOperation();
     } catch (retryError) {
-      console.error(
+      devError(
         `[${operationName}] Failed to recover from session error`,
         retryError
       );

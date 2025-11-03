@@ -41,6 +41,22 @@ const mockChromeRuntime = {
     addListener: vi.fn(),
     removeListener: vi.fn(),
   },
+  onConnect: {
+    addListener: vi.fn(),
+  },
+  onInstalled: {
+    addListener: vi.fn(),
+  },
+  onStartup: {
+    addListener: vi.fn(),
+  },
+  connect: vi.fn(() => ({
+    name: 'ai-stream',
+    onDisconnect: { addListener: vi.fn() },
+    onMessage: { addListener: vi.fn() },
+    postMessage: vi.fn(),
+    disconnect: vi.fn(),
+  })),
 };
 
 // Setup global chrome object

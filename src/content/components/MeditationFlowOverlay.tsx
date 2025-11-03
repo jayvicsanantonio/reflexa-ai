@@ -8,17 +8,20 @@ import type {
   VoiceInputMetadata,
 } from '../../types';
 import { trapFocus } from '../../utils/accessibility';
-import { renderMarkdown } from '../../utils/markdownRenderer';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
-import { LotusOrb } from './LotusOrb';
 import { Notification } from './Notification';
-import { VoiceToggleButton } from './VoiceToggleButton';
-import { MoreToolsMenu } from './MoreToolsMenu';
-
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import type { VoiceInputError } from '../hooks/useVoiceInput';
 import { AudioManager } from '../../utils/audioManager';
 import type { AIResponse } from '../../types';
+import {
+  BreathingPhase,
+  SummaryPhase,
+  ReflectionInput,
+  ToolsSection,
+  useWriterStreaming,
+} from './MeditationFlowOverlay/index';
 import '../styles.css';
 
 interface MeditationFlowOverlayProps {
@@ -77,7 +80,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   reduceMotion: _reduceMotion = false,
   onToggleReduceMotion: _onToggleReduceMotion,
 }) => {
-  const renderedSummary = summaryDisplay ?? summary;
+  // Summary display is handled by SummaryPhase component
   const contentRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
   const [answers, setAnswers] = useState<string[]>(['', '']);
@@ -86,6 +89,21 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     'inhale'
   );
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState<number>(0);
+
+  // Refs needed by hooks and handlers
+  const audioManagerRef = useRef<AudioManager | null>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTextValueRef = useRef<string[]>(['', '']);
+
+  // Writer streaming hook
+  const {
+    writerTargetTextRef,
+    writerDisplayIndexRef,
+    writerAnimationTimerRef,
+    writerStreamCleanupRef,
+    startWriterAnimation,
+    setIsDraftGenerating,
+  } = useWriterStreaming(setAnswers, lastTextValueRef);
   // Resume silently if initial step/answers exist (popup removed)
   const [voiceInputStates, setVoiceInputStates] = useState<
     { isRecording: boolean; interimText: string }[]
@@ -108,13 +126,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     show: boolean;
     index: number;
   }>({ show: false, index: 0 });
-  type CleanupFn = (() => void) | undefined;
-  const writerStreamCleanupRef = useRef<CleanupFn[]>([]);
-  const writerTargetTextRef = useRef<string[]>(['', '']);
-  const writerDisplayIndexRef = useRef<number[]>([0, 0]);
-  const writerAnimationTimerRef = useRef<number[]>([0, 0]);
-  const WRITER_CHAR_STEP = 2;
-  const WRITER_FRAME_DELAY = 24;
 
   const [proofreadResult, setProofreadResult] = useState<{
     index: number;
@@ -131,11 +142,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     });
 
   // Writer/Rewriter state (used in handlers, not directly in JSX)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_isDraftGenerating, setIsDraftGenerating] = useState<boolean[]>([
-    false,
-    false,
-  ]);
+  // Managed by useWriterStreaming hook
 
   // Keep tone selection per reflection input (index 0 and 1)
   const [_selectedTones, setSelectedTones] = useState<
@@ -144,33 +151,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   const [_isRewriting, setIsRewriting] = useState<boolean[]>([false, false]);
 
-  const audioManagerRef = useRef<AudioManager | null>(null);
-  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastTextValueRef = useRef<string[]>(['', '']);
-
-  // Meditative phrases that rotate during loading
-  const meditativePhrases = [
-    'Crafting your insights...',
-    'Take a deep breath...',
-    'Let your mind settle...',
-    'Finding clarity in the moment...',
-    'Gathering your thoughts...',
-    'Embracing the present...',
-    'Breathing in calm...',
-    'Releasing tension...',
-    'Centering your awareness...',
-    'Cultivating stillness...',
-    'Honoring this pause...',
-    'Welcoming tranquility...',
-    'Grounding in the now...',
-    'Softening into ease...',
-    'Discovering inner peace...',
-    'Nurturing mindfulness...',
-    'Flowing with patience...',
-    'Resting in awareness...',
-    'Opening to insight...',
-    'Trusting the process...',
-  ];
+  // Meditative phrases are now managed by BreathingPhase component
 
   // Voice input handlers for answer field 0
   const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
@@ -207,17 +188,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, []);
 
   const handleVoiceError0 = useCallback((error: VoiceInputError) => {
-    console.error('Voice input error (field 0):', error);
+    devError('Voice input error (field 0):', error);
     setVoiceError(error);
   }, []);
 
   const handleAutoStop0 = useCallback(() => {
-    console.log('Auto-stop triggered for field 0');
+    devLog('Auto-stop triggered for field 0');
     setAutoStopNotification(true);
 
     if (settings.enableSound && audioManagerRef.current) {
       audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        console.error('Failed to play voice stop audio cue:', err);
+        devError('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -268,17 +249,17 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, []);
 
   const handleVoiceError1 = useCallback((error: VoiceInputError) => {
-    console.error('Voice input error (field 1):', error);
+    devError('Voice input error (field 1):', error);
     setVoiceError(error);
   }, []);
 
   const handleAutoStop1 = useCallback(() => {
-    console.log('Auto-stop triggered for field 1');
+    devLog('Auto-stop triggered for field 1');
     setAutoStopNotification(true);
 
     if (settings.enableSound && audioManagerRef.current) {
       audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        console.error('Failed to play voice stop audio cue:', err);
+        devError('Failed to play voice stop audio cue:', err);
       });
     }
   }, [settings.enableSound]);
@@ -319,55 +300,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       });
       writerAnimationTimerRef.current = timersSnapshot;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // writerAnimationTimerRef and writerStreamCleanupRef are stable refs from hook
 
-  const startWriterAnimation = useCallback(
-    (index: 0 | 1, forceRestart = false) => {
-      const existingTimer = writerAnimationTimerRef.current[index];
-      if (existingTimer) {
-        if (!forceRestart) {
-          return;
-        }
-        window.clearTimeout(existingTimer);
-        writerAnimationTimerRef.current[index] = 0;
-      }
-
-      const run = () => {
-        const target = writerTargetTextRef.current[index] ?? '';
-        const currentPos = writerDisplayIndexRef.current[index] ?? 0;
-
-        if (currentPos >= target.length) {
-          writerAnimationTimerRef.current[index] = 0;
-          setAnswers((prev) => {
-            const next = [...prev];
-            next[index] = target;
-            return next;
-          });
-          lastTextValueRef.current[index] = target;
-          return;
-        }
-
-        const nextPos = Math.min(currentPos + WRITER_CHAR_STEP, target.length);
-        writerDisplayIndexRef.current[index] = nextPos;
-
-        const textToShow = target.slice(0, nextPos);
-        setAnswers((prev) => {
-          const next = [...prev];
-          next[index] = textToShow;
-          return next;
-        });
-        lastTextValueRef.current[index] = textToShow;
-
-        writerAnimationTimerRef.current[index] = window.setTimeout(
-          run,
-          WRITER_FRAME_DELAY
-        );
-      };
-
-      writerAnimationTimerRef.current[index] = window.setTimeout(run, 0);
-    },
-    [setAnswers]
-  );
+  // Writer animation is now managed by useWriterStreaming hook
 
   // Show notification if language fallback is detected
   useEffect(() => {
@@ -420,11 +356,14 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
       }
-      if (typingTimerRef.current) {
-        clearTimeout(typingTimerRef.current);
+      // Capture current timer value for cleanup
+      const timer = typingTimerRef.current;
+      if (timer) {
+        clearTimeout(timer);
       }
     };
-  }, [settings]);
+    // typingTimerRef is stable ref, but included for linter completeness
+  }, [settings, typingTimerRef]);
 
   // Check Writer and Rewriter API availability
   useEffect(() => {
@@ -444,7 +383,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           });
         setRewriterAvailable(rewriterResponse.success && rewriterResponse.data);
       } catch (error) {
-        console.error('Error checking API availability:', error);
+        devError('Error checking API availability:', error);
       }
     };
 
@@ -500,10 +439,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             try {
               port.disconnect();
             } catch (disconnectError) {
-              console.warn(
-                'Writer stream disconnect warning:',
-                disconnectError
-              );
+              devWarn('Writer stream disconnect warning:', disconnectError);
             }
           };
 
@@ -599,7 +535,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       try {
         await attemptStreaming();
       } catch (streamError) {
-        console.warn(
+        devWarn(
           'Writer streaming failed, falling back to batch mode:',
           streamError
         );
@@ -626,7 +562,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             startWriterAnimation(index, true);
           }
         } catch (error) {
-          console.error('Error generating draft:', error);
+          devError('Error generating draft:', error);
         }
       } finally {
         const finalCleanup = writerStreamCleanupRef.current[index];
@@ -641,7 +577,18 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         });
       }
     },
-    [writerAvailable, prompts, summary, startWriterAnimation]
+    [
+      writerAvailable,
+      prompts,
+      summary,
+      startWriterAnimation,
+      setIsDraftGenerating,
+      // Refs are stable from hook, but included for completeness
+      writerTargetTextRef,
+      writerDisplayIndexRef,
+      writerAnimationTimerRef,
+      writerStreamCleanupRef,
+    ]
   );
 
   // Rewrite with selected tone
@@ -684,7 +631,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           });
         }
       } catch (error) {
-        console.error('Error rewriting:', error);
+        devError('Error rewriting:', error);
       } finally {
         setIsRewriting((prev) => {
           const next = [...prev];
@@ -716,15 +663,89 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   }, [rewritePreview]);
 
   // Discard rewrite
-  const handleDiscardRewrite = useCallback(() => {
+  const handleDiscardRewrite = useCallback((index: 0 | 1) => {
     setRewritePreview(null);
     setSelectedTones((prev) => {
       const next = [...prev];
-      const idx = step === 2 ? 0 : 1;
-      next[idx] = undefined;
+      next[index] = undefined;
       return next;
     });
-  }, [step]);
+  }, []);
+
+  // Accept proofread
+  const handleAcceptProofread = useCallback(
+    (index: 0 | 1) => {
+      if (proofreadResult?.index === index) {
+        setAnswers((prev) => {
+          const next = [...prev];
+          next[index] = proofreadResult.result.correctedText;
+          lastTextValueRef.current[index] =
+            proofreadResult.result.correctedText;
+          return next;
+        });
+        setProofreadResult(null);
+      }
+    },
+    [proofreadResult]
+  );
+
+  // Discard proofread
+  const handleDiscardProofread = useCallback(() => {
+    setProofreadResult(null);
+  }, []);
+
+  // Voice toggle handlers
+  const handleVoiceToggle0 = useCallback(() => {
+    devLog(
+      '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
+      voiceInput0.isRecording
+    );
+    if (voiceInput0.isRecording) {
+      devLog('[MeditationFlowOverlay] Stopping recording for input 0');
+      voiceInput0.stopRecording();
+
+      // Play voice stop audio cue if sound is enabled
+      if (settings.enableSound && audioManagerRef.current) {
+        audioManagerRef.current.playVoiceStopCue().catch((err) => {
+          devError('Failed to play voice stop audio cue:', err);
+        });
+      }
+    } else {
+      devLog('[MeditationFlowOverlay] Starting recording for input 0');
+      void voiceInput0.startRecording().catch((err) => {
+        setVoiceError({
+          code: 'network',
+          message: err instanceof Error ? err.message : 'Voice input failed',
+        });
+      });
+    }
+  }, [voiceInput0, settings.enableSound]);
+
+  const handleVoiceToggle1 = useCallback(() => {
+    devLog(
+      '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
+      voiceInput1.isRecording
+    );
+    if (voiceInput1.isRecording) {
+      devLog('[MeditationFlowOverlay] Stopping recording for input 1');
+      voiceInput1.stopRecording();
+
+      // Play voice stop audio cue if sound is enabled
+      if (settings.enableSound && audioManagerRef.current) {
+        audioManagerRef.current.playVoiceStopCue().catch((err) => {
+          devError('Failed to play voice stop audio cue:', err);
+        });
+      }
+    } else {
+      devLog('[MeditationFlowOverlay] Starting recording for input 1');
+      void voiceInput1.startRecording().catch((err) => {
+        setVoiceError({
+          code: 'network',
+          message: err instanceof Error ? err.message : 'Voice input failed',
+        });
+      });
+    }
+  }, [voiceInput1, settings.enableSound]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -790,7 +811,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   // Auto-advance to summary screen once loading completes
   useEffect(() => {
-    console.log('[MeditationFlow] Auto-advance check:', {
+    devLog('[MeditationFlow] Auto-advance check:', {
       step,
       isLoadingSummary,
       prevLoading: prevLoadingRef.current,
@@ -802,9 +823,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       prevLoadingRef.current === true &&
       isLoadingSummary === false
     ) {
-      console.log(
-        '[MeditationFlow] Loading complete, auto-advancing to summary'
-      );
+      devLog('[MeditationFlow] Loading complete, auto-advancing to summary');
       setStep(1);
     }
 
@@ -812,14 +831,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     prevLoadingRef.current = isLoadingSummary;
   }, [step, isLoadingSummary]);
 
-  // Rotate meditative phrases every 4 seconds during loading
-  useEffect(() => {
-    if (step !== 0 || !isLoadingSummary) return;
-    const interval = setInterval(() => {
-      setCurrentPhraseIndex((prev) => (prev + 1) % meditativePhrases.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [step, isLoadingSummary, meditativePhrases.length]);
+  // Meditative phrase rotation is now handled by BreathingPhase component
 
   // Guided breath cues: 4s inhale → 4s exhale (continuous during loading, or twice when not loading)
   useEffect(() => {
@@ -922,38 +934,22 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       </button>
       {step < 3 ? (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <MoreToolsMenu
+          <ToolsSection
+            step={step}
             currentScreen={step === 1 ? 'summary' : 'reflection'}
             currentFormat={currentFormat}
             onFormatChange={step === 1 ? onFormatChange : undefined}
             isLoadingSummary={isLoadingSummary}
-            onGenerateDraft={
-              settings.experimentalMode &&
-              (step === 2 || step === 3) &&
-              !answers[step - 2]?.trim()
-                ? (draft) => {
-                    const idx = step - 2;
-                    setAnswers((prev) => {
-                      const next = [...prev];
-                      next[idx] = draft;
-                      return next;
-                    });
-                  }
-                : undefined
-            }
-            generateDraftDisabled={false}
             summary={summary}
-            selectedTone={_selectedTones[step === 2 ? 0 : 1]}
+            settings={settings}
+            answers={answers}
+            selectedTones={_selectedTones}
             onToneSelect={
               settings.experimentalMode && (step === 2 || step === 3)
                 ? handleToneSelect
                 : undefined
             }
-            tonesDisabled={!answers[step - 2]?.trim()}
-            isRewriting={_isRewriting[step === 2 ? 0 : 1]}
-            hasReflectionContent={
-              step === 2 || step === 3 ? !!answers[step - 2]?.trim() : false
-            }
+            isRewriting={_isRewriting}
             onProofread={
               step === 2 || step === 3
                 ? async (_index) => {
@@ -980,23 +976,34 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   }
                 : undefined
             }
-            proofreadDisabled={!answers[step - 2]?.trim()}
-            isProofreading={isProofreading[step - 2]}
+            isProofreading={isProofreading}
             proofreaderAvailable={proofreaderAvailable}
-            activeReflectionIndex={step - 2}
-            ambientMuted={settings.enableSound ? _ambientMuted : undefined}
-            onToggleAmbient={
-              settings.enableSound ? _onToggleAmbient : undefined
-            }
+            ambientMuted={_ambientMuted}
+            onToggleAmbient={_onToggleAmbient}
             reduceMotion={_reduceMotion}
             onToggleReduceMotion={_onToggleReduceMotion}
             onTranslateSummary={
               settings.enableTranslation ? _onTranslate : undefined
             }
-            isTranslating={settings.enableTranslation ? _isTranslating : false}
-            currentLanguage={summaryLanguageDetection?.detectedLanguage}
-            unsupportedLanguages={[]}
+            isTranslating={
+              settings.enableTranslation ? (_isTranslating ?? false) : false
+            }
+            summaryLanguageDetection={summaryLanguageDetection}
             defaultTargetLanguage={settings.preferredTranslationLanguage}
+            onGenerateDraft={
+              settings.experimentalMode &&
+              (step === 2 || step === 3) &&
+              !answers[step - 2]?.trim()
+                ? (draft) => {
+                    const idx = step - 2;
+                    setAnswers((prev) => {
+                      const next = [...prev];
+                      next[idx] = draft;
+                      return next;
+                    });
+                  }
+                : undefined
+            }
           />
           <button
             type="button"
@@ -1027,31 +1034,20 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <MoreToolsMenu
+          <ToolsSection
+            step={3}
             currentScreen="reflection"
             currentFormat={currentFormat}
             onFormatChange={undefined}
             isLoadingSummary={isLoadingSummary}
-            onGenerateDraft={
-              settings.experimentalMode && !answers[1]?.trim()
-                ? (draft) => {
-                    setAnswers((prev) => {
-                      const next = [...prev];
-                      next[1] = draft;
-                      return next;
-                    });
-                  }
-                : undefined
-            }
-            generateDraftDisabled={false}
             summary={summary}
-            selectedTone={_selectedTones[1]}
+            settings={settings}
+            answers={answers}
+            selectedTones={_selectedTones}
             onToneSelect={
               settings.experimentalMode ? handleToneSelect : undefined
             }
-            tonesDisabled={!answers[1]?.trim()}
-            isRewriting={_isRewriting[1]}
-            hasReflectionContent={!!answers[1]?.trim()}
+            isRewriting={_isRewriting}
             onProofread={async (_index) => {
               if (!onProofread) return;
               try {
@@ -1073,23 +1069,31 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                 });
               }
             }}
-            proofreadDisabled={!answers[1]?.trim()}
-            isProofreading={isProofreading[1]}
+            isProofreading={isProofreading}
             proofreaderAvailable={proofreaderAvailable}
-            activeReflectionIndex={1}
-            ambientMuted={settings.enableSound ? _ambientMuted : undefined}
-            onToggleAmbient={
-              settings.enableSound ? _onToggleAmbient : undefined
-            }
+            ambientMuted={_ambientMuted}
+            onToggleAmbient={_onToggleAmbient}
             reduceMotion={_reduceMotion}
             onToggleReduceMotion={_onToggleReduceMotion}
             onTranslateSummary={
               settings.enableTranslation ? _onTranslate : undefined
             }
-            isTranslating={settings.enableTranslation ? _isTranslating : false}
-            currentLanguage={summaryLanguageDetection?.detectedLanguage}
-            unsupportedLanguages={[]}
+            isTranslating={
+              settings.enableTranslation ? (_isTranslating ?? false) : false
+            }
+            summaryLanguageDetection={summaryLanguageDetection}
             defaultTargetLanguage={settings.preferredTranslationLanguage}
+            onGenerateDraft={
+              settings.experimentalMode && !answers[1]?.trim()
+                ? (draft) => {
+                    setAnswers((prev) => {
+                      const next = [...prev];
+                      next[1] = draft;
+                      return next;
+                    });
+                  }
+                : undefined
+            }
           />
           <button
             type="button"
@@ -1153,704 +1157,70 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           }}
         >
           {step === 0 && (
-            <div className="reflexa-meditation-fade">
-              <div style={{ marginBottom: 60 }}>
-                <LotusOrb
-                  enabled={!settings?.reduceMotion}
-                  duration={8}
-                  iterations={isLoadingSummary ? Infinity : 2}
-                  size={200}
-                />
-              </div>
-              <h1
-                style={{
-                  fontSize: 28,
-                  margin: 0,
-                  fontWeight: 800,
-                  transition: 'opacity 0.5s ease-in-out',
-                }}
-              >
-                {isLoadingSummary
-                  ? meditativePhrases[currentPhraseIndex]
-                  : 'Find your breath'}
-              </h1>
-              {!isLoadingSummary && (
-                <p
-                  style={{
-                    marginTop: 12,
-                    color: '#cbd5e1',
-                    fontSize: 16,
-                  }}
-                >
-                  {breathCue === 'inhale' && 'Inhale…'}
-                  {breathCue === 'exhale' && 'Exhale…'}
-                </p>
-              )}
-            </div>
+            <BreathingPhase
+              isLoadingSummary={isLoadingSummary}
+              settings={settings}
+              breathCue={breathCue}
+              setBreathCue={setBreathCue}
+              currentPhraseIndex={currentPhraseIndex}
+              setCurrentPhraseIndex={setCurrentPhraseIndex}
+            />
           )}
 
           {step === 1 && (
-            <div
-              className="reflexa-meditation-slide"
-              style={{ position: 'relative' }}
-            >
-              {/* Subtle language badge - show when language is detected */}
-              {(() => {
-                console.log(
-                  '[Badge Debug] languageDetection:',
-                  languageDetection
-                );
-                console.log('[Badge Debug] step:', step);
-                return null;
-              })()}
-              {languageDetection && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: -8,
-                    right: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '4px 10px',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(226, 232, 240, 0.18)',
-                    borderRadius: 999,
-                    fontSize: 11,
-                    color: 'rgba(226, 232, 240, 0.75)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                  aria-live="polite"
-                >
-                  <span aria-hidden style={{ fontSize: 13 }}>
-                    🌐
-                  </span>
-                  <span>Translated from {languageDetection.languageName}</span>
-                </div>
-              )}
-
-              <h2 style={{ fontSize: 22, margin: '0 0 12px', fontWeight: 800 }}>
-                Summary
-              </h2>
-              <div
-                style={{
-                  color: '#f1f5f9',
-                  fontSize: 16,
-                  lineHeight: 1.8,
-                  textAlign: 'left',
-                  margin: '0 auto',
-                  maxWidth: 720,
-                  minHeight: 120,
-                }}
-              >
-                {isLoadingSummary ? (
-                  <div style={{ color: '#cbd5e1' }}>Generating…</div>
-                ) : currentFormat === 'bullets' ? (
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {renderedSummary.map((s, i) => (
-                      <li
-                        key={i}
-                        style={{ marginBottom: 8 }}
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(s),
-                        }}
-                      />
-                    ))}
-                  </ul>
-                ) : currentFormat === 'headline-bullets' ? (
-                  <div>
-                    <h3
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        margin: '0 0 16px',
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(renderedSummary[0] || ''),
-                      }}
-                    />
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {renderedSummary.slice(1).map((s, i) => (
-                        <li
-                          key={i}
-                          style={{ marginBottom: 8 }}
-                          dangerouslySetInnerHTML={{
-                            __html: renderMarkdown(s),
-                          }}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p
-                    style={{ margin: 0 }}
-                    dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(renderedSummary.join(' ')),
-                    }}
-                  />
-                )}
-              </div>
-            </div>
+            <SummaryPhase
+              summary={summary}
+              summaryDisplay={summaryDisplay}
+              currentFormat={currentFormat}
+              isLoadingSummary={isLoadingSummary}
+              languageDetection={languageDetection}
+            />
           )}
 
           {step === 2 && (
-            <div className="reflexa-meditation-slide">
-              <h2 style={{ fontSize: 22, margin: '0 0 8px', fontWeight: 800 }}>
-                Reflect
-              </h2>
-              <p style={{ color: '#cbd5e1', marginTop: 0, marginBottom: 10 }}>
-                {prompts[0] ?? 'What did you find most interesting?'}
-              </p>
-              <div
-                className="reflexa-overlay__reflection-input-wrapper"
-                style={{
-                  maxWidth: 720,
-                  margin: '0 auto',
-                  width: '100%',
-                }}
-              >
-                <textarea
-                  className={`reflexa-overlay__reflection-input ${
-                    voiceInput0.isRecording
-                      ? 'reflexa-overlay__reflection-input--recording'
-                      : ''
-                  }`}
-                  aria-label="Reflection answer 1"
-                  autoComplete="off"
-                  data-form-type="other"
-                  data-lpignore="true"
-                  value={
-                    voiceInputStates[0].interimText
-                      ? answers[0]
-                        ? `${answers[0]} ${voiceInputStates[0].interimText}`
-                        : voiceInputStates[0].interimText
-                      : answers[0]
-                  }
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    const lastValue = lastTextValueRef.current[0];
-
-                    // Detect typing and pause voice if recording
-                    if (
-                      newValue !== lastValue &&
-                      voiceInput0.isRecording &&
-                      !voiceInput0.isPaused
-                    ) {
-                      voiceInput0.pauseRecording();
-
-                      if (typingTimerRef.current) {
-                        clearTimeout(typingTimerRef.current);
-                      }
-
-                      typingTimerRef.current = setTimeout(() => {
-                        if (voiceInput0.isRecording && voiceInput0.isPaused) {
-                          voiceInput0.resumeRecording();
-                        }
-                      }, 2000);
-                    }
-
-                    setAnswers((prev) => [newValue, prev[1] ?? '']);
-                    lastTextValueRef.current[0] = newValue;
-                  }}
-                  style={{
-                    width: '100%',
-                    minHeight: 220,
-                    background: voiceInput0.isRecording
-                      ? 'rgba(59,130,246,0.1)'
-                      : 'rgba(2,6,23,0.35)',
-                    border: voiceInput0.isRecording
-                      ? '1px solid rgba(59,130,246,0.4)'
-                      : '1px solid rgba(226,232,240,0.25)',
-                    borderRadius: 12,
-                    color: '#f8fafc',
-                    padding: 12,
-                    fontSize: 14,
-                    transition: 'background 0.3s ease, border 0.3s ease',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {voiceInput0.isSupported && (
-                  <VoiceToggleButton
-                    isRecording={voiceInput0.isRecording}
-                    onToggle={() => {
-                      console.log(
-                        '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
-                        voiceInput0.isRecording
-                      );
-                      if (voiceInput0.isRecording) {
-                        console.log(
-                          '[MeditationFlowOverlay] Stopping recording for input 0'
-                        );
-                        voiceInput0.stopRecording();
-
-                        // Play voice stop audio cue if sound is enabled
-                        if (settings.enableSound && audioManagerRef.current) {
-                          audioManagerRef.current
-                            .playVoiceStopCue()
-                            .catch((err) => {
-                              console.error(
-                                'Failed to play voice stop audio cue:',
-                                err
-                              );
-                            });
-                        }
-                      } else {
-                        console.log(
-                          '[MeditationFlowOverlay] Starting recording for input 0'
-                        );
-                        void voiceInput0.startRecording().catch((err) => {
-                          setVoiceError({
-                            code: 'network',
-                            message:
-                              err instanceof Error
-                                ? err.message
-                                : 'Voice input failed',
-                          });
-                        });
-                      }
-                    }}
-                    disabled={false}
-                    language={voiceInput0.effectiveLanguage}
-                    languageName={voiceInput0.languageName}
-                    isLanguageFallback={voiceInput0.isLanguageFallback}
-                    reduceMotion={settings.reduceMotion}
-                  />
-                )}
-              </div>
-
-              {/* Rewrite Preview */}
-              {rewritePreview?.index === 0 && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: 14,
-                    background: 'rgba(59,130,246,0.08)',
-                    border: '1px solid rgba(59,130,246,0.25)',
-                    borderRadius: 12,
-                    maxWidth: 720,
-                    width: '100%',
-                    margin: '16px auto 0',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#60a5fa',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Rewrite Preview
-                  </div>
-                  <div
-                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                    dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(rewritePreview.rewritten),
-                    }}
-                  />
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={handleDiscardRewrite}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(226,232,240,0.25)',
-                        color: '#cbd5e1',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      × Discard
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAcceptRewrite}
-                      style={{
-                        background: 'rgba(34,197,94,0.15)',
-                        border: '1px solid rgba(34,197,94,0.4)',
-                        color: '#4ade80',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ✓ Accept
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Proofread Result */}
-              {proofreadResult?.index === 0 && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: 14,
-                    background: 'rgba(34,197,94,0.08)',
-                    border: '1px solid rgba(34,197,94,0.25)',
-                    borderRadius: 12,
-                    maxWidth: 720,
-                    width: '100%',
-                    margin: '16px auto 0',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#4ade80',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Proofread Suggestions
-                  </div>
-                  <div
-                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                  >
-                    {proofreadResult.result.correctedText}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setProofreadResult(null)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(226,232,240,0.25)',
-                        color: '#cbd5e1',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      × Discard
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (proofreadResult) {
-                          setAnswers((prev) => {
-                            const next = [...prev];
-                            next[proofreadResult.index] =
-                              proofreadResult.result.correctedText;
-                            lastTextValueRef.current[proofreadResult.index] =
-                              proofreadResult.result.correctedText;
-                            return next;
-                          });
-                          setProofreadResult(null);
-                        }
-                      }}
-                      style={{
-                        background: 'rgba(34,197,94,0.15)',
-                        border: '1px solid rgba(34,197,94,0.4)',
-                        color: '#4ade80',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ✓ Accept
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ReflectionInput
+              index={0}
+              prompt={prompts[0] ?? 'What did you find most interesting?'}
+              answer={answers[0] ?? ''}
+              setAnswer={(value) => {
+                setAnswers((prev) => [value, prev[1] ?? '']);
+              }}
+              voiceInput={voiceInput0}
+              voiceInputState={voiceInputStates[0]}
+              settings={settings}
+              rewritePreview={rewritePreview}
+              onDiscardRewrite={() => handleDiscardRewrite(0)}
+              onAcceptRewrite={handleAcceptRewrite}
+              proofreadResult={proofreadResult}
+              onDiscardProofread={handleDiscardProofread}
+              onAcceptProofread={() => handleAcceptProofread(0)}
+              lastTextValueRef={lastTextValueRef}
+              typingTimerRef={typingTimerRef}
+              onVoiceToggle={handleVoiceToggle0}
+            />
           )}
 
           {step === 3 && (
-            <div className="reflexa-meditation-slide">
-              <h2 style={{ fontSize: 22, margin: '0 0 8px', fontWeight: 800 }}>
-                Reflect
-              </h2>
-              <p style={{ color: '#cbd5e1', marginTop: 0, marginBottom: 10 }}>
-                {prompts[1] ?? 'How might you apply this?'}
-              </p>
-              <div
-                className="reflexa-overlay__reflection-input-wrapper"
-                style={{
-                  maxWidth: 720,
-                  margin: '0 auto',
-                  width: '100%',
-                }}
-              >
-                <textarea
-                  className={`reflexa-overlay__reflection-input ${
-                    voiceInput1.isRecording
-                      ? 'reflexa-overlay__reflection-input--recording'
-                      : ''
-                  }`}
-                  aria-label="Reflection answer 2"
-                  autoComplete="off"
-                  data-form-type="other"
-                  data-lpignore="true"
-                  value={
-                    voiceInputStates[1].interimText
-                      ? answers[1]
-                        ? `${answers[1]} ${voiceInputStates[1].interimText}`
-                        : voiceInputStates[1].interimText
-                      : answers[1]
-                  }
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    const lastValue = lastTextValueRef.current[1];
-
-                    // Detect typing and pause voice if recording
-                    if (
-                      newValue !== lastValue &&
-                      voiceInput1.isRecording &&
-                      !voiceInput1.isPaused
-                    ) {
-                      voiceInput1.pauseRecording();
-
-                      if (typingTimerRef.current) {
-                        clearTimeout(typingTimerRef.current);
-                      }
-
-                      typingTimerRef.current = setTimeout(() => {
-                        if (voiceInput1.isRecording && voiceInput1.isPaused) {
-                          voiceInput1.resumeRecording();
-                        }
-                      }, 2000);
-                    }
-
-                    setAnswers((prev) => [prev[0] ?? '', newValue]);
-                    lastTextValueRef.current[1] = newValue;
-                  }}
-                  style={{
-                    width: '100%',
-                    minHeight: 220,
-                    background: voiceInput1.isRecording
-                      ? 'rgba(59,130,246,0.1)'
-                      : 'rgba(2,6,23,0.35)',
-                    border: voiceInput1.isRecording
-                      ? '1px solid rgba(59,130,246,0.4)'
-                      : '1px solid rgba(226,232,240,0.25)',
-                    borderRadius: 12,
-                    color: '#f8fafc',
-                    padding: 12,
-                    fontSize: 14,
-                    transition: 'background 0.3s ease, border 0.3s ease',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {voiceInput1.isSupported && (
-                  <VoiceToggleButton
-                    isRecording={voiceInput1.isRecording}
-                    onToggle={() => {
-                      console.log(
-                        '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
-                        voiceInput1.isRecording
-                      );
-                      if (voiceInput1.isRecording) {
-                        console.log(
-                          '[MeditationFlowOverlay] Stopping recording for input 1'
-                        );
-                        voiceInput1.stopRecording();
-
-                        // Play voice stop audio cue if sound is enabled
-                        if (settings.enableSound && audioManagerRef.current) {
-                          audioManagerRef.current
-                            .playVoiceStopCue()
-                            .catch((err) => {
-                              console.error(
-                                'Failed to play voice stop audio cue:',
-                                err
-                              );
-                            });
-                        }
-                      } else {
-                        console.log(
-                          '[MeditationFlowOverlay] Starting recording for input 1'
-                        );
-                        void voiceInput1.startRecording().catch((err) => {
-                          setVoiceError({
-                            code: 'network',
-                            message:
-                              err instanceof Error
-                                ? err.message
-                                : 'Voice input failed',
-                          });
-                        });
-                      }
-                    }}
-                    disabled={false}
-                    language={voiceInput1.effectiveLanguage}
-                    languageName={voiceInput1.languageName}
-                    isLanguageFallback={voiceInput1.isLanguageFallback}
-                    reduceMotion={settings.reduceMotion}
-                  />
-                )}
-              </div>
-
-              {/* Rewrite Preview */}
-              {rewritePreview?.index === 1 && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: 14,
-                    background: 'rgba(59,130,246,0.08)',
-                    border: '1px solid rgba(59,130,246,0.25)',
-                    borderRadius: 12,
-                    maxWidth: 720,
-                    width: '100%',
-                    margin: '16px auto 0',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#60a5fa',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Rewrite Preview
-                  </div>
-                  <div
-                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                    dangerouslySetInnerHTML={{
-                      __html: renderMarkdown(rewritePreview.rewritten),
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={handleAcceptRewrite}
-                      style={{
-                        background: 'rgba(34,197,94,0.15)',
-                        border: '1px solid rgba(34,197,94,0.4)',
-                        color: '#4ade80',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ✓ Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDiscardRewrite}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(226,232,240,0.25)',
-                        color: '#cbd5e1',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      × Discard
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Proofread Result */}
-              {proofreadResult?.index === 1 && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: 14,
-                    background: 'rgba(34,197,94,0.08)',
-                    border: '1px solid rgba(34,197,94,0.25)',
-                    borderRadius: 12,
-                    maxWidth: 720,
-                    width: '100%',
-                    margin: '16px auto 0',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#4ade80',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Proofread Suggestions
-                  </div>
-                  <div
-                    style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}
-                  >
-                    {proofreadResult.result.correctedText}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (proofreadResult) {
-                          setAnswers((prev) => {
-                            const next = [...prev];
-                            next[proofreadResult.index] =
-                              proofreadResult.result.correctedText;
-                            lastTextValueRef.current[proofreadResult.index] =
-                              proofreadResult.result.correctedText;
-                            return next;
-                          });
-                          setProofreadResult(null);
-                        }
-                      }}
-                      style={{
-                        background: 'rgba(34,197,94,0.15)',
-                        border: '1px solid rgba(34,197,94,0.4)',
-                        color: '#4ade80',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ✓ Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProofreadResult(null)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(226,232,240,0.25)',
-                        color: '#cbd5e1',
-                        borderRadius: 6,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      × Discard
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ReflectionInput
+              index={1}
+              prompt={prompts[1] ?? 'How might you apply this?'}
+              answer={answers[1] ?? ''}
+              setAnswer={(value) => {
+                setAnswers((prev) => [prev[0] ?? '', value]);
+              }}
+              voiceInput={voiceInput1}
+              voiceInputState={voiceInputStates[1]}
+              settings={settings}
+              rewritePreview={rewritePreview}
+              onDiscardRewrite={() => handleDiscardRewrite(1)}
+              onAcceptRewrite={handleAcceptRewrite}
+              proofreadResult={proofreadResult}
+              onDiscardProofread={handleDiscardProofread}
+              onAcceptProofread={() => handleAcceptProofread(1)}
+              lastTextValueRef={lastTextValueRef}
+              typingTimerRef={typingTimerRef}
+              onVoiceToggle={handleVoiceToggle1}
+            />
           )}
         </div>
 

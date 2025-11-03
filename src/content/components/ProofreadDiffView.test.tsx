@@ -147,7 +147,7 @@ describe('ProofreadDiffView', () => {
     const highlight = screen.getByTestId('highlight-original-0');
     fireEvent.mouseEnter(highlight);
 
-    expect(screen.getByTestId('tooltip-0')).toBeInTheDocument();
+    expect(screen.getByTestId('tooltip-original-0')).toBeInTheDocument();
 
     fireEvent.mouseLeave(highlight);
   });

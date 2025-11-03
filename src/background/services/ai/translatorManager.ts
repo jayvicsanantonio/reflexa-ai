@@ -6,6 +6,7 @@
 
 import type { AITranslator } from '../../../types/chrome-ai';
 import { capabilityDetector } from '../capabilities/capabilityDetector';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Timeout duration for translation operations (5 seconds)
@@ -61,16 +62,16 @@ export class TranslatorManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
-    console.log('[TranslatorManager] Checking availability...');
+    devLog('[TranslatorManager] Checking availability...');
     try {
       const capabilities = await Promise.resolve(
         capabilityDetector.getCapabilities()
       );
       this.available = Boolean(capabilities.translator);
-      console.log(`[TranslatorManager] Available: ${this.available}`);
+      devLog(`[TranslatorManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('[TranslatorManager] Error checking availability:', error);
+      devError('[TranslatorManager] Error checking availability:', error);
       this.available = false;
       return false;
     }
@@ -93,7 +94,7 @@ export class TranslatorManager {
       // Access global Translator object (service worker context)
       return typeof Translator !== 'undefined';
     } catch (error) {
-      console.error('Error accessing Translator API:', error);
+      devError('Error accessing Translator API:', error);
       return false;
     }
   }
@@ -108,12 +109,12 @@ export class TranslatorManager {
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<boolean> {
-    console.log(
+    devLog(
       `[TranslatorManager] Checking if can translate ${sourceLanguage} -> ${targetLanguage}`
     );
 
     if (!this.isTranslatorAvailable()) {
-      console.warn('[TranslatorManager] Translator API not available');
+      devWarn('[TranslatorManager] Translator API not available');
       return false;
     }
 
@@ -128,12 +129,12 @@ export class TranslatorManager {
         targetLanguage,
       });
       const canTranslate = status === 'available' || status === 'downloadable';
-      console.log(
+      devLog(
         `[TranslatorManager] ${sourceLanguage} -> ${targetLanguage}: ${status} (can translate: ${canTranslate})`
       );
       return canTranslate;
     } catch (error) {
-      console.error(
+      devError(
         `[TranslatorManager] Error checking translation availability for ${sourceLanguage} -> ${targetLanguage}:`,
         error
       );
@@ -160,20 +161,20 @@ export class TranslatorManager {
       // Check if session is still valid (not expired)
       const now = Date.now();
       if (now - existing.lastUsed < this.SESSION_TTL) {
-        console.log(
+        devLog(
           `[TranslatorManager] Reusing cached session: ${sessionKey} (age: ${((now - existing.lastUsed) / 1000).toFixed(1)}s)`
         );
         existing.lastUsed = now;
         return existing.session;
       } else {
         // Session expired, clean it up
-        console.log(
+        devLog(
           `[TranslatorManager] Session expired: ${sessionKey} (age: ${((now - existing.lastUsed) / 1000).toFixed(1)}s)`
         );
         try {
           existing.session.destroy();
         } catch (error) {
-          console.error(
+          devError(
             '[TranslatorManager] Error destroying expired session:',
             error
           );
@@ -183,11 +184,11 @@ export class TranslatorManager {
     }
 
     if (!this.isTranslatorAvailable()) {
-      console.warn('[TranslatorManager] Translator API not available');
+      devWarn('[TranslatorManager] Translator API not available');
       return null;
     }
 
-    console.log(`[TranslatorManager] Creating new session: ${sessionKey}`);
+    devLog(`[TranslatorManager] Creating new session: ${sessionKey}`);
 
     try {
       // Type guard: we've already checked Translator exists
@@ -211,13 +212,13 @@ export class TranslatorManager {
         lastUsed: Date.now(),
       });
 
-      console.log(
+      devLog(
         `[TranslatorManager] Created session in ${duration.toFixed(2)}ms (total sessions: ${this.sessions.size})`
       );
 
       return session;
     } catch (error) {
-      console.error(
+      devError(
         `[TranslatorManager] Error creating session for ${sessionKey}:`,
         error
       );
@@ -239,15 +240,13 @@ export class TranslatorManager {
     targetLanguage: string,
     sourceLanguage?: string
   ): Promise<string> {
-    console.log(
+    devLog(
       `[TranslatorManager] translate() called: ${sourceLanguage ?? 'auto'} -> ${targetLanguage}, text length: ${text.length}`
     );
 
     // Check availability first
     if (!this.available) {
-      console.log(
-        '[TranslatorManager] API not available, checking availability...'
-      );
+      devLog('[TranslatorManager] API not available, checking availability...');
       const isAvailable = await this.checkAvailability();
       if (!isAvailable) {
         throw new Error('Translator API is not available');
@@ -276,7 +275,7 @@ export class TranslatorManager {
 
     try {
       // First attempt with standard timeout
-      console.log(
+      devLog(
         `[TranslatorManager] Attempting translation with ${TRANSLATE_TIMEOUT}ms timeout`
       );
       const result = await this.translateWithTimeout(
@@ -285,33 +284,31 @@ export class TranslatorManager {
         targetLanguage,
         TRANSLATE_TIMEOUT
       );
-      console.log(
+      devLog(
         `[TranslatorManager] Translation successful, output length: ${result.length}`
       );
       return result;
     } catch (error) {
-      console.warn(
+      devWarn(
         '[TranslatorManager] First translation attempt failed, retrying...',
         error
       );
 
       try {
         // Retry with extended timeout
-        console.log(
-          `[TranslatorManager] Retrying with ${RETRY_TIMEOUT}ms timeout`
-        );
+        devLog(`[TranslatorManager] Retrying with ${RETRY_TIMEOUT}ms timeout`);
         const result = await this.translateWithTimeout(
           text,
           sourceLanguage,
           targetLanguage,
           RETRY_TIMEOUT
         );
-        console.log(
+        devLog(
           `[TranslatorManager] Retry successful, output length: ${result.length}`
         );
         return result;
       } catch (retryError) {
-        console.error(
+        devError(
           '[TranslatorManager] Translation failed after retry:',
           retryError
         );
@@ -382,7 +379,7 @@ export class TranslatorManager {
         return result.trim();
       }
     } catch (error) {
-      console.error('Translation execution failed:', error);
+      devError('Translation execution failed:', error);
       throw error;
     }
   }
@@ -477,15 +474,15 @@ export class TranslatorManager {
         try {
           session.session.destroy();
           this.sessions.delete(key);
-          console.log(`Cleaned up expired translator session: ${key}`);
+          devLog(`Cleaned up expired translator session: ${key}`);
         } catch (error) {
-          console.error(`Error cleaning up session ${key}:`, error);
+          devError(`Error cleaning up session ${key}:`, error);
         }
       }
     }
 
     if (keysToDelete.length > 0) {
-      console.log(`Cleaned up ${keysToDelete.length} expired sessions`);
+      devLog(`Cleaned up ${keysToDelete.length} expired sessions`);
     }
   }
 
@@ -494,22 +491,19 @@ export class TranslatorManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
-    console.log(
+    devLog(
       `[TranslatorManager] destroy() called (${this.sessions.size} sessions)`
     );
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.session.destroy();
-        console.log(`[TranslatorManager] Destroyed session: ${key}`);
+        devLog(`[TranslatorManager] Destroyed session: ${key}`);
       } catch (error) {
-        console.error(
-          `[TranslatorManager] Error destroying session ${key}:`,
-          error
-        );
+        devError(`[TranslatorManager] Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
-    console.log('[TranslatorManager] All sessions destroyed');
+    devLog('[TranslatorManager] All sessions destroyed');
   }
 
   /**
@@ -525,9 +519,9 @@ export class TranslatorManager {
       try {
         session.session.destroy();
         this.sessions.delete(sessionKey);
-        console.log(`Destroyed translator session: ${sessionKey}`);
+        devLog(`Destroyed translator session: ${sessionKey}`);
       } catch (error) {
-        console.error(`Error destroying session ${sessionKey}:`, error);
+        devError(`Error destroying session ${sessionKey}:`, error);
       }
     }
   }

@@ -4,6 +4,7 @@
  */
 
 import type { AICapabilities } from '../../../types';
+import { devLog, devWarn } from '../../../utils/logger';
 
 /**
  * Default TTL for capability cache (5 minutes)
@@ -83,7 +84,7 @@ export class CapabilityDetector {
       // Check if the specific API exists
       return apiName in ai;
     } catch (error) {
-      console.warn(`Error checking ${apiName} availability:`, error);
+      devWarn(`Error checking ${apiName} availability:`, error);
       return false;
     }
   }
@@ -117,10 +118,7 @@ export class CapabilityDetector {
     };
 
     const duration = Date.now() - startTime;
-    console.log(
-      `Capability detection completed in ${duration}ms:`,
-      capabilities
-    );
+    devLog(`Capability detection completed in ${duration}ms:`, capabilities);
 
     return capabilities;
   }
@@ -137,7 +135,7 @@ export class CapabilityDetector {
   ): AICapabilities {
     // Check if cache is valid
     if (!forceFresh && this.isCacheValid()) {
-      console.log('Using cached capabilities');
+      devLog('Using cached capabilities');
       return this.cache!.capabilities;
     }
 
@@ -177,7 +175,7 @@ export class CapabilityDetector {
    * @returns Updated AICapabilities object
    */
   refreshCapabilities(experimentalMode = false): AICapabilities {
-    console.log('Refreshing capabilities...');
+    devLog('Refreshing capabilities...');
     return this.getCapabilities(experimentalMode, true);
   }
 
@@ -186,7 +184,7 @@ export class CapabilityDetector {
    */
   clearCache(): void {
     this.cache = null;
-    console.log('Capability cache cleared');
+    devLog('Capability cache cleared');
   }
 
   /**

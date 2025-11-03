@@ -3,6 +3,8 @@
  * Provides helpers for keyboard navigation, focus management, and ARIA support
  */
 
+import { devWarn } from './logger';
+
 /**
  * Detect if user prefers reduced motion
  */
@@ -211,7 +213,7 @@ const parseColor = (color: string): number[] => {
   }
 
   // Fallback to black if format not recognized
-  console.warn(`Unrecognized color format: ${color}`);
+  devWarn(`Unrecognized color format: ${color}`);
   return [0, 0, 0];
 };
 

@@ -10,6 +10,7 @@
 import type { SummaryFormat, TonePreset, WriterOptions } from '../../../types';
 import type { AILanguageModel } from '../../../types/chrome-ai';
 import { capabilityDetector } from '../capabilities/capabilityDetector';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Timeout duration for prompt operations (30 seconds)
@@ -87,7 +88,7 @@ export class PromptManager {
       this.available = false;
       return false;
     } catch (error) {
-      console.error('Error checking Prompt API availability:', error);
+      devError('Error checking Prompt API availability:', error);
       this.available = false;
       return false;
     }
@@ -133,7 +134,7 @@ export class PromptManager {
     try {
       // Access global LanguageModel (service worker context)
       if (typeof LanguageModel === 'undefined') {
-        console.warn('Prompt API (Language Model) not available');
+        devWarn('Prompt API (Language Model) not available');
         return null;
       }
 
@@ -149,11 +150,11 @@ export class PromptManager {
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(`Created prompt session: ${sessionKey.substring(0, 50)}...`);
+      devLog(`Created prompt session: ${sessionKey.substring(0, 50)}...`);
 
       return session;
     } catch (error) {
-      console.error('Error creating prompt session:', error);
+      devError('Error creating prompt session:', error);
       return null;
     }
   }
@@ -184,13 +185,13 @@ export class PromptManager {
       // First attempt with standard timeout
       return await this.promptWithTimeout(text, options, PROMPT_TIMEOUT);
     } catch (error) {
-      console.warn('First prompt attempt failed, retrying...', error);
+      devWarn('First prompt attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
         return await this.promptWithTimeout(text, options, RETRY_TIMEOUT);
       } catch (retryError) {
-        console.error('Prompt failed after retry:', retryError);
+        devError('Prompt failed after retry:', retryError);
         throw new Error(
           `Prompt operation failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -571,7 +572,7 @@ export class PromptManager {
         reader.releaseLock();
       }
     } catch (error) {
-      console.error('Streaming prompt failed:', error);
+      devError('Streaming prompt failed:', error);
       throw new Error(
         `Streaming prompt failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -586,9 +587,9 @@ export class PromptManager {
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed prompt session: ${key.substring(0, 50)}...`);
+        devLog(`Destroyed prompt session: ${key.substring(0, 50)}...`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        devError(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
@@ -604,11 +605,9 @@ export class PromptManager {
       try {
         session.destroy();
         this.sessions.delete(sessionKey);
-        console.log(
-          `Destroyed prompt session: ${sessionKey.substring(0, 50)}...`
-        );
+        devLog(`Destroyed prompt session: ${sessionKey.substring(0, 50)}...`);
       } catch (error) {
-        console.error(`Error destroying session ${sessionKey}:`, error);
+        devError(`Error destroying session ${sessionKey}:`, error);
       }
     }
   }
@@ -630,7 +629,7 @@ export class PromptManager {
 
       return await LanguageModel.capabilities();
     } catch (error) {
-      console.error('Error getting model capabilities:', error);
+      devError('Error getting model capabilities:', error);
       return null;
     }
   }
@@ -644,7 +643,7 @@ export class PromptManager {
   async cloneSession(sessionKey: string): Promise<AILanguageModel | null> {
     const session = this.sessions.get(sessionKey);
     if (!session) {
-      console.warn(`Session ${sessionKey} not found for cloning`);
+      devWarn(`Session ${sessionKey} not found for cloning`);
       return null;
     }
 
@@ -652,10 +651,10 @@ export class PromptManager {
       const clonedSession = await session.clone();
       const cloneKey = `${sessionKey}-clone-${Date.now()}`;
       this.sessions.set(cloneKey, clonedSession);
-      console.log(`Cloned session: ${cloneKey}`);
+      devLog(`Cloned session: ${cloneKey}`);
       return clonedSession;
     } catch (error) {
-      console.error('Error cloning session:', error);
+      devError('Error cloning session:', error);
       return null;
     }
   }
@@ -684,7 +683,7 @@ export class PromptManager {
 
       return await session.countPromptTokens(text);
     } catch (error) {
-      console.error('Error counting tokens:', error);
+      devError('Error counting tokens:', error);
       return null;
     }
   }

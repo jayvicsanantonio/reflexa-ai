@@ -3,6 +3,8 @@
  * Tracks timing metrics and logs slow operations
  */
 
+import { devWarn } from '../../../utils/logger';
+
 /**
  * Performance metrics for a single operation
  */
@@ -83,7 +85,7 @@ export class PerformanceMonitor {
 
     // Log slow operations
     if (duration > SLOW_OPERATION_THRESHOLD) {
-      console.warn(
+      devWarn(
         `[Performance] Slow operation detected: ${operationType} using ${apiUsed} took ${duration}ms`,
         {
           operationType,

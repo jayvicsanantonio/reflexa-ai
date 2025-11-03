@@ -13,7 +13,7 @@
  *     }
  *   },
  *   onError: (error) => {
- *     console.error('Voice input error:', error);
+ *     devError('Voice input error:', error);
  *   },
  *   autoStopDelay: 3000
  * });
@@ -27,6 +27,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 /**
  * Get the effective language for speech recognition
@@ -112,7 +113,7 @@ const getEffectiveLanguage = (requestedLanguage?: string): string => {
   }
 
   // Fallback to English if language not supported
-  console.warn(
+  devWarn(
     `Language "${requestedLanguage}" not supported by Web Speech API. Falling back to English.`
   );
   return 'en-US';
@@ -474,14 +475,14 @@ export const useVoiceInput = (
 
       // Handle end event
       recognition.onend = () => {
-        console.log('[useVoiceInput] onend event fired');
+        devLog('[useVoiceInput] onend event fired');
         setIsRecording(false);
         updateStatus('idle');
         clearAutoStopTimer();
         clearNoSpeechTimer();
         isStoppingRef.current = false;
         hasSpeechDetectedRef.current = false;
-        console.log('[useVoiceInput] State updated to not recording');
+        devLog('[useVoiceInput] State updated to not recording');
       };
 
       // Handle speechend event (user stopped speaking)
@@ -544,7 +545,7 @@ export const useVoiceInput = (
         clearNoSpeechTimer();
       };
     } catch (err) {
-      console.error('Failed to initialize SpeechRecognition:', err);
+      devError('Failed to initialize SpeechRecognition:', err);
       handleError('not-supported');
     }
   }, [
@@ -593,28 +594,28 @@ export const useVoiceInput = (
       recognitionRef.current.start();
       setError(null);
     } catch (err) {
-      console.error('Failed to start recording:', err);
+      devError('Failed to start recording:', err);
       handleError('network', 'Failed to start voice input');
     }
   }, [isSupported, isRecording, handleError, updateStatus]);
 
   // Stop recording function
   const stopRecording = useCallback(() => {
-    console.log(
+    devLog(
       '[useVoiceInput] stopRecording called, isRecording:',
       isRecording,
       'hasRecognition:',
       !!recognitionRef.current
     );
     if (!recognitionRef.current || !isRecording) {
-      console.log(
+      devLog(
         '[useVoiceInput] stopRecording early return - no recognition or not recording'
       );
       return;
     }
 
     try {
-      console.log('[useVoiceInput] Stopping recognition...');
+      devLog('[useVoiceInput] Stopping recognition...');
       isStoppingRef.current = true;
       clearAutoStopTimer();
       clearNoSpeechTimer();
@@ -627,11 +628,9 @@ export const useVoiceInput = (
       setIsPaused(false);
       isPausedRef.current = false;
       hasSpeechDetectedRef.current = false;
-      console.log(
-        '[useVoiceInput] Recognition stopped successfully, state updated'
-      );
+      devLog('[useVoiceInput] Recognition stopped successfully, state updated');
     } catch (err) {
-      console.error('[useVoiceInput] Failed to stop recording:', err);
+      devError('[useVoiceInput] Failed to stop recording:', err);
       setIsRecording(false);
       updateStatus('idle');
       setIsPaused(false);

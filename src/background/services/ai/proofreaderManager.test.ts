@@ -93,22 +93,6 @@ describe('ProofreaderManager', () => {
       expect(mockProofreader.proofread).toHaveBeenCalledWith(text);
     });
 
-    it.skip('should transform corrections with original text', async () => {
-      const text = 'This are wrong grammar.';
-      const result = await manager.proofread(text);
-
-      expect(result.corrections[0]).toEqual({
-        startIndex: 0,
-        endIndex: 4,
-        original: 'This',
-      });
-      expect(result.corrections[1]).toEqual({
-        startIndex: 10,
-        endIndex: 15,
-        original: 'wrong',
-      });
-    });
-
     it('should create session with default language', async () => {
       await manager.proofread('test text');
 
@@ -143,18 +127,6 @@ describe('ProofreaderManager', () => {
     beforeEach(async () => {
       await manager.checkAvailability();
     });
-
-    it.skip('should timeout after 5 seconds on first attempt', async () => {
-      mockProofreader.proofread = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 6000))
-        );
-
-      await expect(manager.proofread('test')).rejects.toThrow(
-        'Proofreading failed'
-      );
-    }, 10000);
 
     it('should retry with extended timeout on failure', async () => {
       let callCount = 0;
@@ -264,25 +236,6 @@ describe('ProofreaderManager', () => {
 
       expect(result.corrections).toHaveLength(0);
       expect(result.correctedText).toBe('Perfect text');
-    });
-
-    it.skip('should handle multiple corrections', async () => {
-      const text = 'This are very wrong grammer and speling.';
-      mockProofreader.proofread = vi.fn().mockResolvedValue({
-        correction: 'This is very wrong grammar and spelling.',
-        corrections: [
-          { startIndex: 5, endIndex: 8 },
-          { startIndex: 19, endIndex: 26 },
-          { startIndex: 31, endIndex: 38 },
-        ],
-      });
-
-      const result = await manager.proofread(text);
-
-      expect(result.corrections).toHaveLength(3);
-      expect(result.corrections[0].original).toBe('are');
-      expect(result.corrections[1].original).toBe('grammer');
-      expect(result.corrections[2].original).toBe('speling');
     });
 
     it('should extract correct original text from indices', async () => {

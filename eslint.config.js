@@ -15,6 +15,7 @@ export default tseslint.config(
       'vitest.config.ts',
       'scripts/**',
       'build/**',
+      'coverage/**',
     ],
   },
 

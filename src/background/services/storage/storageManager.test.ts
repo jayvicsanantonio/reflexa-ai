@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StorageManager } from './storageManager';
+import { STORAGE_KEYS } from '../../../constants';
 import type { Reflection } from '../../../types';
 
 describe('StorageManager', () => {
@@ -349,7 +350,7 @@ describe('StorageManager', () => {
       };
 
       // Directly set in storage without going through saveReflection
-      mockStorage.set('reflections', [oldReflection]);
+      mockStorage.set(STORAGE_KEYS.REFLECTIONS, [oldReflection]);
 
       // Get reflections should trigger migration
       const reflections = await storageManager.getReflections();
