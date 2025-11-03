@@ -1,4 +1,5 @@
 import type { AIResponse, Message } from '../types';
+import { devError } from './logger';
 
 export function sendMessage<T>(message: Message): Promise<AIResponse<T>> {
   return new Promise((resolve) => {
@@ -8,7 +9,7 @@ export function sendMessage<T>(message: Message): Promise<AIResponse<T>> {
         resolve(response as AIResponse<T>);
       })
       .catch((error) => {
-        console.error('Failed to send message:', error);
+        devError('Failed to send message:', error);
         resolve({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',

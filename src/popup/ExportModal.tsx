@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Reflection } from '../types';
 import { formatISODate } from '../utils';
+import { devError } from '../utils/logger';
 
 interface ExportModalProps {
   reflections: Reflection[];
@@ -77,7 +78,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       const validation = validateReflections(reflections);
       if (!validation.valid) {
         setValidationError(validation.errors.join('; '));
-        console.error('Validation errors:', validation.errors);
+        devError('Validation errors:', validation.errors);
         return;
       }
       setExportProgress(10);
@@ -182,7 +183,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       // Close modal
       onClose();
     } catch (error) {
-      console.error('Failed to export reflections:', error);
+      devError('Failed to export reflections:', error);
       setValidationError(
         error instanceof Error
           ? `Export failed: ${error.message}`

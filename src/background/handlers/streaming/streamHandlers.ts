@@ -7,6 +7,7 @@ import { aiService } from '../../services/ai/aiService';
 import { settingsManager } from '../utils/shared';
 import type { SummaryFormat, WriterOptions } from '../../../types';
 import { ERROR_MESSAGES } from '../../../constants';
+import { devWarn, devError } from '../../../utils/logger';
 
 /**
  * Safe post message to streaming port with disconnection check
@@ -20,7 +21,7 @@ export function safePostStreamMessage(
   try {
     port.postMessage(message);
   } catch (error) {
-    console.warn('Failed to post stream message:', error);
+    devWarn('Failed to post stream message:', error);
   }
 }
 
@@ -102,7 +103,7 @@ export async function handleSummarizeStreamRequest(
       data: aggregate,
     });
   } catch (error) {
-    console.error('Error in summarize stream:', error);
+    devError('Error in summarize stream:', error);
     safePostStreamMessage(port, isDisconnected, {
       event: 'error',
       requestId,
@@ -197,7 +198,7 @@ export async function handleWriterStreamRequest(
       data: result,
     });
   } catch (error) {
-    console.error('Error in writer stream:', error);
+    devError('Error in writer stream:', error);
     safePostStreamMessage(port, isDisconnected, {
       event: 'error',
       requestId,

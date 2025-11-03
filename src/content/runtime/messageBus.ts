@@ -1,5 +1,6 @@
 import type { AIResponse, Message } from '../../types';
 import { sendMessage } from '../../utils/messageBus';
+import { devWarn } from '../../utils/logger';
 
 export const sendMessageToBackground = <T>(
   message: Message
@@ -28,7 +29,7 @@ export function startAIStream(
     try {
       port.disconnect();
     } catch (disconnectError) {
-      console.warn('AI stream disconnect warning:', disconnectError);
+      devWarn('AI stream disconnect warning:', disconnectError);
     }
   };
 

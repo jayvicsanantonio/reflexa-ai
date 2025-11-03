@@ -5,6 +5,7 @@
 
 import { AUDIO } from '../constants';
 import type { Settings } from '../types';
+import { devWarn, devError } from './logger';
 
 /**
  * Audio file paths relative to extension root
@@ -50,7 +51,7 @@ export class AudioManager {
     try {
       // Verify chrome.runtime is available
       if (!chrome?.runtime?.getURL) {
-        console.warn('Chrome runtime not available, skipping audio load');
+        devWarn('Chrome runtime not available, skipping audio load');
         return;
       }
 
@@ -73,7 +74,7 @@ export class AudioManager {
         !voiceStopCueUrl ||
         voiceStopCueUrl.includes('invalid')
       ) {
-        console.warn('Invalid audio URLs, skipping audio load');
+        devWarn('Invalid audio URLs, skipping audio load');
         return;
       }
 
@@ -99,7 +100,7 @@ export class AudioManager {
 
       this.isLoaded = true;
     } catch (error) {
-      console.error('Failed to load audio files:', error);
+      devError('Failed to load audio files:', error);
       this.isLoaded = false;
     }
   }
@@ -153,7 +154,7 @@ export class AudioManager {
         await this.entryChime.play();
       }
     } catch (error) {
-      console.error('Failed to play entry chime:', error);
+      devError('Failed to play entry chime:', error);
       this.isEntryChimePlaying = false;
     }
   }
@@ -186,7 +187,7 @@ export class AudioManager {
         await this.ambientLoop.play();
       }
     } catch (error) {
-      console.error('Failed to play ambient loop:', error);
+      devError('Failed to play ambient loop:', error);
       this.isAmbientLoopPlaying = false;
     }
   }
@@ -219,7 +220,7 @@ export class AudioManager {
         await this.completionBell.play();
       }
     } catch (error) {
-      console.error('Failed to play completion bell:', error);
+      devError('Failed to play completion bell:', error);
       this.isCompletionBellPlaying = false;
     }
   }
@@ -253,7 +254,7 @@ export class AudioManager {
         await this.voiceStopCue.play();
       }
     } catch (error) {
-      console.error('Failed to play voice stop cue:', error);
+      devError('Failed to play voice stop cue:', error);
       this.isVoiceStopCuePlaying = false;
     }
   }
@@ -485,7 +486,7 @@ export class AudioManager {
         await this.fadeIn(this.ambientLoop, AUDIO.VOLUME, duration);
       }
     } catch (error) {
-      console.error('Failed to play ambient loop with fade:', error);
+      devError('Failed to play ambient loop with fade:', error);
       this.isAmbientLoopPlaying = false;
     }
   }

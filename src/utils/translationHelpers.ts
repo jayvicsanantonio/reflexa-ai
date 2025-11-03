@@ -4,6 +4,7 @@
  */
 
 import type { LanguageDetection, Settings } from '../types';
+import { devError } from './logger';
 
 /**
  * Determine if translation should be offered to the user
@@ -200,7 +201,7 @@ export async function getCachedTranslation(
 
     return cached.summary;
   } catch (error) {
-    console.error('Error getting cached translation:', error);
+    devError('Error getting cached translation:', error);
     return null;
   }
 }
@@ -223,7 +224,7 @@ export async function cacheTranslation(
       },
     });
   } catch (error) {
-    console.error('Error caching translation:', error);
+    devError('Error caching translation:', error);
   }
 }
 

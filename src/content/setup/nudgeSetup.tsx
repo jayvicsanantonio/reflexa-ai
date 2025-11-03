@@ -6,6 +6,7 @@
 import { LotusNudge } from '../components';
 import { contentState } from '../state';
 import { uiManager } from '../ui';
+import { devLog } from '../../utils/logger';
 
 /**
  * Lotus nudge styles constant for better maintainability
@@ -252,7 +253,7 @@ export function showLotusNudge(dependencies: {
       onHelp={dependencies.onHelp}
       onSettings={dependencies.onSettings}
       onAnimationComplete={() => {
-        console.log('Lotus nudge fade-in animation completed');
+        devLog('Lotus nudge fade-in animation completed');
       }}
     />,
     LOTUS_NUDGE_STYLES
@@ -274,11 +275,11 @@ export function hideLotusNudge(): void {
 export async function handleNudgeClick(
   initiateReflectionFlow: () => Promise<void>
 ): Promise<void> {
-  console.log('Lotus nudge clicked - initiating reflection');
+  devLog('Lotus nudge clicked - initiating reflection');
 
   // Prevent multiple clicks while loading
   if (contentState.getNudgeState().isLoading) {
-    console.log('Already processing, ignoring click');
+    devLog('Already processing, ignoring click');
     return;
   }
 

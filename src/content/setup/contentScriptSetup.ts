@@ -8,6 +8,7 @@ import { contentState } from '../state';
 import { instanceManager } from '../core';
 import { sendMessageToBackground } from '../runtime/messageBus';
 import { applyTranslationPreference } from '../workflows';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 /**
  * Get settings from background worker
@@ -21,7 +22,7 @@ export async function getSettings(): Promise<Settings> {
   if (settingsResponse.success) {
     return settingsResponse.data;
   } else {
-    console.error('Failed to load settings:', settingsResponse.error);
+    devError('Failed to load settings:', settingsResponse.error);
     // Return default settings as fallback
     return {
       dwellThreshold: 30,
@@ -51,7 +52,7 @@ export function setupNavigationListeners(): void {
   // Listen for popstate events (back/forward navigation)
   window.addEventListener('popstate', () => {
     instanceManager.resetDwellTracker();
-    console.log('Dwell tracker reset due to navigation');
+    devLog('Dwell tracker reset due to navigation');
   });
 
   // Listen for pushState/replaceState (SPA navigation)
@@ -61,13 +62,13 @@ export function setupNavigationListeners(): void {
   history.pushState = function (...args) {
     originalPushState(...args);
     instanceManager.resetDwellTracker();
-    console.log('Dwell tracker reset due to pushState');
+    devLog('Dwell tracker reset due to pushState');
   };
 
   history.replaceState = function (...args) {
     originalReplaceState(...args);
     instanceManager.resetDwellTracker();
-    console.log('Dwell tracker reset due to replaceState');
+    devLog('Dwell tracker reset due to replaceState');
   };
 }
 
@@ -97,7 +98,7 @@ export function setupMessageListener(dependencies: {
               | Settings
               | undefined;
             if (updated) {
-              console.log('Applying live settings update:', updated);
+              devLog('Applying live settings update:', updated);
               dependencies.applyTranslationPreference(updated);
               // Toast for user feedback
               try {
@@ -146,7 +147,7 @@ export function setupMessageListener(dependencies: {
           }
         }
       } catch (e) {
-        console.warn('Error handling incoming message in content script:', e);
+        devWarn('Error handling incoming message in content script:', e);
       }
 
       sendResponse({ success: true });
@@ -178,10 +179,10 @@ export async function initializeContentScript(dependencies: {
     // Set up navigation listeners
     setupNavigationListeners();
 
-    console.log(
+    devLog(
       `Dwell tracking started with threshold: ${settings.dwellThreshold}s`
     );
   } catch (error) {
-    console.error('Failed to initialize content script:', error);
+    devError('Failed to initialize content script:', error);
   }
 }

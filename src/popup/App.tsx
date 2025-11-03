@@ -22,6 +22,7 @@ import { formatISODate } from '../utils';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
 import { ErrorBoundary } from '../utils/ErrorBoundary';
+import { devLog, devError } from '../utils/logger';
 
 /**
  * Dashboard Popup Application
@@ -112,7 +113,7 @@ export const App: React.FC = () => {
           });
         }
       } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        devError('Failed to load dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -226,13 +227,13 @@ export const App: React.FC = () => {
           updatedReflections.sort((a, b) => b.createdAt - a.createdAt)
         );
       } catch (error) {
-        console.error('Failed to delete reflection:', error);
+        devError('Failed to delete reflection:', error);
       }
     })();
   }, []);
 
   const handleStreakIncrease = useCallback(() => {
-    console.log('Streak increased! 🎉');
+    devLog('Streak increased! 🎉');
   }, []);
 
   // Keyboard shortcuts

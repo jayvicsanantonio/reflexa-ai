@@ -11,6 +11,7 @@ import { Dropdown, type DropdownOption } from './components/Dropdown';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
 import './styles.css';
 import { ErrorBoundary } from '../utils/ErrorBoundary';
+import { devError } from '../utils/logger';
 
 export const App: React.FC = () => {
   // Enable keyboard navigation detection
@@ -45,7 +46,7 @@ export const App: React.FC = () => {
         setSettings(response.data as Settings);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      devError('Failed to load settings:', error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +68,7 @@ export const App: React.FC = () => {
         setCapabilities(response.data as AICapabilities);
       }
     } catch (error) {
-      console.error('Failed to load capabilities:', error);
+      devError('Failed to load capabilities:', error);
     }
   };
 
@@ -93,7 +94,7 @@ export const App: React.FC = () => {
           setCapabilities(response.data as AICapabilities);
         }
       } catch (error) {
-        console.error('Failed to refresh capabilities:', error);
+        devError('Failed to refresh capabilities:', error);
       } finally {
         setCheckingCapabilities(false);
       }
@@ -119,7 +120,7 @@ export const App: React.FC = () => {
         // Show save indicator
         setShowSaveIndicator(true);
       } catch (error) {
-        console.error('Failed to save settings:', error);
+        devError('Failed to save settings:', error);
       }
     }, TIMING.SETTINGS_DEBOUNCE);
   }, []);
@@ -160,7 +161,7 @@ export const App: React.FC = () => {
         setShowSaveIndicator(true);
       }
     } catch (error) {
-      console.error('Failed to reset settings:', error);
+      devError('Failed to reset settings:', error);
     }
   };
 

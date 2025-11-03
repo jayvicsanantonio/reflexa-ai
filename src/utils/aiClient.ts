@@ -5,6 +5,7 @@
 
 import { sendMessage } from './messageBus';
 import type { MessageType } from '../types';
+import { devError } from './logger';
 
 /**
  * Send a message to the background service worker and wait for response
@@ -19,7 +20,7 @@ export async function summarize(content: string): Promise<string[]> {
   const response = await send<string[]>('summarize', { content });
 
   if (!response.success) {
-    console.error('Summarization failed:', response.error);
+    devError('Summarization failed:', response.error);
     return [];
   }
 
@@ -35,7 +36,7 @@ export async function generateReflectionPrompts(
   const response = await send<string[]>('reflect', { summary });
 
   if (!response.success) {
-    console.error('Reflection generation failed:', response.error);
+    devError('Reflection generation failed:', response.error);
     return [];
   }
 
@@ -50,7 +51,7 @@ export async function proofread(text: string): Promise<string> {
   const response = await send<string>('proofread', { text });
 
   if (!response.success) {
-    console.error('Proofreading failed:', response.error);
+    devError('Proofreading failed:', response.error);
     return text; // Return original text on failure
   }
 
@@ -72,7 +73,7 @@ export async function translate(
   });
 
   if (!response.success) {
-    console.error('Translation failed:', response.error);
+    devError('Translation failed:', response.error);
     return text; // Return original text on failure
   }
 
@@ -93,7 +94,7 @@ export async function rewrite(
   const response = await send<string>('rewrite', { text, options });
 
   if (!response.success) {
-    console.error('Rewriting failed:', response.error);
+    devError('Rewriting failed:', response.error);
     return text; // Return original text on failure
   }
 
@@ -114,7 +115,7 @@ export async function write(
   const response = await send<string>('write', { prompt, options });
 
   if (!response.success) {
-    console.error('Writing failed:', response.error);
+    devError('Writing failed:', response.error);
     return '';
   }
 
@@ -128,7 +129,7 @@ export async function checkAIAvailability(): Promise<boolean> {
   const response = await send<boolean>('checkAI');
 
   if (!response.success) {
-    console.error('AI availability check failed:', response.error);
+    devError('AI availability check failed:', response.error);
     return false;
   }
 
@@ -156,7 +157,7 @@ export async function checkAllAIAvailability(): Promise<{
   }>('checkAllAI');
 
   if (!response.success) {
-    console.error('AI availability check failed:', response.error);
+    devError('AI availability check failed:', response.error);
     return {
       prompt: false,
       proofreader: false,
