@@ -3,6 +3,8 @@
  * Implements exponential backoff and quota tracking
  */
 
+import { devWarn, devError } from '../../../utils/logger';
+
 /**
  * Rate limit error detection
  */
@@ -114,14 +116,14 @@ export class RateLimiter {
           // If we have retries left, wait and try again
           if (attempt < MAX_RETRIES) {
             const delay = BACKOFF_DELAYS[attempt];
-            console.warn(
+            devWarn(
               `Rate limit hit for ${operationType}. Retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`
             );
             await this.sleep(delay);
             continue;
           } else {
             // All retries exhausted
-            console.error(
+            devError(
               `Rate limit exceeded for ${operationType} after ${MAX_RETRIES} retries`
             );
             throw new Error(

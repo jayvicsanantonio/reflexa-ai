@@ -12,6 +12,7 @@ import type {
   AIProofreaderFactory,
   ProofreadResult as ChromeProofreadResult,
 } from '../../../types/chrome-ai';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Our application's ProofreadResult with additional metadata
@@ -49,7 +50,7 @@ export class ProofreaderManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
-    console.log('[ProofreaderManager] Checking availability...');
+    devLog('[ProofreaderManager] Checking availability...');
     try {
       // Check if Proofreader global exists
       const ProofreaderAPI = (
@@ -57,21 +58,19 @@ export class ProofreaderManager {
       ).Proofreader;
 
       if (!ProofreaderAPI) {
-        console.warn(
-          '[ProofreaderManager] Proofreader API not found in globalThis'
-        );
+        devWarn('[ProofreaderManager] Proofreader API not found in globalThis');
         this.available = false;
         return false;
       }
 
       // Check availability status
       const status = await ProofreaderAPI.availability();
-      console.log(`[ProofreaderManager] API status: ${status}`);
+      devLog(`[ProofreaderManager] API status: ${status}`);
       this.available = status === 'available' || status === 'downloadable';
-      console.log(`[ProofreaderManager] Available: ${this.available}`);
+      devLog(`[ProofreaderManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error('[ProofreaderManager] Error checking availability:', error);
+      devError('[ProofreaderManager] Error checking availability:', error);
       this.available = false;
       return false;
     }
@@ -96,12 +95,12 @@ export class ProofreaderManager {
   }): Promise<AIProofreader | null> {
     // Return cached session if available
     if (this.session) {
-      console.log('[ProofreaderManager] Reusing existing session');
+      devLog('[ProofreaderManager] Reusing existing session');
       return this.session;
     }
 
     const languages = config?.expectedInputLanguages ?? ['en'];
-    console.log(
+    devLog(
       `[ProofreaderManager] Creating new session with languages: ${languages.join(', ')}`
     );
 
@@ -112,7 +111,7 @@ export class ProofreaderManager {
       ).Proofreader;
 
       if (!ProofreaderAPI) {
-        console.warn('[ProofreaderManager] Proofreader API not available');
+        devWarn('[ProofreaderManager] Proofreader API not available');
         return null;
       }
 
@@ -125,13 +124,13 @@ export class ProofreaderManager {
 
       // Cache the session
       this.session = session;
-      console.log(
+      devLog(
         `[ProofreaderManager] Created session in ${duration.toFixed(2)}ms`
       );
 
       return session;
     } catch (error) {
-      console.error('[ProofreaderManager] Error creating session:', error);
+      devError('[ProofreaderManager] Error creating session:', error);
       return null;
     }
   }
@@ -148,13 +147,13 @@ export class ProofreaderManager {
     text: string,
     options?: { expectedInputLanguages?: string[] }
   ): Promise<ProofreadResult> {
-    console.log(
+    devLog(
       `[ProofreaderManager] proofread() called with text length: ${text.length}, languages: ${options?.expectedInputLanguages?.join(', ') ?? 'default'}`
     );
 
     // Check availability first
     if (!this.available) {
-      console.log(
+      devLog(
         '[ProofreaderManager] API not available, checking availability...'
       );
       const isAvailable = await this.checkAvailability();
@@ -165,7 +164,7 @@ export class ProofreaderManager {
 
     try {
       // First attempt with standard timeout
-      console.log(
+      devLog(
         `[ProofreaderManager] Attempting proofread with ${PROOFREADER_TIMEOUT}ms timeout`
       );
       return await this.proofreadWithTimeout(
@@ -174,19 +173,17 @@ export class ProofreaderManager {
         options
       );
     } catch (error) {
-      console.warn(
+      devWarn(
         '[ProofreaderManager] First proofread attempt failed, retrying...',
         error
       );
 
       try {
         // Retry with extended timeout
-        console.log(
-          `[ProofreaderManager] Retrying with ${RETRY_TIMEOUT}ms timeout`
-        );
+        devLog(`[ProofreaderManager] Retrying with ${RETRY_TIMEOUT}ms timeout`);
         return await this.proofreadWithTimeout(text, RETRY_TIMEOUT, options);
       } catch (retryError) {
-        console.error(
+        devError(
           '[ProofreaderManager] Proofreading failed after retry:',
           retryError
         );
@@ -236,11 +233,11 @@ export class ProofreaderManager {
     }
 
     // Call API - returns ChromeProofreadResult
-    console.log('[ProofreaderManager] Calling session.proofread()...');
+    devLog('[ProofreaderManager] Calling session.proofread()...');
     const startTime = performance.now();
     const result: ChromeProofreadResult = await session.proofread(text);
     const duration = performance.now() - startTime;
-    console.log(
+    devLog(
       `[ProofreaderManager] Proofread completed in ${duration.toFixed(2)}ms, found ${result.corrections.length} corrections`
     );
 
@@ -251,7 +248,7 @@ export class ProofreaderManager {
       original: text.substring(correction.startIndex, correction.endIndex),
     }));
 
-    console.log(
+    devLog(
       `[ProofreaderManager] Corrections: ${corrections.map((c) => `"${c.original}"`).join(', ')}`
     );
 
@@ -266,17 +263,17 @@ export class ProofreaderManager {
    * Should be called when the manager is no longer needed
    */
   destroy(): void {
-    console.log('[ProofreaderManager] destroy() called');
+    devLog('[ProofreaderManager] destroy() called');
     if (this.session) {
       try {
         this.session.destroy();
-        console.log('[ProofreaderManager] Destroyed proofreader session');
+        devLog('[ProofreaderManager] Destroyed proofreader session');
       } catch (error) {
-        console.error('[ProofreaderManager] Error destroying session:', error);
+        devError('[ProofreaderManager] Error destroying session:', error);
       }
       this.session = null;
     } else {
-      console.log('[ProofreaderManager] No session to destroy');
+      devLog('[ProofreaderManager] No session to destroy');
     }
   }
 }

@@ -12,6 +12,7 @@ import type {
   SummaryFormat,
 } from '../../types';
 import { getLanguageName } from '../../utils/translationHelpers';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 /**
  * Handle proofread request
@@ -21,7 +22,7 @@ export async function handleProofread(
   text: string,
   index: number
 ): Promise<ProofreadResult> {
-  console.log(`Proofreading reflection ${index}...`);
+  devLog(`Proofreading reflection ${index}...`);
 
   try {
     // Determine expected language for proofreading
@@ -39,7 +40,7 @@ export async function handleProofread(
     });
 
     if (proofreadResponse.success) {
-      console.log('Proofread completed');
+      devLog('Proofread completed');
       let result = proofreadResponse.data;
 
       // Ensure proofread output is in selected target language, if any
@@ -69,17 +70,17 @@ export async function handleProofread(
             }
           }
         } catch (e) {
-          console.warn('Proofread translation skipped due to error:', e);
+          devWarn('Proofread translation skipped due to error:', e);
         }
       }
 
       return result;
     } else {
-      console.error('Proofread failed:', proofreadResponse.error);
+      devError('Proofread failed:', proofreadResponse.error);
       throw new Error(proofreadResponse.error);
     }
   } catch (error) {
-    console.error('Error proofreading:', error);
+    devError('Error proofreading:', error);
     throw error;
   }
 }
@@ -89,7 +90,7 @@ export async function handleProofread(
  * Translates summary and prompts to target language
  */
 export async function handleTranslate(targetLanguage: string): Promise<void> {
-  console.log('Translating to:', targetLanguage);
+  devLog('Translating to:', targetLanguage);
 
   const currentSummary = contentState.getSummary();
   const currentPrompts = contentState.getPrompts();
@@ -153,7 +154,7 @@ export async function handleTranslate(targetLanguage: string): Promise<void> {
     // Note: renderOverlay is still in index.tsx, will be extracted later
     // renderOverlay();
   } catch (error) {
-    console.error('Translation error:', error);
+    devError('Translation error:', error);
     contentState.setIsTranslating(false);
     throw error;
   } finally {
@@ -166,14 +167,14 @@ export async function handleTranslate(targetLanguage: string): Promise<void> {
  * Translates summary and prompts to English
  */
 export async function handleTranslateToEnglish(): Promise<void> {
-  console.log('Translating to English...');
+  devLog('Translating to English...');
 
   const currentSummary = contentState.getSummary();
   const currentPrompts = contentState.getPrompts();
   const originalLanguage = contentState.getOriginalDetectedLanguage() ?? 'en';
 
   if (originalLanguage === 'en') {
-    console.log('Content is already in English');
+    devLog('Content is already in English');
     return;
   }
 
@@ -235,7 +236,7 @@ export async function handleTranslateToEnglish(): Promise<void> {
     // Note: renderOverlay is still in index.tsx, will be extracted later
     // renderOverlay();
   } catch (error) {
-    console.error('Translation to English error:', error);
+    devError('Translation to English error:', error);
     contentState.setIsTranslating(false);
     throw error;
   } finally {
@@ -252,7 +253,7 @@ export async function handleRewrite(
   tone: TonePreset,
   index: number
 ): Promise<{ original: string; rewritten: string }> {
-  console.log(`Rewriting reflection ${index} with tone: ${tone}...`);
+  devLog(`Rewriting reflection ${index} with tone: ${tone}...`);
 
   contentState.setIsRewriting(index, true);
 
@@ -286,14 +287,14 @@ export async function handleRewrite(
     });
 
     if (rewriteResponse.success) {
-      console.log('Rewrite completed');
+      devLog('Rewrite completed');
       return rewriteResponse.data;
     } else {
-      console.error('Rewrite failed:', rewriteResponse.error);
+      devError('Rewrite failed:', rewriteResponse.error);
       throw new Error(rewriteResponse.error);
     }
   } catch (error) {
-    console.error('Error rewriting:', error);
+    devError('Error rewriting:', error);
     throw error;
   } finally {
     contentState.setIsRewriting(index, false);
@@ -321,7 +322,7 @@ export async function handleFormatChange(
     return;
   }
 
-  console.log(`Changing summary format to: ${format}`);
+  devLog(`Changing summary format to: ${format}`);
   contentState.setSummaryFormat(format);
   contentState.setIsLoadingSummary(true);
 
@@ -363,12 +364,9 @@ export async function handleFormatChange(
       contentState.setSummaryDisplay(newSummary);
       stopSummaryAnimation();
       contentState.setSummaryStreamComplete(true);
-      console.log(
-        'Summary updated with new format:',
-        contentState.getSummary()
-      );
+      devLog('Summary updated with new format:', contentState.getSummary());
     } else {
-      console.error('Failed to update summary format:', summaryResponse.error);
+      devError('Failed to update summary format:', summaryResponse.error);
       // Keep existing summary on error
       showNotification(
         'Format Change Failed',
@@ -377,7 +375,7 @@ export async function handleFormatChange(
       );
     }
   } catch (error) {
-    console.error('Error changing format:', error);
+    devError('Error changing format:', error);
     showNotification(
       'Format Change Failed',
       'An error occurred while changing format.',

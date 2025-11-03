@@ -10,6 +10,7 @@ import type {
   AISummarizerFactory,
 } from '../../../types/chrome-ai';
 import { capabilityDetector } from '../../capabilityDetector';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Timeout duration for summarization operations (30 seconds)
@@ -60,7 +61,7 @@ export class SummarizerManager {
       this.available = Boolean(capabilities.summarizer);
       return this.available;
     } catch (error) {
-      console.error('Error checking Summarizer availability:', error);
+      devError('Error checking Summarizer availability:', error);
       this.available = false;
       return false;
     }
@@ -110,7 +111,7 @@ export class SummarizerManager {
       ).Summarizer;
 
       if (!SummarizerAPI) {
-        console.warn('Summarizer API not available');
+        devWarn('Summarizer API not available');
         return null;
       }
 
@@ -132,13 +133,13 @@ export class SummarizerManager {
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(
+      devLog(
         `Created summarizer session: ${sessionKey}${outputLanguage ? ` (language: ${outputLanguage})` : ''}`
       );
 
       return session;
     } catch (error) {
-      console.error('Error creating summarizer session:', error);
+      devError('Error creating summarizer session:', error);
       return null;
     }
   }
@@ -176,7 +177,7 @@ export class SummarizerManager {
         SUMMARIZE_TIMEOUT
       );
     } catch (error) {
-      console.warn('First summarization attempt failed, retrying...', error);
+      devWarn('First summarization attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
@@ -188,7 +189,7 @@ export class SummarizerManager {
           RETRY_TIMEOUT
         );
       } catch (retryError) {
-        console.error('Summarization failed after retry:', retryError);
+        devError('Summarization failed after retry:', retryError);
         throw new Error(
           `Summarization failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -467,9 +468,9 @@ export class SummarizerManager {
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed summarizer session: ${key}`);
+        devLog(`Destroyed summarizer session: ${key}`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        devError(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
@@ -501,9 +502,9 @@ export class SummarizerManager {
         try {
           session.destroy();
           this.sessions.delete(key);
-          console.log(`Destroyed summarizer session: ${key}`);
+          devLog(`Destroyed summarizer session: ${key}`);
         } catch (error) {
-          console.error(`Error destroying session ${key}:`, error);
+          devError(`Error destroying session ${key}:`, error);
         }
       }
     }

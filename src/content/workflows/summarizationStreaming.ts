@@ -6,6 +6,7 @@
 import { contentState } from '../state';
 import { startAIStream } from '../runtime/messageBus';
 import type { SummaryFormat } from '../../types';
+import { devWarn } from '../../utils/logger';
 
 /**
  * Parse summary buffer into array of summary items
@@ -175,7 +176,7 @@ export function summarizeWithStreaming(
           );
         },
         onError: (error) => {
-          console.warn('Summarize stream error:', error);
+          devWarn('Summarize stream error:', error);
           if (!completed) {
             contentState.setSummaryBuffer('');
           }

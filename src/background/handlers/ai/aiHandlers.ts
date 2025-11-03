@@ -103,9 +103,7 @@ export async function handleSummarize(
     // Check if Summarizer API is available and enabled
     const summarizerApiAvailable =
       await aiService.summarizer.checkAvailability();
-    devLog(
-      `[Summarize] Summarizer API available: ${summarizerApiAvailable}`
-    );
+    devLog(`[Summarize] Summarizer API available: ${summarizerApiAvailable}`);
 
     const summarizerAvailable =
       settings.useNativeSummarizer && summarizerApiAvailable;
@@ -127,9 +125,7 @@ export async function handleSummarize(
       );
       apiUsed = 'summarizer';
     } else {
-      devLog(
-        `[Summarize] Falling back to Prompt API with format: ${format}`
-      );
+      devLog(`[Summarize] Falling back to Prompt API with format: ${format}`);
 
       summary = await rateLimiter.executeWithRetry(
         () => aiService.prompt.summarize(content, format, outputLanguage),
@@ -511,9 +507,7 @@ export async function handleRewrite(
       apiUsed = 'rewriter';
     } else {
       // Fallback to Prompt API
-      devLog(
-        `[Rewrite] Falling back to Prompt API with preset: ${preset}`
-      );
+      devLog(`[Rewrite] Falling back to Prompt API with preset: ${preset}`);
 
       const available = await ensureAIAvailable();
       if (!available) {

@@ -54,10 +54,7 @@ export const GenerateDraftSection: React.FC<GenerateDraftSectionProps> = ({
           // Pass the generated draft to parent
           onGenerateDraft(draft);
         } else {
-          devError(
-            '[MoreToolsMenu] Draft generation failed:',
-            response.error
-          );
+          devError('[MoreToolsMenu] Draft generation failed:', response.error);
         }
       } catch (error) {
         devError('[MoreToolsMenu] Failed to generate draft:', error);

@@ -52,10 +52,7 @@ export const ReflectionItem: React.FC<ReflectionItemProps> = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          devLog(
-            '[DashboardModal] Delete button clicked for:',
-            reflection.id
-          );
+          devLog('[DashboardModal] Delete button clicked for:', reflection.id);
           void onDelete(reflection.id);
         }}
         title="Delete reflection"

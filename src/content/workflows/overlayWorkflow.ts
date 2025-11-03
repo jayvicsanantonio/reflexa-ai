@@ -9,6 +9,7 @@ import { uiManager } from '../ui';
 import { performanceMonitor } from '../../utils/performanceMonitor';
 import { sendMessageToBackground } from '../runtime/messageBus';
 import type { Settings } from '../../types';
+import { devLog } from '../../utils/logger';
 
 /**
  * Show the Reflect Mode overlay
@@ -18,14 +19,14 @@ import type { Settings } from '../../types';
 export async function showReflectModeOverlay(): Promise<void> {
   const overlayState = contentState.getOverlayState();
   if (overlayState.isVisible) {
-    console.log('Overlay already visible');
+    devLog('Overlay already visible');
     return;
   }
 
   // Start performance measurement
   performanceMonitor.startMeasure('overlay-render');
 
-  console.log('Showing Reflect Mode overlay...');
+  devLog('Showing Reflect Mode overlay...');
 
   // Load current settings
   const settings = await (async () => {
@@ -72,7 +73,7 @@ export async function showReflectModeOverlay(): Promise<void> {
   // Log memory usage
   performanceMonitor.logMemoryUsage();
 
-  console.log('Reflect Mode overlay displayed');
+  devLog('Reflect Mode overlay displayed');
 }
 
 /**

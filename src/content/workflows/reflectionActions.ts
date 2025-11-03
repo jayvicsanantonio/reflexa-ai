@@ -12,6 +12,7 @@ import { uiManager } from '../ui';
 import type { Reflection, VoiceInputMetadata } from '../../types';
 import { generateUUID } from '../../utils';
 import { ERROR_MESSAGES } from '../../constants';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 // Create error modal handler
 let showErrorModalHandler: ReturnType<typeof createShowErrorModal> | null =
@@ -44,7 +45,7 @@ function showNotification(
   if (showNotificationHandler) {
     showNotificationHandler(title, message, type);
   } else {
-    console.warn(`[Notification] ${type}: ${title} - ${message}`);
+    devWarn(`[Notification] ${type}: ${title} - ${message}`);
   }
 }
 
@@ -70,7 +71,7 @@ export async function handleSaveReflection(
   voiceMetadata?: VoiceInputMetadata[],
   originalReflections?: (string | null)[]
 ): Promise<void> {
-  console.log('Saving reflection...');
+  devLog('Saving reflection...');
 
   try {
     // Stop ambient audio if playing
@@ -110,7 +111,7 @@ export async function handleSaveReflection(
     });
 
     if (!saveResponse.success) {
-      console.error('Failed to save reflection:', saveResponse.error);
+      devError('Failed to save reflection:', saveResponse.error);
 
       // Check if it's a storage full error
       if (saveResponse.error.includes('Storage full')) {
@@ -140,7 +141,7 @@ export async function handleSaveReflection(
       return;
     }
 
-    console.log('Reflection saved successfully');
+    devLog('Reflection saved successfully');
 
     // Play completion bell if enabled (before hiding overlay)
     const settingsForBell = instanceManager.getSettings();
@@ -159,7 +160,7 @@ export async function handleSaveReflection(
 
     // Note: showLotusNudge would be called from index.tsx after this
   } catch (error) {
-    console.error('Error saving reflection:', error);
+    devError('Error saving reflection:', error);
     showNotification(
       'Save Error',
       error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -173,7 +174,7 @@ export async function handleSaveReflection(
  * Closes overlay without saving and shows the nudge again
  */
 export function handleCancelReflection(): void {
-  console.log('Canceling reflection...');
+  devLog('Canceling reflection...');
 
   // Stop ambient audio if playing
   instanceManager.stopAudioManager();

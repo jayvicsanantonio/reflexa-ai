@@ -6,6 +6,7 @@
 import { contentState } from '../state';
 import { instanceManager } from '../core';
 import type { ExtractedContent } from '../../types';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 /**
  * Extract and validate content from the page
@@ -17,7 +18,7 @@ export function extractAndValidateContent(): ExtractedContent | null {
   const extractedContent = contentExtractor.extractMainContent();
 
   if (!extractedContent?.text.trim()) {
-    console.error('Failed to extract content from page');
+    devError('Failed to extract content from page');
     return null;
   }
 
@@ -26,7 +27,7 @@ export function extractAndValidateContent(): ExtractedContent | null {
     contentExtractor.checkTokenLimit(extractedContent);
 
   if (exceeds) {
-    console.warn(
+    devWarn(
       `Content exceeds token limit (${tokens} tokens), will be truncated`
     );
     // Return truncated content
@@ -50,7 +51,7 @@ export function extractAndStoreContent(): boolean {
   // Store in state
   contentState.setExtractedContent(extractedContent);
 
-  console.log('Content extracted:', {
+  devLog('Content extracted:', {
     title: extractedContent.title,
     textLength: extractedContent.text.length,
     wordCount: extractedContent.wordCount,

@@ -439,10 +439,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             try {
               port.disconnect();
             } catch (disconnectError) {
-              devWarn(
-                'Writer stream disconnect warning:',
-                disconnectError
-              );
+              devWarn('Writer stream disconnect warning:', disconnectError);
             }
           };
 
@@ -826,9 +823,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       prevLoadingRef.current === true &&
       isLoadingSummary === false
     ) {
-      devLog(
-        '[MeditationFlow] Loading complete, auto-advancing to summary'
-      );
+      devLog('[MeditationFlow] Loading complete, auto-advancing to summary');
       setStep(1);
     }
 

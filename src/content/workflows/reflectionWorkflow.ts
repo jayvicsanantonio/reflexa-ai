@@ -13,6 +13,7 @@ import { applyTranslationPreference } from './translationPreferences';
 import { uiManager } from '../ui';
 import type { AICapabilities, LanguageDetection } from '../../types';
 import { ERROR_MESSAGES } from '../../constants';
+import { devLog, devWarn, devError } from '../../utils/logger';
 
 // Create error modal helper - this will be passed from index.tsx
 let showErrorModal: ReturnType<typeof createShowErrorModal> | null = null;
@@ -44,16 +45,16 @@ async function checkAIAvailability(): Promise<boolean> {
 
   if (aiCheckResponse.success) {
     contentState.setAIAvailable(aiCheckResponse.data);
-    console.log('AI availability:', contentState.getAIAvailable());
+    devLog('AI availability:', contentState.getAIAvailable());
     if (!contentState.getAIAvailable()) {
-      console.log(
+      devLog(
         '💡 To enable AI: Check background service worker logs for instructions'
       );
     }
     return aiCheckResponse.data;
   } else {
     contentState.setAIAvailable(false);
-    console.error('AI check failed:', aiCheckResponse.error);
+    devError('AI check failed:', aiCheckResponse.error);
     return false;
   }
 }
@@ -75,7 +76,7 @@ async function getAICapabilities(): Promise<AICapabilities | null> {
     console.log('AI capabilities:', contentState.getAICapabilities());
     return capabilitiesResponse.data;
   } else {
-    console.error('Failed to get capabilities:', capabilitiesResponse.error);
+    devError('Failed to get capabilities:', capabilitiesResponse.error);
     return null;
   }
 }
@@ -118,7 +119,7 @@ export async function initiateReflectionFlow(): Promise<void> {
     // Get extracted content (should exist after successful extraction)
     const extractedContentInitial = contentState.getExtractedContent();
     if (!extractedContentInitial) {
-      console.error('Content extraction succeeded but content is null');
+      devError('Content extraction succeeded but content is null');
       setNudgeLoadingState(false);
       getShowErrorModal()(
         'Content Extraction Failed',
@@ -177,12 +178,12 @@ export async function initiateReflectionFlow(): Promise<void> {
       const detection = contentState.getLanguageDetection();
       // Capture original language once per session
       if (detection) {
-        console.log(
+        devLog(
           `Language detected: ${detection.languageName} (${detection.detectedLanguage})`
         );
       }
     } else {
-      console.warn('Language detection failed:', languageResponse.error);
+      devWarn('Language detection failed:', languageResponse.error);
       // Default to English if detection fails
       detectedLanguageCode = 'en';
     }
@@ -200,7 +201,7 @@ export async function initiateReflectionFlow(): Promise<void> {
       contentState.getPreferredLanguageBaseline() &&
       detectedLanguageCode !== contentState.getPreferredLanguageBaseline()
     ) {
-      console.log('Auto-translating content...');
+      devLog('Auto-translating content...');
       // Auto-translate logic will be handled in overlay workflow
     }
 
@@ -210,7 +211,7 @@ export async function initiateReflectionFlow(): Promise<void> {
 
     // Summarization will be handled by overlay workflow's streaming logic
   } catch (error) {
-    console.error('Error in reflection flow:', error);
+    devError('Error in reflection flow:', error);
     setNudgeLoadingState(false);
     getShowErrorModal()(
       'Reflection Flow Error',

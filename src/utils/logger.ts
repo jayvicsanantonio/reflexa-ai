@@ -14,7 +14,6 @@
 const isDev = (() => {
   // 1. Check Vite environment variable (set during build)
   try {
-    // @ts-expect-error - import.meta.env is a Vite feature
     if (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) {
       return true;
     }
@@ -25,11 +24,7 @@ const isDev = (() => {
   // 2. Check if extension is unpacked (loaded locally for testing)
   // Unpacked extensions don't have update_url, which is only present in Chrome Web Store extensions
   try {
-    if (
-      typeof chrome !== 'undefined' &&
-      chrome.runtime &&
-      chrome.runtime.getManifest
-    ) {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.getManifest) {
       const manifest = chrome.runtime.getManifest();
       // If update_url is undefined, it's an unpacked extension (local testing)
       // Chrome Web Store extensions always have update_url
@@ -79,4 +74,3 @@ export const perfLog = (...args: unknown[]): void => {
     console.log('[Reflexa Perf]', ...args);
   }
 };
-

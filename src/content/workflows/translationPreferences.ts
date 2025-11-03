@@ -8,6 +8,7 @@ import { instanceManager } from '../core';
 import { sendMessageToBackground } from '../runtime/messageBus';
 import type { Settings, LanguageDetection } from '../../types';
 import { getLanguageName } from '../../utils/translationHelpers';
+import { devLog, devError } from '../../utils/logger';
 
 /**
  * Apply translation preference based on settings
@@ -119,7 +120,7 @@ export async function handleAutoTranslate(
 
       // Use cache if less than 24 hours old
       if (age < 24 * 60 * 60 * 1000) {
-        console.log('Using cached translation');
+        devLog('Using cached translation');
         contentState.setSummary(cachedData.summary);
         contentState.setSummaryDisplay(cachedData.summary);
         stopSummaryAnimation();
@@ -152,7 +153,7 @@ export async function handleAutoTranslate(
         translatedSummary.push(response.data);
         successCount += 1;
       } else {
-        console.error('Translation failed:', response.error);
+        devError('Translation failed:', response.error);
         translatedSummary.push(bullet); // Keep original on error
       }
     }
@@ -186,7 +187,7 @@ export async function handleAutoTranslate(
     // Re-render overlay with translated content
     renderOverlay();
   } catch (error) {
-    console.error('Error during auto-translate:', error);
+    devError('Error during auto-translate:', error);
     // Continue with original summary on error
   }
 }

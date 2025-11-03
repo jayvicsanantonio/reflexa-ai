@@ -7,6 +7,7 @@
 import type { TonePreset } from '../../../types';
 import type { AIRewriter } from '../../../types/chrome-ai';
 import { capabilityDetector } from '../../capabilityDetector';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Timeout duration for rewriter operations (5 seconds)
@@ -54,7 +55,7 @@ export class RewriterManager {
       this.available = Boolean(capabilities.rewriter);
       return this.available;
     } catch (error) {
-      console.error('Error checking Rewriter availability:', error);
+      devError('Error checking Rewriter availability:', error);
       this.available = false;
       return false;
     }
@@ -125,7 +126,7 @@ export class RewriterManager {
       // Access Rewriter from globalThis (service worker context)
       // Note: Rewriter API is accessed via global Rewriter, not ai.rewriter
       if (typeof Rewriter === 'undefined') {
-        console.warn('Rewriter API not available');
+        devWarn('Rewriter API not available');
         return null;
       }
 
@@ -148,13 +149,13 @@ export class RewriterManager {
 
       // Cache the session
       this.sessions.set(sessionKey, session);
-      console.log(
+      devLog(
         `Created rewriter session: ${sessionKey}${config.outputLanguage ? ` (language: ${config.outputLanguage})` : ''}`
       );
 
       return session;
     } catch (error) {
-      console.error('Error creating rewriter session:', error);
+      devError('Error creating rewriter session:', error);
       return null;
     }
   }
@@ -197,7 +198,7 @@ export class RewriterManager {
       );
       return { original: text, rewritten };
     } catch (error) {
-      console.warn('First rewrite attempt failed, retrying...', error);
+      devWarn('First rewrite attempt failed, retrying...', error);
 
       try {
         // Retry with extended timeout
@@ -211,7 +212,7 @@ export class RewriterManager {
         );
         return { original: text, rewritten };
       } catch (retryError) {
-        console.error('Rewriting failed after retry:', retryError);
+        devError('Rewriting failed after retry:', retryError);
         throw new Error(
           `Text rewriting failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`
         );
@@ -359,7 +360,7 @@ export class RewriterManager {
 
       return { original: text, rewritten: fullText.trim() };
     } catch (error) {
-      console.error('Streaming rewrite failed:', error);
+      devError('Streaming rewrite failed:', error);
       throw new Error(
         `Streaming rewrite failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -374,9 +375,9 @@ export class RewriterManager {
     for (const [key, session] of this.sessions.entries()) {
       try {
         session.destroy();
-        console.log(`Destroyed rewriter session: ${key}`);
+        devLog(`Destroyed rewriter session: ${key}`);
       } catch (error) {
-        console.error(`Error destroying session ${key}:`, error);
+        devError(`Error destroying session ${key}:`, error);
       }
     }
     this.sessions.clear();
@@ -395,9 +396,9 @@ export class RewriterManager {
       try {
         session.destroy();
         this.sessions.delete(sessionKey);
-        console.log(`Destroyed rewriter session: ${sessionKey}`);
+        devLog(`Destroyed rewriter session: ${sessionKey}`);
       } catch (error) {
-        console.error(`Error destroying session ${sessionKey}:`, error);
+        devError(`Error destroying session ${sessionKey}:`, error);
       }
     }
   }

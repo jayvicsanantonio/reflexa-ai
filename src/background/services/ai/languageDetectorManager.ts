@@ -10,6 +10,7 @@ import type {
   AILanguageDetectorFactory,
   LanguageDetectionResult,
 } from '../../../types/chrome-ai';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Maximum characters to use for language detection (for speed)
@@ -152,7 +153,7 @@ export class LanguageDetectorManager {
    * @returns Promise resolving to availability status
    */
   async checkAvailability(): Promise<boolean> {
-    console.log('[LanguageDetectorManager] Checking availability...');
+    devLog('[LanguageDetectorManager] Checking availability...');
     try {
       // Check if LanguageDetector exists in globalThis (not under ai namespace)
       const LanguageDetector = (
@@ -162,7 +163,7 @@ export class LanguageDetectorManager {
       ).LanguageDetector;
 
       if (!LanguageDetector) {
-        console.warn(
+        devWarn(
           '[LanguageDetectorManager] LanguageDetector API not found in globalThis'
         );
         this.available = false;
@@ -171,15 +172,12 @@ export class LanguageDetectorManager {
 
       // Check actual availability status
       const status = await LanguageDetector.availability();
-      console.log(`[LanguageDetectorManager] API status: ${status}`);
+      devLog(`[LanguageDetectorManager] API status: ${status}`);
       this.available = status === 'available' || status === 'downloadable';
-      console.log(`[LanguageDetectorManager] Available: ${this.available}`);
+      devLog(`[LanguageDetectorManager] Available: ${this.available}`);
       return this.available;
     } catch (error) {
-      console.error(
-        '[LanguageDetectorManager] Error checking availability:',
-        error
-      );
+      devError('[LanguageDetectorManager] Error checking availability:', error);
       this.available = false;
       return false;
     }
@@ -199,13 +197,11 @@ export class LanguageDetectorManager {
    */
   private async getDetector(): Promise<AILanguageDetector | null> {
     if (this.detector) {
-      console.log(
-        '[LanguageDetectorManager] Reusing existing detector instance'
-      );
+      devLog('[LanguageDetectorManager] Reusing existing detector instance');
       return this.detector;
     }
 
-    console.log('[LanguageDetectorManager] Creating new detector instance...');
+    devLog('[LanguageDetectorManager] Creating new detector instance...');
     try {
       // Access LanguageDetector from globalThis (not under ai namespace)
       const LanguageDetector = (
@@ -215,7 +211,7 @@ export class LanguageDetectorManager {
       ).LanguageDetector;
 
       if (!LanguageDetector) {
-        console.warn(
+        devWarn(
           '[LanguageDetectorManager] Language Detector API not available'
         );
         return null;
@@ -225,13 +221,13 @@ export class LanguageDetectorManager {
       const startTime = performance.now();
       this.detector = await LanguageDetector.create();
       const duration = performance.now() - startTime;
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Created detector instance in ${duration.toFixed(2)}ms`
       );
 
       return this.detector;
     } catch (error) {
-      console.error(
+      devError(
         '[LanguageDetectorManager] Error creating language detector:',
         error
       );
@@ -248,13 +244,13 @@ export class LanguageDetectorManager {
    * @throws Error if detection fails
    */
   async detect(text: string, pageUrl?: string): Promise<LanguageDetection> {
-    console.log(
+    devLog(
       `[LanguageDetectorManager] detect() called with text length: ${text.length}, pageUrl: ${pageUrl ?? 'none'}`
     );
 
     // Check availability first
     if (!this.available) {
-      console.log(
+      devLog(
         '[LanguageDetectorManager] API not available, checking availability...'
       );
       const isAvailable = await this.checkAvailability();
@@ -265,17 +261,17 @@ export class LanguageDetectorManager {
 
     // Generate cache key from page URL or text sample
     const cacheKey = pageUrl ?? this.generateCacheKey(text);
-    console.log(`[LanguageDetectorManager] Cache key: ${cacheKey}`);
+    devLog(`[LanguageDetectorManager] Cache key: ${cacheKey}`);
 
     // Check cache first
     const cached = this.getCachedResult(cacheKey);
     if (cached) {
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Cache HIT for: ${cacheKey} - ${cached.languageName} (${cached.confidence.toFixed(2)})`
       );
       return cached;
     }
-    console.log(`[LanguageDetectorManager] Cache MISS for: ${cacheKey}`);
+    devLog(`[LanguageDetectorManager] Cache MISS for: ${cacheKey}`);
 
     // Get detector instance
     const detector = await this.getDetector();
@@ -286,7 +282,7 @@ export class LanguageDetectorManager {
     try {
       // Use first 500 characters for speed
       const sample = text.slice(0, DETECTION_SAMPLE_LENGTH);
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Using sample of ${sample.length} characters`
       );
 
@@ -294,7 +290,7 @@ export class LanguageDetectorManager {
       const startTime = performance.now();
       const results: LanguageDetectionResult[] = await detector.detect(sample);
       const duration = performance.now() - startTime;
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Detection completed in ${duration.toFixed(2)}ms, got ${results.length} results`
       );
 
@@ -321,16 +317,13 @@ export class LanguageDetectorManager {
       // Cache the result
       this.cacheResult(cacheKey, result);
 
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Detected language: ${languageName} (${detectedLanguage}) with confidence ${confidence.toFixed(2)}`
       );
 
       return result;
     } catch (error) {
-      console.error(
-        '[LanguageDetectorManager] Language detection failed:',
-        error
-      );
+      devError('[LanguageDetectorManager] Language detection failed:', error);
       throw new Error(
         `Language detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -408,7 +401,7 @@ export class LanguageDetectorManager {
   clearCache(): void {
     const size = this.cache.size;
     this.cache.clear();
-    console.log(`[LanguageDetectorManager] Cleared ${size} cache entries`);
+    devLog(`[LanguageDetectorManager] Cleared ${size} cache entries`);
   }
 
   /**
@@ -418,7 +411,7 @@ export class LanguageDetectorManager {
   clearCacheForPage(pageUrl: string): void {
     const existed = this.cache.has(pageUrl);
     this.cache.delete(pageUrl);
-    console.log(
+    devLog(
       `[LanguageDetectorManager] Cleared cache for page: ${pageUrl} (existed: ${existed})`
     );
   }
@@ -427,7 +420,7 @@ export class LanguageDetectorManager {
    * Clean up expired cache entries
    */
   cleanupCache(): void {
-    console.log(
+    devLog(
       `[LanguageDetectorManager] Starting cache cleanup (current size: ${this.cache.size})`
     );
     const now = Date.now();
@@ -444,11 +437,11 @@ export class LanguageDetectorManager {
     }
 
     if (keysToDelete.length > 0) {
-      console.log(
+      devLog(
         `[LanguageDetectorManager] Cleaned up ${keysToDelete.length} expired cache entries (new size: ${this.cache.size})`
       );
     } else {
-      console.log('[LanguageDetectorManager] No expired cache entries found');
+      devLog('[LanguageDetectorManager] No expired cache entries found');
     }
   }
 
@@ -456,22 +449,22 @@ export class LanguageDetectorManager {
    * Clean up detector instance
    */
   destroy(): void {
-    console.log('[LanguageDetectorManager] destroy() called');
+    devLog('[LanguageDetectorManager] destroy() called');
     if (this.detector) {
       try {
         this.detector.destroy();
-        console.log(
+        devLog(
           '[LanguageDetectorManager] Destroyed language detector instance'
         );
       } catch (error) {
-        console.error(
+        devError(
           '[LanguageDetectorManager] Error destroying language detector:',
           error
         );
       }
       this.detector = null;
     } else {
-      console.log('[LanguageDetectorManager] No detector instance to destroy');
+      devLog('[LanguageDetectorManager] No detector instance to destroy');
     }
     this.clearCache();
   }
