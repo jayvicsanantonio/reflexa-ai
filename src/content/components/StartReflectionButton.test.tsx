@@ -49,7 +49,8 @@ describe('StartReflectionButton', () => {
 
     const button = screen.getByTestId('start-reflection-button');
     expect(button).toBeDisabled();
-    expect(button).toHaveClass('reflexa-start-reflection-button--disabled');
+    expect(button.className).toContain('opacity-50');
+    expect(button.className).toContain('cursor-not-allowed');
   });
 
   it('shows loading state when clicked', async () => {
@@ -81,7 +82,7 @@ describe('StartReflectionButton', () => {
     // Should show loading state
     await waitFor(() => {
       expect(button).toHaveTextContent('Generating...');
-      expect(button).toHaveClass('reflexa-start-reflection-button--loading');
+      expect(button.className).toContain('cursor-wait');
       expect(button).toBeDisabled();
     });
   });
@@ -143,7 +144,8 @@ describe('StartReflectionButton', () => {
     // Wait for success state
     await waitFor(() => {
       expect(button).toHaveTextContent('Draft Inserted!');
-      expect(button).toHaveClass('reflexa-start-reflection-button--success');
+      expect(button.className).toContain('from-emerald-500');
+      expect(button.className).toContain('to-emerald-600');
     });
 
     // Verify callback was called with draft

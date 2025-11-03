@@ -28,15 +28,26 @@ export function setNudgeLoadingState(loading: boolean): void {
   const shadowRoot = nudgeState.container.shadowRoot;
   if (!shadowRoot) return;
 
-  const nudgeElement = shadowRoot.querySelector('.reflexa-lotus-nudge');
+  // Find the nudge button by data-testid instead of class name
+  const nudgeElement = shadowRoot.querySelector<HTMLElement>(
+    '[data-testid="lotus-nudge"]'
+  );
   if (!nudgeElement) return;
 
   if (loading) {
-    nudgeElement.classList.add('reflexa-lotus-nudge--loading');
+    nudgeElement.classList.add(
+      'cursor-wait',
+      'opacity-70',
+      'pointer-events-none'
+    );
     nudgeElement.setAttribute('aria-label', 'Processing content...');
     nudgeElement.setAttribute('aria-busy', 'true');
   } else {
-    nudgeElement.classList.remove('reflexa-lotus-nudge--loading');
+    nudgeElement.classList.remove(
+      'cursor-wait',
+      'opacity-70',
+      'pointer-events-none'
+    );
     nudgeElement.setAttribute('aria-label', 'Start reflection');
     nudgeElement.setAttribute('aria-busy', 'false');
   }

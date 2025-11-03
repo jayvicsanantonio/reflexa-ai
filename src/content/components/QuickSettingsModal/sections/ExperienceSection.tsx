@@ -20,8 +20,10 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({
   settings,
   updateSetting,
 }) => (
-  <div className="reflexa-settings-section">
-    <div className="reflexa-settings-section__title">Experience</div>
+  <div className="py-1 pb-2">
+    <div className="my-1.5 text-xs font-normal tracking-wider text-slate-600 uppercase">
+      Experience
+    </div>
     <Row
       title="Enable sound"
       desc="Play calming audio during reflection sessions"

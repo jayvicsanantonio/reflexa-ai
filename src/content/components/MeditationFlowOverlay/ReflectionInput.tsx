@@ -90,26 +90,19 @@ export const ReflectionInput: React.FC<ReflectionInputProps> = ({
   };
 
   return (
-    <div className="reflexa-meditation-slide">
+    <div className="animate-[meditateSlideUp_360ms_cubic-bezier(0.2,0.8,0.2,1)_both] motion-reduce:animate-[fadeIn_0.15s_ease-in-out]">
       <h2 style={{ fontSize: 22, margin: '0 0 8px', fontWeight: 800 }}>
         Reflect
       </h2>
       <p style={{ color: '#cbd5e1', marginTop: 0, marginBottom: 10 }}>
         {prompt}
       </p>
-      <div
-        className="reflexa-overlay__reflection-input-wrapper"
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          width: '100%',
-        }}
-      >
+      <div className="mx-auto w-full max-w-[720px]">
         <textarea
-          className={`reflexa-overlay__reflection-input ${
+          className={`box-border min-h-[220px] w-full rounded-xl border px-3 py-3 text-sm text-slate-50 transition-[background,border] duration-300 ${
             voiceInput.isRecording
-              ? 'reflexa-overlay__reflection-input--recording'
-              : ''
+              ? 'border-blue-500/40 bg-blue-500/10'
+              : 'border-slate-200/25 bg-slate-950/35'
           }`}
           aria-label={`Reflection answer ${index + 1}`}
           autoComplete="off"

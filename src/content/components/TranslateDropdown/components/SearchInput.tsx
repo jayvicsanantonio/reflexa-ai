@@ -26,11 +26,11 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="reflexa-translate-dropdown__search">
+    <div className="border-b border-b-white/10 p-3">
       <input
         ref={searchInputRef}
         type="text"
-        className="reflexa-translate-dropdown__search-input"
+        className="w-full rounded-sm border border-white/10 bg-white/5 px-3 py-2 font-sans text-[13px] text-(--color-zen-100) transition-all duration-200 outline-none placeholder:text-(--color-calm-400) focus:border-sky-400/40 focus:bg-white/8"
         placeholder="Search languages..."
         value={value}
         onChange={(e) => onChange(e.target.value)}

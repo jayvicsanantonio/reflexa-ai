@@ -382,8 +382,10 @@ describe('Accessibility Tests', () => {
           <BreathingOrb enabled={false} duration={7} size={120} />
         );
 
-        const orb = container.querySelector('.reflexa-breathing-orb');
-        expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
+        const orb = container.querySelector('[data-testid="breathing-orb"]');
+        expect(orb).toBeTruthy();
+        // When enabled=false, there should be no animation classes
+        expect(orb?.className).not.toContain('animate-[');
       });
     });
 
@@ -424,14 +426,11 @@ describe('Accessibility Tests', () => {
 
       it('should respond to Escape key', () => {
         const onCancel = vi.fn();
-        const { container } = render(
-          <MeditationFlowOverlay {...defaultProps} onCancel={onCancel} />
-        );
+        render(<MeditationFlowOverlay {...defaultProps} onCancel={onCancel} />);
 
-        const overlay = container.querySelector('.reflexa-overlay');
-        if (overlay) {
-          fireEvent.keyDown(overlay, { key: 'Escape' });
-        }
+        // Find the overlay by role instead of class name
+        const overlay = screen.getByRole('dialog');
+        fireEvent.keyDown(overlay, { key: 'Escape' });
 
         expect(onCancel).toHaveBeenCalled();
       });

@@ -8,12 +8,7 @@ export {
   setupMessageListener,
   initializeContentScript,
 } from './contentScriptSetup';
-export {
-  LOTUS_NUDGE_STYLES,
-  showLotusNudge,
-  hideLotusNudge,
-  handleNudgeClick,
-} from './nudgeSetup';
+export { showLotusNudge, hideLotusNudge, handleNudgeClick } from './nudgeSetup';
 export {
   showHelpModal,
   hideHelpModal,

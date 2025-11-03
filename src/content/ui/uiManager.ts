@@ -72,8 +72,9 @@ class UIManager {
 
   /**
    * Show the lotus nudge icon
+   * Accepts either inline styles string or stylesheet path
    */
-  showNudge(component: ReactNode, inlineStyles: string): void {
+  showNudge(component: ReactNode, stylesOrPath: string): void {
     const nudgeState = contentState.getNudgeState();
     if (nudgeState.isVisible) {
       devLog('Nudge already visible');
@@ -81,9 +82,15 @@ class UIManager {
     }
 
     try {
+      // Detect if it's a stylesheet path (contains '/' and ends with '.css') or inline styles
+      const isStylesheetPath =
+        stylesOrPath.includes('/') && stylesOrPath.endsWith('.css');
+
       const { container, rootElement } = this.createShadowContainer({
         id: 'reflexa-nudge-container',
-        inlineStyles,
+        ...(isStylesheetPath
+          ? { stylesheetPath: stylesOrPath }
+          : { inlineStyles: stylesOrPath }),
       });
 
       const root = createRoot(rootElement);
@@ -101,7 +108,7 @@ class UIManager {
       devError('Failed to show nudge:', error);
       // Retry after a delay if document.body not ready
       if (error instanceof Error && error.message.includes('document.body')) {
-        setTimeout(() => this.showNudge(component, inlineStyles), 100);
+        setTimeout(() => this.showNudge(component, stylesOrPath), 100);
       }
     }
   }

@@ -5,7 +5,6 @@
 
 import React from 'react';
 import type { TonePreset } from '../../../types';
-import '../../styles.css';
 import { ToneChip } from './components';
 import { toneOptions } from './constants';
 
@@ -24,7 +23,7 @@ export const TonePresetChips: React.FC<TonePresetChipsProps> = ({
 }) => {
   return (
     <div
-      className="reflexa-tone-preset-chips"
+      className="flex items-center gap-1.5"
       role="group"
       aria-label="Tone preset options"
       data-testid="tone-preset-chips"

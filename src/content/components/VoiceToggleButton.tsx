@@ -1,5 +1,4 @@
 import React from 'react';
-import '../styles.css';
 
 interface VoiceToggleButtonProps {
   isRecording: boolean;
@@ -51,14 +50,23 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
     tooltipText = `Voice input (${language})`;
   }
 
+  const baseClasses =
+    'inline-flex items-center justify-center gap-1.5 w-9 h-9 p-0 bg-transparent border border-white/15 rounded-lg text-white/70 cursor-pointer transition-[background-color,border-color,color] duration-200 select-none relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 focus-visible:outline-offset-2';
+
+  const recordingClasses = isRecording
+    ? 'bg-red-500/12 border-red-500/40 text-red-500'
+    : '';
+
+  const disabledClasses = disabled
+    ? 'opacity-40 cursor-not-allowed pointer-events-none'
+    : '';
+
+  const motionClasses = reduceMotion ? '[&_.indicator]:animate-none' : '';
+
   return (
     <button
       type="button"
-      className={`reflexa-voice-toggle-button ${
-        isRecording ? 'reflexa-voice-toggle-button--recording' : ''
-      } ${disabled ? 'reflexa-voice-toggle-button--disabled' : ''} ${
-        reduceMotion ? 'reflexa-voice-toggle-button--reduce-motion' : ''
-      }`}
+      className={`${baseClasses} ${recordingClasses} ${disabledClasses} ${motionClasses} sm:h-8 sm:w-8 motion-reduce:[&_.indicator]:animate-none [&_svg]:sm:h-[18px] [&_svg]:sm:w-[18px]`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       disabled={disabled}
@@ -67,7 +75,7 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
       data-testid="voice-toggle-button"
     >
       <svg
-        className="reflexa-voice-toggle-button__icon"
+        className="flex h-5 w-5 flex-shrink-0 items-center justify-center"
         width="20"
         height="20"
         viewBox="0 0 24 24"
@@ -84,7 +92,7 @@ export const VoiceToggleButton: React.FC<VoiceToggleButtonProps> = ({
       </svg>
       {isRecording && (
         <span
-          className="reflexa-voice-toggle-button__indicator"
+          className={`indicator absolute top-1 right-1 h-2 w-2 animate-[voicePulse_1.5s_ease-in-out_infinite] rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)] ${reduceMotion ? 'animate-none opacity-100' : ''}`}
           aria-hidden="true"
         />
       )}

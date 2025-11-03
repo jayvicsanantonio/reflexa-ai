@@ -21,8 +21,10 @@ export const VoiceSection: React.FC<VoiceSectionProps> = ({
   settings,
   updateSetting,
 }) => (
-  <div className="reflexa-settings-section">
-    <div className="reflexa-settings-section__title">Voice</div>
+  <div className="py-1 pb-2">
+    <div className="my-1.5 text-xs font-normal tracking-wider text-slate-600 uppercase">
+      Voice
+    </div>
     <Row
       title="Enable voice input"
       desc="Dictate reflections instead of typing"

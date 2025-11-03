@@ -40,18 +40,20 @@ export const FormatSection: React.FC<FormatSectionProps> = ({
   };
 
   return (
-    <div className="reflexa-more-tools__section">
-      <div className="reflexa-more-tools__section-title">Format</div>
-      <div className="reflexa-more-tools__grid">
+    <div className="flex flex-col gap-1 [&+*]:mt-4 [&+*]:border-t [&+*]:border-t-white/8 [&+*]:pt-4">
+      <div className="px-2 pb-2 font-sans text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+        Format
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         {formatOptions.map((option) => (
           <button
             key={option.value}
             type="button"
-            className={`reflexa-more-tools__tile ${
+            className={`pointer-events-auto relative flex cursor-pointer flex-row items-center justify-start gap-2.5 rounded-xl border px-3.5 py-3 text-left font-sans text-xs font-medium text-slate-200 transition-all duration-150 ${
               currentFormat === option.value
-                ? 'reflexa-more-tools__tile--selected'
-                : ''
-            }`}
+                ? 'border-sky-500/60 bg-sky-500/20 text-white'
+                : 'border-white/20 bg-white/8 hover:-translate-y-0.5 hover:border-sky-500/50 hover:bg-white/12 hover:text-white active:translate-y-0'
+            } ${isLoadingSummary ? 'cursor-not-allowed opacity-50' : ''} motion-reduce:hover:translate-y-0`}
             onClick={async (e) => {
               e.stopPropagation();
               devLog('[MoreToolsMenu] Format tile clicked:', option.value);
@@ -62,7 +64,7 @@ export const FormatSection: React.FC<FormatSectionProps> = ({
             role="menuitem"
             data-testid={`format-option-${option.value}`}
           >
-            <span className="reflexa-more-tools__tile-icon">
+            <span className="flex h-5 w-5 items-center justify-center leading-none [&_svg]:h-4 [&_svg]:w-4">
               {option.value === 'bullets' ? (
                 <BulletIcon />
               ) : option.value === 'paragraph' ? (
@@ -71,9 +73,7 @@ export const FormatSection: React.FC<FormatSectionProps> = ({
                 <HeadlineIcon />
               )}
             </span>
-            <span className="reflexa-more-tools__tile-label">
-              {option.label}
-            </span>
+            <span className="leading-tight font-semibold">{option.label}</span>
           </button>
         ))}
       </div>

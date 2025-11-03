@@ -59,7 +59,15 @@ export const LotusNudge: React.FC<LotusNudgeProps> = ({
 
   return (
     <div
-      className={`reflexa-nudge-wrapper reflexa-nudge-wrapper--${position}`}
+      className={`fixed z-[999999] transition-all duration-300 ${
+        position === 'bottom-right'
+          ? 'right-8 bottom-8'
+          : position === 'bottom-left'
+            ? 'bottom-8 left-8'
+            : position === 'top-right'
+              ? 'top-8 right-8'
+              : 'top-8 left-8'
+      } ${open ? '[&_svg]:h-12 [&_svg]:w-12' : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}

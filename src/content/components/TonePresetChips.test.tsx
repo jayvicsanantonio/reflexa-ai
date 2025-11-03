@@ -41,9 +41,8 @@ describe('TonePresetChips', () => {
     );
 
     const empatheticChip = screen.getByTestId('tone-chip-empathetic');
-    expect(empatheticChip.className).toContain(
-      'reflexa-tone-preset-chip--selected'
-    );
+    expect(empatheticChip.className).toContain('bg-sky-400/10');
+    expect(empatheticChip.className).toContain('border-sky-400/50');
   });
 
   it('should not highlight unselected chips', () => {
@@ -51,9 +50,7 @@ describe('TonePresetChips', () => {
     render(<TonePresetChips selectedTone="calm" onToneSelect={onToneSelect} />);
 
     const conciseChip = screen.getByTestId('tone-chip-concise');
-    expect(conciseChip.className).not.toContain(
-      'reflexa-tone-preset-chip--selected'
-    );
+    expect(conciseChip.className).not.toContain('bg-sky-400/10');
   });
 
   it('should be disabled when disabled prop is true', () => {
@@ -81,11 +78,15 @@ describe('TonePresetChips', () => {
     );
 
     const academicChip = screen.getByTestId('tone-chip-academic');
-    const spinner = academicChip.querySelector(
-      '.reflexa-tone-preset-chip__spinner'
+    // The spinner SVG has animate-[spin_1s_linear_infinite] class
+    const spinnerContainer = academicChip.querySelector(
+      'span[aria-label="Loading"]'
     );
+    expect(spinnerContainer).toBeTruthy();
 
+    const spinner = spinnerContainer?.querySelector('svg');
     expect(spinner).toBeTruthy();
+    expect(spinner?.className).toContain('animate-[spin_1s_linear_infinite]');
   });
 
   it('should not show loading spinner on unselected chips', () => {
@@ -99,11 +100,13 @@ describe('TonePresetChips', () => {
     );
 
     const conciseChip = screen.getByTestId('tone-chip-concise');
-    const spinner = conciseChip.querySelector(
-      '.reflexa-tone-preset-chip__spinner'
-    );
 
-    expect(spinner).toBeNull();
+    // Should not have an animated spinner
+    const animatedSpinner = Array.from(
+      conciseChip.querySelectorAll('svg[viewBox="0 0 24 24"]')
+    ).find((svg) => svg.className.includes('animate-'));
+
+    expect(animatedSpinner).toBeUndefined();
   });
 
   it('should not call onToneSelect when loading', () => {
@@ -164,7 +167,8 @@ describe('TonePresetChips', () => {
     render(<TonePresetChips onToneSelect={onToneSelect} disabled={true} />);
 
     const calmChip = screen.getByTestId('tone-chip-calm');
-    expect(calmChip.className).toContain('reflexa-tone-preset-chip--disabled');
+    expect(calmChip.className).toContain('opacity-50');
+    expect(calmChip.className).toContain('cursor-not-allowed');
   });
 
   it('should display disabled class when loading', () => {
@@ -178,8 +182,7 @@ describe('TonePresetChips', () => {
     );
 
     const conciseChip = screen.getByTestId('tone-chip-concise');
-    expect(conciseChip.className).toContain(
-      'reflexa-tone-preset-chip--disabled'
-    );
+    expect(conciseChip.className).toContain('opacity-50');
+    expect(conciseChip.className).toContain('cursor-not-allowed');
   });
 });

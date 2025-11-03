@@ -22,7 +22,6 @@ import {
   ToolsSection,
   useWriterStreaming,
 } from './MeditationFlowOverlay/index';
-import '../styles.css';
 
 interface MeditationFlowOverlayProps {
   summary: string[];
@@ -352,17 +351,18 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     audioManagerRef.current = new AudioManager(settings);
     audioManagerRef.current.loadAudioFiles();
 
+    // Capture current timer value at effect start for cleanup
+    const timerSnapshot = typingTimerRef.current;
+
     return () => {
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
       }
-      // Capture current timer value for cleanup
-      const timer = typingTimerRef.current;
-      if (timer) {
-        clearTimeout(timer);
+      // Use captured timer value for cleanup
+      if (timerSnapshot) {
+        clearTimeout(timerSnapshot);
       }
     };
-    // typingTimerRef is stable ref, but included for linter completeness
   }, [settings, typingTimerRef]);
 
   // Check Writer and Rewriter API availability
@@ -1125,37 +1125,23 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   return (
     <div
-      className="reflexa-overlay reflexa-overlay--meditation"
+      className="fixed inset-0 z-[2147483647] flex animate-[fadeIn_1s_ease-in-out] items-center justify-center font-sans motion-reduce:animate-[fadeIn_0.5s_ease-in-out]"
       onKeyDown={onKeyDown}
     >
-      <div className="reflexa-overlay__backdrop reflexa-overlay__backdrop--meditation" />
+      <div className="-webkit-backdrop-blur-[24px] absolute inset-0 bg-gradient-to-br from-sky-500/12 via-transparent to-transparent backdrop-blur-[24px] backdrop-saturate-[110%] [background:radial-gradient(circle_at_30%_20%,rgba(14,165,233,0.12),transparent_30%),linear-gradient(135deg,rgba(2,6,23,0.96)_0%,rgba(2,8,23,0.98)_60%,rgba(2,6,23,0.96)_100%)]" />
       <div
         ref={contentRef}
         role="dialog"
         aria-modal="true"
         aria-label="Meditation Reflect"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="relative flex h-full w-full items-center justify-center"
       >
         {Header}
 
         {/* Resume draft popup removed per request */}
 
         {/* Center content per step */}
-        <div
-          style={{
-            maxWidth: 800,
-            width: '88%',
-            textAlign: 'center',
-            color: '#e2e8f0',
-          }}
-        >
+        <div className="w-[88%] max-w-[800px] text-center text-slate-200">
           {step === 0 && (
             <BreathingPhase
               isLoadingSummary={isLoadingSummary}

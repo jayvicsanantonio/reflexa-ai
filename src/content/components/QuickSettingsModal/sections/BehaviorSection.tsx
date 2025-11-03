@@ -21,8 +21,10 @@ export const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   settings,
   updateSetting,
 }) => (
-  <div className="reflexa-settings-section">
-    <div className="reflexa-settings-section__title">Behavior</div>
+  <div className="py-1 pb-2">
+    <div className="my-1.5 text-xs font-normal tracking-wider text-slate-600 uppercase">
+      Behavior
+    </div>
     <Row
       title="Dwell threshold"
       desc="How long to read before seeing the nudge"

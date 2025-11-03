@@ -52,8 +52,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({ onClose }) => (
       type="button"
       aria-label="Close"
       onClick={onClose}
-      className="reflexa-modal__close"
-      style={{ borderColor: 'rgba(15,23,42,0.15)', color: '#0f172a' }}
+      className="h-8 w-8 cursor-pointer rounded-full border border-slate-900/15 bg-transparent text-slate-900 transition-all duration-150 hover:bg-slate-900/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
     >
       ×
     </button>

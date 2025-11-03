@@ -20,8 +20,10 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
   settings,
   updateSetting,
 }) => (
-  <div className="reflexa-settings-section">
-    <div className="reflexa-settings-section__title">Privacy</div>
+  <div className="py-1 pb-2">
+    <div className="my-1.5 text-xs font-normal tracking-wider text-slate-600 uppercase">
+      Privacy
+    </div>
     <Row
       title="Storage mode"
       desc="Where reflections are stored"
@@ -36,9 +38,8 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
             type="button"
             aria-pressed={settings.privacyMode === 'local'}
             onClick={() => void updateSetting('privacyMode', 'local')}
-            className="reflexa-btn reflexa-btn--ghost"
+            className="cursor-pointer rounded-full border border-slate-900/15 bg-transparent px-3.5 py-2.5 font-sans text-sm font-bold transition-[transform,box-shadow,background] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
             style={{
-              border: '1px solid rgba(15,23,42,0.15)',
               color: '#0f172a',
               background:
                 settings.privacyMode === 'local' ? '#e2e8f0' : '#ffffff',
@@ -50,9 +51,8 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
             type="button"
             aria-pressed={settings.privacyMode === 'sync'}
             onClick={() => void updateSetting('privacyMode', 'sync')}
-            className="reflexa-btn reflexa-btn--ghost"
+            className="cursor-pointer rounded-full border border-slate-900/15 bg-transparent px-3.5 py-2.5 font-sans text-sm font-bold transition-[transform,box-shadow,background] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
             style={{
-              border: '1px solid rgba(15,23,42,0.15)',
               color: '#0f172a',
               background:
                 settings.privacyMode === 'sync' ? '#e2e8f0' : '#ffffff',

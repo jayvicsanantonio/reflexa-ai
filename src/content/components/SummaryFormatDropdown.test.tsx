@@ -208,8 +208,6 @@ describe('SummaryFormatDropdown', () => {
     const paragraphOption = screen.getByTestId(
       'summary-format-option-paragraph'
     );
-    expect(paragraphOption.className).toContain(
-      'reflexa-summary-format-dropdown__option--selected'
-    );
+    expect(paragraphOption.className).toContain('bg-sky-400/15');
   });
 });

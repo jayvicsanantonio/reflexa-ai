@@ -25,7 +25,7 @@ export const SummaryPhase: React.FC<SummaryPhaseProps> = ({
   const renderedSummary = summaryDisplay ?? summary;
 
   return (
-    <div className="reflexa-meditation-slide" style={{ position: 'relative' }}>
+    <div className="relative animate-[meditateSlideUp_360ms_cubic-bezier(0.2,0.8,0.2,1)_both] motion-reduce:animate-[fadeIn_0.15s_ease-in-out]">
       {/* Subtle language badge - show when language is detected */}
       {languageDetection && (
         <div

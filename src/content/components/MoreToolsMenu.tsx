@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { SummaryFormat, TonePreset } from '../../types';
 import { devLog } from '../../utils/logger';
-import '../styles.css';
 import {
   FormatSection,
   GenerateDraftSection,
@@ -168,7 +167,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
 
   return (
     <div
-      className="reflexa-more-tools"
+      className="relative z-[10000] inline-block"
       ref={menuRef}
       data-testid="more-tools-menu"
     >
@@ -176,7 +175,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
 
       {isOpen && (
         <div
-          className="reflexa-more-tools__menu"
+          className="pointer-events-auto absolute right-0 bottom-[calc(100%+8px)] z-[10000] max-h-[70vh] w-80 animate-[reflexaPopIn_200ms_cubic-bezier(0.2,0.8,0.2,1)] overflow-y-auto rounded-[20px] border border-white/15 bg-slate-900/98 p-3 shadow-[0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-[12px] [scrollbar-color:rgba(148,163,184,0.3)_transparent] [scrollbar-width:thin] motion-reduce:animate-[fadeIn_0.15s_ease-in-out] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:bg-slate-400/30 [&::-webkit-scrollbar-track]:bg-transparent"
           role="menu"
           aria-label="More tools menu"
           data-testid="more-tools-dropdown"
@@ -229,7 +228,7 @@ export const MoreToolsMenu: React.FC<MoreToolsMenuProps> = ({
           )}
 
           {/* Divider above Tools */}
-          <div className="reflexa-more-tools__divider" />
+          <div className="h-px bg-white/10" />
 
           {/* Tools at bottom: Mute + Language + Translate */}
           <ToolsSection

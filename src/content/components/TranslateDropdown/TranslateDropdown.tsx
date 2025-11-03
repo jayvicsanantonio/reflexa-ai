@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import '../../styles.css';
 import { DropdownTrigger, SearchInput, LanguageOption } from './components';
 import { useDropdownState, useLanguageFilter } from './hooks';
 import { languageOptions } from './constants';
@@ -56,7 +55,7 @@ export const TranslateDropdown: React.FC<TranslateDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="reflexa-translate-dropdown"
+      className="relative inline-block"
       data-testid="translate-dropdown"
     >
       <DropdownTrigger
@@ -68,7 +67,7 @@ export const TranslateDropdown: React.FC<TranslateDropdownProps> = ({
 
       {isOpen && (
         <div
-          className="reflexa-translate-dropdown__menu"
+          className="-webkit-backdrop-blur-[12px] absolute top-[calc(100%+8px)] left-0 z-[1000] flex max-h-[400px] min-w-[280px] animate-[dropdownSlideIn_0.2s_ease] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-700/98 shadow-[0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-[12px] motion-reduce:animate-[fadeIn_0.15s_ease-in-out] sm:max-h-[320px] sm:min-w-[260px]"
           role="listbox"
           aria-label="Translation language options"
           data-testid="translate-menu"
@@ -79,10 +78,10 @@ export const TranslateDropdown: React.FC<TranslateDropdownProps> = ({
             isOpen={isOpen}
           />
 
-          <div className="reflexa-translate-dropdown__options">
+          <div className="max-h-[320px] overflow-y-auto sm:max-h-[240px] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:bg-slate-400/30 [&::-webkit-scrollbar-track]:bg-transparent">
             {filteredLanguages.length === 0 ? (
               <div
-                className="reflexa-translate-dropdown__no-results"
+                className="px-4 py-6 text-center text-[13px] text-(--color-calm-400)"
                 data-testid="translate-no-results"
               >
                 No languages found

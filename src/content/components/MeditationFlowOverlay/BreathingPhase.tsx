@@ -79,7 +79,7 @@ export const BreathingPhase: React.FC<BreathingPhaseProps> = ({
   }, [isLoadingSummary, setBreathCue]);
 
   return (
-    <div className="reflexa-meditation-fade">
+    <div className="animate-[meditateFade_320ms_ease_both] motion-reduce:animate-[fadeIn_0.15s_ease-in-out]">
       <div style={{ marginBottom: 60 }}>
         <LotusOrb
           enabled={!settings?.reduceMotion}

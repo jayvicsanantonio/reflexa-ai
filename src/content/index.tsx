@@ -26,7 +26,6 @@ import { devLog } from '../utils/logger';
 devLog('Content script initialized');
 
 // Language names map removed (no longer shown in UI)
-// LOTUS_NUDGE_STYLES is now imported from './setup'
 
 // Legacy code removed - all functionality has been migrated to workflows
 // Note: renderOverlay will be created after showNotification is defined below

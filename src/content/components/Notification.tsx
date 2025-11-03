@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { announceToScreenReader } from '../../utils/accessibility';
-import '../styles.css';
 
 export interface NotificationProps {
   title: string;
@@ -40,6 +39,13 @@ export const Notification: React.FC<NotificationProps> = ({
 
     return cleanupAnnouncement;
   }, [title, message, type]);
+
+  // Icon styles based on type
+  const iconStyles = {
+    info: 'bg-blue-500/12 text-blue-700 border-blue-700/18',
+    warning: 'bg-yellow-500/12 text-yellow-700 border-yellow-700/18',
+    error: 'bg-red-500/12 text-red-600 border-red-600/18',
+  };
 
   // Get elegant SVG icon based on type (decorative)
   const getIcon = () => {
@@ -102,25 +108,28 @@ export const Notification: React.FC<NotificationProps> = ({
 
   return (
     <div
-      className={`reflexa-notification reflexa-notification--${type}`}
+      className="fixed top-5 right-5 z-[2147483647] flex max-w-[420px] animate-[toastIn_180ms_ease-out] items-center gap-3 rounded-2xl border border-slate-900/8 bg-white/85 px-3.5 py-3 font-sans text-slate-900 shadow-[0_10px_30px_rgba(2,8,23,0.15)] backdrop-blur-[12px] backdrop-saturate-[180%] motion-reduce:animate-[fadeIn_0.15s_ease-in-out] sm:top-4 sm:right-4 sm:left-4 sm:max-w-none"
       role="alert"
       aria-live={type === 'error' ? 'assertive' : 'polite'}
       data-testid="notification"
     >
-      <div className="reflexa-notification__icon" aria-hidden>
+      <div
+        className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border ${iconStyles[type]}`}
+        aria-hidden
+      >
         {getIcon()}
       </div>
 
-      <div className="reflexa-notification__content">
-        <h3 className="reflexa-notification__title">{title}</h3>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <h3 className="m-0 text-sm font-bold text-slate-900">{title}</h3>
         {message ? (
-          <p className="reflexa-notification__message">{message}</p>
+          <p className="m-0 text-xs leading-normal text-slate-600">{message}</p>
         ) : null}
       </div>
 
       <button
         type="button"
-        className="reflexa-notification__close"
+        className="inline-flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-900/8 bg-transparent text-base leading-none text-slate-600 transition-all duration-150 hover:bg-slate-900/4 hover:text-slate-900 focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
         onClick={onClose}
         aria-label="Close notification"
       >

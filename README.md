@@ -26,6 +26,20 @@ Reflexa AI helps you absorb more, stress less, and remember what matters by:
 - **[Project Overview](docs/PROJECT_OVERVIEW.md)** - Overview of Reflexa AI
 - **[Market Analysis](docs/product/MARKET_ANALYSIS.md)** - Market analysis and opportunity
 - **[Privacy Policy](PRIVACY.md)** - Privacy and data handling
+- **[Repository Guidelines](AGENTS.md)** - Contributor rules and project structure
+- **[Contributor Guide](CONTRIBUTOR_GUIDE.md)** - Architecture, setup, testing, release
+
+## 🤝 Contributing
+
+- Prerequisites: Node 18+, Chrome 131+ with Built‑in AI enabled.
+- Setup: `npm install`
+- Dev loop: `npm run dev` → `chrome://extensions` → Enable Developer mode → Load unpacked → select `dist/` → reload on changes.
+- Tests: `npm run test`, `npm run test:watch`, `npm run test:coverage`
+- Quality gates: `npm run check` (type-check, lint, format check). Auto-fix: `npm run lint:fix`, `npm run format`.
+- Build: `npm run build` (CI baseline). Preview: `npm run preview`
+- Package: `npm run package` (outputs ZIP under `build/`)
+- Before PR: Ensure `npm run check` and `npm run build` pass; follow Conventional Commits; add screenshots for popup/options UI changes; link issues.
+- Read next: `AGENTS.md` and `CONTRIBUTOR_GUIDE.md` for structure, architecture, and debugging tips.
 
 ## ✨ Features
 

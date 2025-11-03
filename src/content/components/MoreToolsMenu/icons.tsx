@@ -215,7 +215,7 @@ export const LoadingIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className="reflexa-more-tools__spinner"
+    className="animate-[spin_1s_linear_infinite]"
   >
     <line x1="12" y1="2" x2="12" y2="6" />
     <line x1="12" y1="18" x2="12" y2="22" />

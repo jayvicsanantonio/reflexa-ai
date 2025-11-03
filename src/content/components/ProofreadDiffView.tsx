@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { ProofreadResult } from '../../types';
-import '../styles.css';
 import {
   Header,
   TextColumn,
@@ -34,14 +33,14 @@ export const ProofreadDiffView: React.FC<ProofreadDiffViewProps> = ({
 
   return (
     <div
-      className="reflexa-proofread-diff-view"
+      className="flex w-full animate-[fadeIn_0.3s_ease-in-out] flex-col gap-5 rounded-3xl border border-white/10 bg-white/3 p-6 motion-reduce:animate-none sm:gap-4 sm:p-4"
       data-testid="proofread-diff-view"
       role="region"
       aria-label="Proofreading results"
     >
       <Header correctionCount={corrections.length} />
 
-      <div className="reflexa-proofread-diff-view__comparison">
+      <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-1 sm:gap-5">
         <TextColumn
           title="Original"
           icon="📝"

@@ -45,13 +45,15 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
   }, [defaultTargetLanguage]);
 
   return (
-    <div className="reflexa-more-tools__section">
-      <div className="reflexa-more-tools__section-title">Tools</div>
-      <div className="reflexa-more-tools__grid">
+    <div className="flex flex-col gap-1 [&+*]:mt-4 [&+*]:border-t [&+*]:border-t-white/8 [&+*]:pt-4">
+      <div className="px-2 pb-2 font-sans text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+        Tools
+      </div>
+      <div className="grid grid-cols-2 gap-2">
         {onToggleAmbient && (
           <button
             type="button"
-            className="reflexa-more-tools__tile"
+            className="pointer-events-auto relative flex cursor-pointer flex-row items-center justify-start gap-2.5 rounded-xl border border-white/20 bg-white/8 px-3.5 py-3 text-left font-sans text-xs font-medium text-slate-200 transition-all duration-150 hover:-translate-y-0.5 hover:border-sky-500/50 hover:bg-white/12 hover:text-white active:translate-y-0 motion-reduce:hover:translate-y-0"
             onClick={(e) => {
               e.stopPropagation();
               onToggleAmbient(!ambientMuted);
@@ -60,10 +62,10 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
             role="menuitem"
             data-testid="ambient-sound-toggle"
           >
-            <span className="reflexa-more-tools__tile-icon">
+            <span className="flex h-5 w-5 items-center justify-center leading-none [&_svg]:h-4 [&_svg]:w-4">
               {ambientMuted ? <VolumeMuteIcon /> : <VolumeIcon />}
             </span>
-            <span className="reflexa-more-tools__tile-label">
+            <span className="leading-tight font-semibold">
               {ambientMuted ? 'Unmute' : 'Mute'}
             </span>
           </button>
@@ -71,7 +73,7 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
         {onToggleReduceMotion && (
           <button
             type="button"
-            className="reflexa-more-tools__tile"
+            className="pointer-events-auto relative flex cursor-pointer flex-row items-center justify-start gap-2.5 rounded-xl border border-white/20 bg-white/8 px-3.5 py-3 text-left font-sans text-xs font-medium text-slate-200 transition-all duration-150 hover:-translate-y-0.5 hover:border-sky-500/50 hover:bg-white/12 hover:text-white active:translate-y-0 motion-reduce:hover:translate-y-0"
             onClick={(e) => {
               e.stopPropagation();
               onToggleReduceMotion(!reduceMotion);
@@ -80,10 +82,10 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
             role="menuitem"
             data-testid="reduce-motion-toggle"
           >
-            <span className="reflexa-more-tools__tile-icon">
+            <span className="flex h-5 w-5 items-center justify-center leading-none [&_svg]:h-4 [&_svg]:w-4">
               <ReduceMotionIcon />
             </span>
-            <span className="reflexa-more-tools__tile-label">
+            <span className="leading-tight font-semibold">
               {reduceMotion ? 'Enable Motion' : 'Reduce Motion'}
             </span>
           </button>
@@ -92,12 +94,12 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
 
       {onTranslateSummary && (
         <div
-          className="reflexa-more-tools__inline-row"
+          className="mt-2 flex w-full items-center gap-2"
           role="group"
           aria-label="Select language"
         >
           <select
-            className="reflexa-more-tools__language-select"
+            className="flex-[1_1_auto] rounded-lg border border-white/10 bg-white/4 px-2.5 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-sky-500/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             value={selectedLanguage}
             onChange={(e) => setSelectedLanguage(e.target.value)}
             disabled={isTranslating}
@@ -122,7 +124,7 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
           </select>
           <button
             type="button"
-            className="reflexa-more-tools__inline-button"
+            className="flex-[0_0_auto] cursor-pointer rounded-lg border border-sky-500/35 bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-200 transition-all duration-150 hover:border-sky-500/50 hover:bg-sky-500/22 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
             onClick={() => {
               onTranslateSummary(selectedLanguage);
               onClose();

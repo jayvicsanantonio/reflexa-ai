@@ -11,6 +11,8 @@
  * Typography: Inter (UI), Noto Sans Display (headings), Lora (reflection), JetBrains Mono (code)
  */
 
+@import '../styles/animations.css';
+
 @theme {
   /* ===== ZEN SPECTRUM COLOR PALETTE ===== */
   /**

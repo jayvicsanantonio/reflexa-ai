@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import type { SummaryFormat } from '../../../types';
-import '../../styles.css';
 import { DropdownTrigger, FormatOption } from './components';
 import { useDropdownState } from './hooks';
 import { formatOptions } from './constants';
@@ -45,7 +44,7 @@ export const SummaryFormatDropdown: React.FC<SummaryFormatDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className="reflexa-summary-format-dropdown"
+      className="relative inline-block font-sans"
       data-testid="summary-format-dropdown"
     >
       <DropdownTrigger
@@ -58,7 +57,7 @@ export const SummaryFormatDropdown: React.FC<SummaryFormatDropdownProps> = ({
 
       {isOpen && (
         <div
-          className="reflexa-summary-format-dropdown__menu"
+          className="absolute top-[calc(100%+8px)] right-0 left-0 z-[1000] animate-[slideDown_0.2s_ease-out] overflow-hidden rounded-2xl border border-white/20 bg-slate-700/98 shadow-[0_8px_24px_rgba(0,0,0,0.3)] motion-reduce:animate-[fadeIn_0.15s_ease-in-out]"
           role="listbox"
           aria-label="Summary format options"
           data-testid="summary-format-menu"

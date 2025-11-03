@@ -38,14 +38,17 @@ export const Switch: React.FC<SwitchProps> = ({
         if (disabled) return;
         onChange(!checked);
       }}
-      className="reflexa-switch"
-      style={{
-        background: checked ? 'rgba(59,130,246,0.8)' : 'rgba(15,23,42,0.06)',
-        border: '1px solid rgba(15,23,42,0.15)',
-      }}
+      className={`relative h-[26px] w-11 cursor-pointer rounded-full border border-slate-900/15 transition-[background] duration-150 ${
+        checked ? 'bg-indigo-500/80' : 'bg-slate-900/6'
+      } ${disabled ? 'cursor-not-allowed opacity-50' : ''} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500`}
       tabIndex={disabled ? -1 : 0}
     >
-      <span aria-hidden className="reflexa-switch__thumb" />
+      <span
+        aria-hidden
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-[left] duration-150 ${
+          checked ? 'left-[22px]' : 'left-0.5'
+        }`}
+      />
     </button>
   );
 };

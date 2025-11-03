@@ -64,7 +64,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
     if (!settings) return;
     // Preserve scroll position during update to avoid jumps
     const bodyEl = contentRef.current?.querySelector(
-      '.reflexa-modal__body'
+      '[style*="overflow"]'
     ) as HTMLDivElement | null;
     const prevScroll = bodyEl?.scrollTop ?? 0;
 
@@ -81,7 +81,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
       // Restore scroll position on next frame
       requestAnimationFrame(() => {
         const currentBody = contentRef.current?.querySelector(
-          '.reflexa-modal__body'
+          '[style*="overflow"]'
         ) as HTMLDivElement | null;
         if (currentBody && prevScroll >= 0) {
           currentBody.scrollTop = prevScroll;
@@ -92,30 +92,19 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
 
   return (
     <div
-      className="reflexa-error-modal"
+      className="fixed inset-0 z-[2147483646] flex animate-[fadeIn_0.3s_ease-in-out] items-center justify-center font-sans motion-reduce:animate-[fadeIn_0.15s_ease-in-out]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reflexa-quick-settings-title"
     >
-      <div className="reflexa-error-modal__backdrop" onClick={onClose} />
+      <div
+        className="-webkit-backdrop-blur-[6px] absolute inset-0 bg-black/50 backdrop-blur-[6px]"
+        onClick={onClose}
+      />
       <div
         ref={contentRef}
         onKeyDown={handleKeyDown}
-        className="reflexa-modal-animate"
-        style={{
-          width: 'min(640px, 92vw)',
-          maxHeight: 'min(84vh, 760px)',
-          background: '#ffffff',
-          color: '#0f172a',
-          border: '1px solid rgba(15, 23, 42, 0.08)',
-          borderRadius: 24,
-          boxShadow: '0 30px 80px rgba(0,0,0,0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          position: 'relative',
-          zIndex: 1,
-        }}
+        className="relative z-[1] flex max-h-[84vh] min-h-0 w-[92vw] animate-[reflexaPopIn_220ms_cubic-bezier(0.2,0.8,0.2,1)] flex-col overflow-hidden rounded-3xl border border-slate-900/8 bg-white text-slate-900 shadow-[0_30px_80px_rgba(0,0,0,0.25)] min-[640px]:w-[640px] min-[840px]:max-h-[760px]"
       >
         <ModalHeader onClose={onClose} />
 

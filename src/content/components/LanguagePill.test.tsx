@@ -67,7 +67,8 @@ describe('LanguagePill', () => {
     );
 
     const pill = screen.getByTestId('language-pill');
-    expect(pill).toHaveClass('reflexa-language-pill');
+    expect(pill.className).toContain('inline-flex');
+    expect(pill.className).toContain('items-center');
     expect(pill).toHaveClass('custom-class');
   });
 

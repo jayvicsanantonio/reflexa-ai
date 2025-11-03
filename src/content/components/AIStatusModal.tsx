@@ -65,30 +65,19 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
 
   return (
     <div
-      className="reflexa-error-modal"
+      className="fixed inset-0 z-[2147483646] flex animate-[fadeIn_0.3s_ease-in-out] items-center justify-center font-sans motion-reduce:animate-[fadeIn_0.15s_ease-in-out]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reflexa-ai-status-title"
     >
-      <div className="reflexa-error-modal__backdrop" onClick={onClose} />
+      <div
+        className="-webkit-backdrop-blur-[6px] absolute inset-0 bg-black/50 backdrop-blur-[6px]"
+        onClick={onClose}
+      />
       <div
         ref={contentRef}
-        className="reflexa-modal-animate"
+        className="relative z-[1] flex max-h-[84vh] min-h-0 w-[92vw] animate-[reflexaPopIn_220ms_cubic-bezier(0.2,0.8,0.2,1)] flex-col overflow-hidden rounded-3xl border border-slate-900/8 bg-white text-slate-900 shadow-[0_30px_80px_rgba(0,0,0,0.25)] min-[720px]:w-[720px] min-[840px]:max-h-[760px]"
         onKeyDown={handleKeyDown}
-        style={{
-          width: 'min(720px, 92vw)',
-          maxHeight: 'min(84vh, 760px)',
-          background: '#ffffff',
-          color: '#0f172a',
-          border: '1px solid rgba(15, 23, 42, 0.08)',
-          borderRadius: 24,
-          boxShadow: '0 30px 80px rgba(0,0,0,0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          position: 'relative',
-          zIndex: 1,
-        }}
       >
         <ModalHeader onClose={onClose} />
 
@@ -102,18 +91,11 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
           <SetupGuideSection copiedKey={copiedKey} onCopyFlag={copyFlag} />
         </div>
 
-        <div
-          style={{
-            padding: '12px 20px 16px 20px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            borderTop: '1px solid rgba(15, 23, 42, 0.06)',
-          }}
-        >
+        <div className="flex justify-end border-t border-t-slate-900/6 px-5 py-3 pb-4">
           <button
             type="button"
             onClick={onClose}
-            className="reflexa-btn reflexa-btn--primary"
+            className="cursor-pointer rounded-full border-none bg-gradient-to-r from-sky-500 to-sky-600 px-3.5 py-2.5 font-sans text-sm font-bold text-white transition-all duration-150 hover:from-sky-400 hover:to-sky-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
           >
             Done
           </button>

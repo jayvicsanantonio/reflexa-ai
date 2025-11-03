@@ -23,8 +23,10 @@ export const AIFeaturesSection: React.FC<AIFeaturesSectionProps> = ({
   capabilities,
   updateSetting,
 }) => (
-  <div className="reflexa-settings-section">
-    <div className="reflexa-settings-section__title">AI Features</div>
+  <div className="py-1 pb-2">
+    <div className="my-1.5 text-xs font-normal tracking-wider text-slate-600 uppercase">
+      AI Features
+    </div>
     <Row
       title="Enable proofreading"
       desc={
