@@ -7,6 +7,7 @@ import { aiService } from './services/ai/aiService';
 import type { Message, MessageType, AIResponse } from '../types';
 import { createErrorResponse } from '../types';
 import { ERROR_MESSAGES, STORAGE_KEYS } from '../constants';
+import { devLog, devWarn, devError } from '../utils/logger';
 
 // Import all handlers
 import {
@@ -40,7 +41,7 @@ import {
   resetAIAvailability,
 } from './handlers';
 
-console.log('Reflexa AI background service worker initialized');
+devLog('Background service worker initialized');
 
 // Initialize AI Service
 aiService.initialize();
@@ -97,12 +98,12 @@ function isValidMessage(message: unknown): message is Message {
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
     const startTime = Date.now();
-    console.log('Received message:', message);
+    devLog('Received message:', message);
 
     // Validate message structure using type guard
     if (!isValidMessage(message)) {
       const duration = Date.now() - startTime;
-      console.warn(`Invalid message rejected after ${duration}ms:`, message);
+      devWarn(`Invalid message rejected after ${duration}ms:`, message);
       sendResponse(
         createErrorResponse(
           'Invalid message format or type',
@@ -116,7 +117,7 @@ chrome.runtime.onMessage.addListener(
     handleMessage(message)
       .then((response) => {
         const duration = Date.now() - startTime;
-        console.log(
+        devLog(
           `Message '${message.type}' completed in ${duration}ms`,
           response.success ? '✓' : '✗'
         );
@@ -124,7 +125,7 @@ chrome.runtime.onMessage.addListener(
       })
       .catch((error) => {
         const duration = Date.now() - startTime;
-        console.error(
+        devError(
           `Message '${message.type}' failed after ${duration}ms:`,
           error
         );

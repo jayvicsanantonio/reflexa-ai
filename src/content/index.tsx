@@ -21,7 +21,9 @@ import {
   showDashboardModal,
 } from './setup';
 
-console.log('Reflexa AI content script initialized');
+// Import logger
+import { devLog } from '../utils/logger';
+devLog('Content script initialized');
 
 // Language names map removed (no longer shown in UI)
 // LOTUS_NUDGE_STYLES is now imported from './setup'
@@ -35,7 +37,7 @@ console.log('Reflexa AI content script initialized');
 // Setup functions are now imported from './setup'
 // Create wrapper functions with proper dependencies
 const handleDwellThresholdReached = () => {
-  console.log('Dwell threshold reached!');
+  devLog('Dwell threshold reached!');
   showLotusNudgeSetup({
     onNudgeClick: () => handleNudgeClick(initiateReflectionFlow),
     onDashboard: showDashboardModal,
