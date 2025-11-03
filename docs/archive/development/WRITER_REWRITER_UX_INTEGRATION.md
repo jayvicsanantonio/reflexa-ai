@@ -10,7 +10,7 @@ Both Writer and Rewriter APIs are **fully integrated** into your reflection UX:
 
 **Component**: `StartReflectionButton`
 
-- **Location**: ReflectModeOverlay (experimental mode)
+- **Location**: MeditationFlowOverlay
 - **Purpose**: Generate initial reflection drafts from AI summaries
 - **User Flow**:
   1. User views AI-generated summary
@@ -33,7 +33,7 @@ Both Writer and Rewriter APIs are **fully integrated** into your reflection UX:
 
 **Component**: `TonePresetChips`
 
-- **Location**: ReflectModeOverlay (experimental mode)
+- **Location**: MeditationFlowOverlay
 - **Purpose**: Rewrite user's reflection in different tones
 - **User Flow**:
   1. User writes their reflection
@@ -96,7 +96,7 @@ Both Writer and Rewriter APIs are **fully integrated** into your reflection UX:
 
 ### 1. **Add to MeditationFlowOverlay**
 
-Currently, Writer/Rewriter are only in `ReflectModeOverlay`. Consider adding to meditation flow:
+Note: Writer/Rewriter APIs are fully integrated in `MeditationFlowOverlay`:
 
 ```typescript
 // In MeditationFlowOverlay step 2 & 3

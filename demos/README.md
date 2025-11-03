@@ -5,7 +5,7 @@ This directory contains standalone HTML demos for testing and showcasing individ
 ## Available Demos
 
 - **BreathingOrb.html** - Animated breathing orb with 7-second cycle
-- **ReflectModeOverlay.html** - Full-screen reflection mode interface
+- **MeditationFlowOverlay.html** - Full-screen reflection mode interface (4-step meditation flow)
 - **CalmStats.html** - Statistics display component
 - **StreakCounter.html** - Streak visualization component
 - **ExportModal.html** - Export functionality modal

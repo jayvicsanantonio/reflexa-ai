@@ -60,15 +60,15 @@ const summary = await promptManager.summarize(content);
 Instead of managing individual API instances, use the unified service:
 
 ```typescript
-import { unifiedAI } from './background/unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
 
 // Access Prompt API
-const summary = await unifiedAI.prompt.summarize(content);
-const questions = await unifiedAI.prompt.generateReflectionPrompts(summary);
+const summary = await aiService.prompt.summarize(content);
+const questions = await aiService.prompt.generateReflectionPrompts(summary);
 
 // Access other APIs
-const corrected = await unifiedAI.proofreader.proofread(text);
-const translated = await unifiedAI.translator.translate(text, 'en', 'es');
+const corrected = await aiService.proofreader.proofread(text);
+const translated = await aiService.translator.translate(text, 'en', 'es');
 ```
 
 ## New Features
@@ -88,21 +88,21 @@ Five new API managers are now available:
 A new unified service provides access to all APIs:
 
 ```typescript
-import { unifiedAI } from './background/unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
 
 // Check all APIs at once
-const availability = await unifiedAI.checkAllAvailability();
+const availability = await aiService.checkAllAvailability();
 
 // Use any API
-await unifiedAI.prompt.summarize(content);
-await unifiedAI.proofreader.proofread(text);
-await unifiedAI.summarizer.summarize(content, { type: 'key-points' });
-await unifiedAI.translator.translate(text, 'en', 'es');
-await unifiedAI.writer.write(prompt, { tone: 'casual' });
-await unifiedAI.rewriter.rewrite(text, { tone: 'more-formal' });
+await aiService.prompt.summarize(content);
+await aiService.proofreader.proofread(text);
+await aiService.summarizer.summarize(content, { type: 'key-points' });
+await aiService.translator.translate(text, 'en', 'es');
+await aiService.writer.write(prompt, { tone: 'casual' });
+await aiService.rewriter.rewrite(text, { tone: 'more-formal' });
 
 // Clean up all sessions
-unifiedAI.destroyAll();
+aiService.destroyAll();
 ```
 
 ## Backward Compatibility
@@ -161,7 +161,7 @@ A: Yes, if you're directly importing `AIManager`. Update imports and variable na
 
 ### Q: What's the recommended approach?
 
-A: Use the `UnifiedAIService` for new code. It provides a single interface to all APIs and handles initialization automatically.
+A: Use the `AIService` for new code. It provides a single interface to all APIs and handles initialization automatically. Import via `import { aiService } from './background/services/ai/aiService';`
 
 ### Q: Are there any functional changes?
 

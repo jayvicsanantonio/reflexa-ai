@@ -15,18 +15,21 @@ Reflexa AI now supports all six Gemini Nano APIs:
 
 ## Architecture
 
-All APIs are managed through a unified service located at `src/background/unifiedAIService.ts`:
+All APIs are managed through the AIService located at `src/background/services/ai/aiService.ts`:
 
 ```typescript
-import { unifiedAI } from './background/unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
+
+// Initialize on startup
+aiService.initialize();
 
 // Access individual APIs
-unifiedAI.prompt; // Prompt API (existing)
-unifiedAI.proofreader; // Proofreader API (new)
-unifiedAI.summarizer; // Summarizer API (new)
-unifiedAI.translator; // Translator API (new)
-unifiedAI.writer; // Writer API (new)
-unifiedAI.rewriter; // Rewriter API (new)
+aiService.prompt; // Prompt API (existing)
+aiService.proofreader; // Proofreader API (new)
+aiService.summarizer; // Summarizer API (new)
+aiService.translator; // Translator API (new)
+aiService.writer; // Writer API (new)
+aiService.rewriter; // Rewriter API (new)
 ```
 
 ## API Usage Examples
@@ -37,15 +40,15 @@ The Prompt API is already integrated for generating summaries and reflection que
 
 ```typescript
 // Summarize content
-const summary = await unifiedAI.prompt.summarize(articleContent);
+const summary = await aiService.prompt.summarize(articleContent);
 // Returns: ['Insight: ...', 'Surprise: ...', 'Apply: ...']
 
 // Generate reflection questions
-const questions = await unifiedAI.prompt.generateReflectionPrompts(summary);
+const questions = await aiService.prompt.generateReflectionPrompts(summary);
 // Returns: ['Question 1?', 'Question 2?']
 
 // Proofread text (using Prompt API)
-const proofread = await unifiedAI.prompt.proofread(userText);
+const proofread = await aiService.prompt.proofread(userText);
 ```
 
 ### 2. Proofreader API (New)
@@ -54,10 +57,10 @@ Dedicated API for grammar and spelling corrections.
 
 ```typescript
 // Check availability
-const available = await unifiedAI.proofreader.checkAvailability();
+const available = await aiService.proofreader.checkAvailability();
 
 // Proofread text
-const correctedText = await unifiedAI.proofreader.proofread(
+const correctedText = await aiService.proofreader.proofread(
   'This is a text with some grammer mistakes.'
 );
 // Returns: "This is a text with some grammar mistakes."
@@ -75,17 +78,17 @@ Specialized API for content summarization with multiple formats.
 
 ```typescript
 // Check availability
-const available = await unifiedAI.summarizer.checkAvailability();
+const available = await aiService.summarizer.checkAvailability();
 
 // Generate different types of summaries
-const tldr = await unifiedAI.summarizer.summarize(content, {
+const tldr = await aiService.summarizer.summarize(content, {
   type: 'tl;dr', // Options: 'tl;dr', 'key-points', 'teaser', 'headline'
   format: 'markdown', // Options: 'plain-text', 'markdown'
   length: 'short', // Options: 'short', 'medium', 'long'
 });
 
 // Streaming summary (for real-time display)
-for await (const chunk of unifiedAI.summarizer.summarizeStreaming(content, {
+for await (const chunk of aiService.summarizer.summarizeStreaming(content, {
   type: 'key-points',
   length: 'medium',
 })) {
@@ -163,10 +166,10 @@ Generate original creative content.
 
 ```typescript
 // Check availability
-const available = await unifiedAI.writer.checkAvailability();
+const available = await aiService.writer.checkAvailability();
 
 // Generate content with different tones
-const content = await unifiedAI.writer.write(
+const content = await aiService.writer.write(
   'Write a motivational message about daily reflection',
   {
     tone: 'casual', // Options: 'formal', 'neutral', 'casual'
@@ -176,7 +179,7 @@ const content = await unifiedAI.writer.write(
 );
 
 // Streaming generation
-for await (const chunk of unifiedAI.writer.writeStreaming(
+for await (const chunk of aiService.writer.writeStreaming(
   'Create a reflection prompt about mindfulness',
   { tone: 'neutral', length: 'medium' }
 )) {
@@ -197,10 +200,10 @@ Improve existing content with different styles.
 
 ```typescript
 // Check availability
-const available = await unifiedAI.rewriter.checkAvailability();
+const available = await aiService.rewriter.checkAvailability();
 
 // Rewrite with different options
-const rewritten = await unifiedAI.rewriter.rewrite(
+const rewritten = await aiService.rewriter.rewrite(
   "This article talks about stuff that's pretty important.",
   {
     tone: 'more-formal', // Options: 'as-is', 'more-formal', 'more-casual'
@@ -211,7 +214,7 @@ const rewritten = await unifiedAI.rewriter.rewrite(
 // Returns: "This article discusses matters of significant importance."
 
 // Streaming rewrite
-for await (const chunk of unifiedAI.rewriter.rewriteStreaming(userReflection, {
+for await (const chunk of aiService.rewriter.rewriteStreaming(userReflection, {
   tone: 'more-casual',
   length: 'shorter',
 })) {
@@ -236,14 +239,14 @@ Use native APIs with Prompt API as fallback:
 async function proofreadText(text: string): Promise<string> {
   // Try native Proofreader API first
   if (settings.useNativeProofreader) {
-    const available = await unifiedAI.proofreader.checkAvailability();
+    const available = await aiService.proofreader.checkAvailability();
     if (available) {
-      return await unifiedAI.proofreader.proofread(text);
+      return await aiService.proofreader.proofread(text);
     }
   }
 
   // Fallback to Prompt API
-  return await unifiedAI.prompt.proofread(text);
+  return await aiService.prompt.proofread(text);
 }
 ```
 
@@ -253,7 +256,7 @@ Check all APIs availability at once:
 
 ```typescript
 async function checkAllAPIs() {
-  const availability = await unifiedAI.checkAllAvailability();
+  const availability = await aiService.checkAllAvailability();
 
   console.log('API Availability:', availability);
   // {
@@ -275,18 +278,18 @@ Enhance features based on available APIs:
 
 ```typescript
 async function enhanceReflection(reflection: string) {
-  const availability = await unifiedAI.checkAllAvailability();
+  const availability = await aiService.checkAllAvailability();
 
   let enhanced = reflection;
 
   // Proofread if available
   if (availability.proofreader) {
-    enhanced = await unifiedAI.proofreader.proofread(enhanced);
+    enhanced = await aiService.proofreader.proofread(enhanced);
   }
 
   // Translate if enabled and available
   if (settings.translationEnabled && availability.translator) {
-    enhanced = await unifiedAI.translator.translate(
+    enhanced = await aiService.translator.translate(
       enhanced,
       'en',
       settings.targetLanguage
@@ -307,17 +310,17 @@ Combine Summarizer API with Prompt API for better results:
 async function smartSummarize(content: string) {
   if (settings.useNativeSummarizer) {
     // Use Summarizer API for key points
-    const keyPoints = await unifiedAI.summarizer.summarize(content, {
+    const keyPoints = await aiService.summarizer.summarize(content, {
       type: 'key-points',
       length: 'medium',
     });
 
     // Use Prompt API to format into Insight/Surprise/Apply
-    return await unifiedAI.prompt.summarize(keyPoints);
+    return await aiService.prompt.summarize(keyPoints);
   }
 
   // Default: use Prompt API only
-  return await unifiedAI.prompt.summarize(content);
+  return await aiService.prompt.summarize(content);
 }
 ```
 
@@ -328,26 +331,26 @@ Allow users to reflect in their native language:
 ```typescript
 async function createMultilingualReflection(content: string) {
   // Summarize in English
-  const summary = await unifiedAI.prompt.summarize(content);
+  const summary = await aiService.prompt.summarize(content);
 
   // Translate summary to user's language
   if (settings.translationEnabled) {
     const translatedSummary = await Promise.all(
       summary.map((bullet) =>
-        unifiedAI.translator.translate(bullet, 'en', settings.targetLanguage)
+        aiService.translator.translate(bullet, 'en', settings.targetLanguage)
       )
     );
 
     // Generate questions in user's language
     const questions =
-      await unifiedAI.prompt.generateReflectionPrompts(translatedSummary);
+      await aiService.prompt.generateReflectionPrompts(translatedSummary);
 
     return { summary: translatedSummary, questions };
   }
 
   return {
     summary,
-    questions: await unifiedAI.prompt.generateReflectionPrompts(summary),
+    questions: await aiService.prompt.generateReflectionPrompts(summary),
   };
 }
 ```
@@ -361,19 +364,19 @@ async function assistReflectionWriting(userInput: string) {
   const suggestions = [];
 
   // Proofread
-  if (await unifiedAI.proofreader.checkAvailability()) {
-    const proofread = await unifiedAI.proofreader.proofread(userInput);
+  if (await aiService.proofreader.checkAvailability()) {
+    const proofread = await aiService.proofreader.proofread(userInput);
     if (proofread !== userInput) {
       suggestions.push({ type: 'proofread', text: proofread });
     }
   }
 
   // Offer rewrite options
-  if (await unifiedAI.rewriter.checkAvailability()) {
-    const formal = await unifiedAI.rewriter.rewrite(userInput, {
+  if (await aiService.rewriter.checkAvailability()) {
+    const formal = await aiService.rewriter.rewrite(userInput, {
       tone: 'more-formal',
     });
-    const casual = await unifiedAI.rewriter.rewrite(userInput, {
+    const casual = await aiService.rewriter.rewrite(userInput, {
       tone: 'more-casual',
     });
 
@@ -394,23 +397,23 @@ Process content through multiple APIs:
 ```typescript
 async function enhanceContent(rawContent: string) {
   // Step 1: Summarize
-  const summary = await unifiedAI.summarizer.summarize(rawContent, {
+  const summary = await aiService.summarizer.summarize(rawContent, {
     type: 'key-points',
     length: 'medium',
   });
 
   // Step 2: Rewrite for clarity
-  const clarified = await unifiedAI.rewriter.rewrite(summary, {
+  const clarified = await aiService.rewriter.rewrite(summary, {
     tone: 'as-is',
     length: 'shorter',
   });
 
   // Step 3: Proofread
-  const polished = await unifiedAI.proofreader.proofread(clarified);
+  const polished = await aiService.proofreader.proofread(clarified);
 
   // Step 4: Translate if needed
   if (settings.translationEnabled) {
-    return await unifiedAI.translator.translate(
+    return await aiService.translator.translate(
       polished,
       'en',
       settings.targetLanguage
@@ -443,12 +446,12 @@ await chrome.storage.local.set({ settings: newSettings });
 Update `src/background/index.ts` to handle new message types:
 
 ```typescript
-import { unifiedAI } from './unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'translate':
-      unifiedAI.translator
+      aiService.translator
         .translate(
           message.payload.text,
           message.payload.source,
@@ -458,13 +461,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'rewrite':
-      unifiedAI.rewriter
+      aiService.rewriter
         .rewrite(message.payload.text, message.payload.options)
         .then((result) => sendResponse({ success: true, data: result }));
       return true;
 
     case 'write':
-      unifiedAI.writer
+      aiService.writer
         .write(message.payload.prompt, message.payload.options)
         .then((result) => sendResponse({ success: true, data: result }));
       return true;
@@ -562,16 +565,16 @@ Test each API individually:
 async function testAllAPIs() {
   console.log('Testing Gemini Nano APIs...');
 
-  const availability = await unifiedAI.checkAllAvailability();
+  const availability = await aiService.checkAllAvailability();
   console.log('Availability:', availability);
 
   if (availability.proofreader) {
-    const result = await unifiedAI.proofreader.proofread('test text');
+    const result = await aiService.proofreader.proofread('test text');
     console.log('Proofreader:', result);
   }
 
   if (availability.summarizer) {
-    const result = await unifiedAI.summarizer.summarize('long content...', {
+    const result = await aiService.summarizer.summarize('long content...', {
       type: 'tl;dr',
       length: 'short',
     });

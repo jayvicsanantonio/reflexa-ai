@@ -165,8 +165,8 @@ Enhancements to consider
 4) Overlay summary skeleton + disabled controls during updates
 - Proposed: When `isLoadingSummary`, show 3 skeleton rows and disable Start Reflection/Translate/Format.
 - Locations:
-  - `src/content/components/ReflectModeOverlay.tsx:686` (disable controls)
-  - `src/content/components/ReflectModeOverlay.tsx:708` (render skeletons)
+  - `src/content/components/MeditationFlowOverlay/SummaryPhase.tsx` (disable controls)
+  - `src/content/components/MeditationFlowOverlay/SummaryPhase.tsx` (render skeletons)
 - Rationale: Clear progress feedback; avoids mid‑update actions.
 - Acceptance Criteria:
   - Skeletons visible during format changes and initial summary load.
@@ -206,14 +206,14 @@ B) Proactive AI status prompts
 
 A) Progressive disclosure for advanced tools
 - Proposed: Default view shows breathing orb, summary, two inputs, save/cancel. Hide Tone chips, Proofread diff, and Translate behind a “More tools” disclosure.
-- Location: `src/content/components/ReflectModeOverlay.tsx:722`, `:739`.
+- Location: `src/content/components/MeditationFlowOverlay/ToolsSection.tsx` (MoreToolsMenu integration).
 - Acceptance Criteria:
   - Fewer controls visible by default; “More tools” toggles advanced actions.
   - All features remain accessible; state persists after toggle.
 
 B) Stronger busy/disabled states
 - Proposed: Centralize `isLoadingSummary`, `isTranslating`, and `isRewriting` to disable related controls and set `aria-busy`.
-- Location: `ReflectModeOverlay` + related handlers in `src/content/index.tsx`.
+- Location: `MeditationFlowOverlay` + related handlers in `src/content/workflows/`.
 - Acceptance Criteria:
   - Buttons disabled with visual and ARIA feedback during work.
   - Screen reader announcement (“Updating summary…”, “Translation complete”).
@@ -368,7 +368,7 @@ A) Translation flags
 
 ## Appendix: File Reference Map
 - Popup: `src/popup/App.tsx`, `AIStatusPanel.tsx`, `ReflectionCard.tsx`, `ExportModal.tsx`, `StreakCounter.tsx`, `CalmStats.tsx`
-- Overlay: `src/content/components/ReflectModeOverlay.tsx`, `VoiceToggleButton.tsx`, `ProofreadDiffView.tsx`, `TonePresetChips.tsx`, `TranslateDropdown.tsx`, `StartReflectionButton.tsx`
+- Overlay: `src/content/components/MeditationFlowOverlay/`, `VoiceToggleButton.tsx`, `ProofreadDiffView/`, `TonePresetChips/`, `TranslateDropdown/`, `StartReflectionButton.tsx`
 - Content script orchestration: `src/content/index.tsx`
 - Options: `src/options/App.tsx` and `components/*`
 - Theme & a11y: `src/styles/theme.css`, `src/styles/accessibility.css`, `src/content/styles.css`

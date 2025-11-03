@@ -15,19 +15,15 @@ Voice input has been successfully integrated into both reflection overlay compon
 
 ## Components with Voice Input
 
-### 1. ReflectModeOverlay ✅
-
-- Full voice input support for both reflection fields
-- Chronological text merging (typed + transcribed)
-- Auto-pause on typing detection
-- Auto-stop after silence
-
-### 2. MeditationFlowOverlay ✅ (Just Added)
+### MeditationFlowOverlay ✅
 
 - Voice input for both reflection questions (steps 2 & 3)
 - Visual feedback when recording (blue border/background)
 - Microphone button in top-right of textarea
-- Same features as ReflectModeOverlay
+- Full voice input support for both reflection fields
+- Chronological text merging (typed + transcribed)
+- Auto-pause on typing detection
+- Auto-stop after silence
 
 ## Features
 

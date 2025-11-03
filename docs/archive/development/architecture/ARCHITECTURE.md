@@ -50,7 +50,7 @@ Reflexa AI is a Chrome Manifest V3 extension that combines:
 
 #### Key Modules
 
-##### DwellTracker (`dwellTracker.ts`)
+##### DwellTracker (`features/dwellTracking/dwellTracker.ts`)
 
 Tracks time spent on a page with active engagement.
 
@@ -81,7 +81,7 @@ class DwellTracker {
 - 30-second inactivity timeout pauses tracking
 - Bound event handlers for proper cleanup
 
-##### ContentExtractor (`contentExtractor.ts`)
+##### ContentExtractor (`features/contentExtraction/contentExtractor.ts`)
 
 Analyzes DOM structure to extract main article content.
 
@@ -144,13 +144,13 @@ class ContentExtractor {
 - Full keyboard navigation and accessibility
 - See: `docs/MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md`
 
-**ReflectModeOverlay.tsx** (Alternative Interface)
+**MeditationFlowOverlay.tsx** (Primary Reflection Interface)
 
-- Full-screen overlay with gradient background
-- Displays breathing orb, summary, and reflection inputs
-- Handles save/cancel actions
-- Manages audio playback
-- Implements keyboard shortcuts
+- Main reflection interface (replaces ReflectModeOverlay)
+- 4-step meditation-focused reflection journey
+- Modular structure with sub-components and hooks
+- Integrated MoreToolsMenu for context-aware AI features
+- See: `docs/MEDITATION_FLOW_OVERLAY_IMPLEMENTATION.md`
 
 **BreathingOrb.tsx**
 
@@ -261,12 +261,12 @@ Reflexa AI uses specialized managers for each Chrome Built-in AI API:
 - 100+ language support
 - Confidence scoring
 
-**UnifiedAIService** (`unifiedAIService.ts`) - Unified Interface
+**AIService** (`services/ai/aiService.ts`) - Unified Interface
 
 - Single access point for all APIs
-- Consistent error handling
-- Capability detection
-- Session management
+- Lightweight orchestration layer
+- Capability detection and caching
+- Manager lifecycle management
 
 **Key Methods** (common across managers):
 
@@ -725,24 +725,27 @@ const results = await detector.detect('Bonjour le monde');
 detector.destroy();
 ```
 
-#### Unified Access via UnifiedAIService
+#### Unified Access via AIService
 
 ```typescript
-import { unifiedAI } from './background/unifiedAIService';
+import { aiService } from './background/services/ai/aiService';
+
+// Initialize on startup
+aiService.initialize();
 
 // Check all APIs at once
-const availability = await unifiedAI.checkAllAvailability();
+const availability = await aiService.checkAllAvailability();
 
 // Use any API through unified interface
-const summary = await unifiedAI.summarizer.summarize(text);
-const questions = await unifiedAI.prompt.generateReflectionPrompts(summary);
-const draft = await unifiedAI.writer.write('Write about...');
-const improved = await unifiedAI.rewriter.rewrite(draft);
-const corrected = await unifiedAI.proofreader.proofread(improved);
-const translated = await unifiedAI.translator.translate(corrected, 'en', 'es');
+const summary = await aiService.summarizer.summarize(text, { format: 'bullets' });
+const questions = await aiService.prompt.generateReflectionPrompts(summary);
+const draft = await aiService.writer.write('Write about...', { tone: 'calm', length: 'short' });
+const improved = await aiService.rewriter.rewrite(draft, { tone: 'calm' });
+const corrected = await aiService.proofreader.proofread(improved);
+const translated = await aiService.translator.translate(corrected, 'en', 'es');
 
 // Clean up all sessions
-unifiedAI.destroyAll();
+aiService.destroyAll();
 ```
 
 #### Session Management
