@@ -33,7 +33,7 @@
   "options_page": "src/options/index.html",
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "audio/*", "src/content/styles.css", "assets/*.css"],
+      "resources": ["icons/*", "audio/*", "src/content/styles.css", "assets/*.css", "assets/*.js"],
       "matches": ["https://*/*", "http://*/*"]
     }
   ],

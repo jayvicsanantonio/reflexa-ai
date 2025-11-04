@@ -106,9 +106,13 @@ class UIManager {
         for (const cssPath of possibleCssPaths) {
           try {
             const cssUrl = chrome.runtime.getURL(cssPath);
+            devLog(`[Shadow DOM] Attempting to fetch CSS from: ${cssUrl}`);
             const response = await fetch(cssUrl);
             if (response.ok) {
               const cssText = await response.text();
+              devLog(
+                `[Shadow DOM] Fetched CSS (${cssText.length} chars) from ${cssUrl}`
+              );
               // Check if it contains Tailwind classes
               if (
                 cssText.includes('.fixed') ||
@@ -120,12 +124,21 @@ class UIManager {
                 shadowRoot.appendChild(styleElement);
                 tailwindInjected = true;
                 devLog(
-                  `[Shadow DOM] Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${cssUrl}`
+                  `[Shadow DOM] ✅ Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${cssUrl}`
                 );
                 break;
+              } else {
+                devWarn(
+                  `[Shadow DOM] CSS doesn't contain expected Tailwind classes: ${cssUrl}`
+                );
               }
+            } else {
+              devWarn(
+                `[Shadow DOM] Failed to fetch CSS: ${cssUrl} - Status: ${response.status}`
+              );
             }
-          } catch {
+          } catch (error) {
+            devWarn(`[Shadow DOM] Error fetching CSS from ${cssPath}:`, error);
             // Try next path
             continue;
           }
@@ -281,7 +294,10 @@ class UIManager {
 
       if (!tailwindInjected) {
         devWarn(
-          '[Shadow DOM] Could not find Tailwind CSS bundle. Injecting minimal fallback styles.'
+          '[Shadow DOM] ⚠️ Could not find Tailwind CSS bundle. Injecting minimal fallback styles.'
+        );
+        devWarn(
+          '[Shadow DOM] Component will render but may lack proper styling.'
         );
         // Inject minimal fallback styles to ensure component is visible
         const fallbackStyle = document.createElement('style');
@@ -297,16 +313,51 @@ class UIManager {
           .duration-300 { transition-duration: 300ms; }
         `;
         shadowRoot.appendChild(fallbackStyle);
+      } else {
+        devLog('[Shadow DOM] ✅ Tailwind CSS successfully injected');
       }
 
       // Then inject the custom stylesheet
-      const linkElement = document.createElement('link');
-      linkElement.rel = 'stylesheet';
-      const cssUrl = chrome.runtime.getURL(config.stylesheetPath);
-      if (cssUrl && !cssUrl.includes('invalid')) {
-        linkElement.href = cssUrl;
-        shadowRoot.appendChild(linkElement);
-        devLog(`[Shadow DOM] Injected custom stylesheet: ${cssUrl}`);
+      // Fetch and inject as inline style for better compatibility with shadow DOM
+      const customCssUrl = chrome.runtime.getURL(config.stylesheetPath);
+      if (customCssUrl && !customCssUrl.includes('invalid')) {
+        try {
+          const customCssResponse = await fetch(customCssUrl);
+          if (customCssResponse.ok) {
+            const customCssText = await customCssResponse.text();
+            const customStyleElement = document.createElement('style');
+            customStyleElement.textContent = customCssText;
+            shadowRoot.appendChild(customStyleElement);
+            devLog(
+              `[Shadow DOM] ✅ Injected custom stylesheet as inline style (${customCssText.length} chars)`
+            );
+          } else {
+            devWarn(
+              `[Shadow DOM] Failed to fetch custom CSS: ${customCssUrl} - Status: ${customCssResponse.status}`
+            );
+            // Fallback to link element
+            const linkElement = document.createElement('link');
+            linkElement.rel = 'stylesheet';
+            linkElement.href = customCssUrl;
+            shadowRoot.appendChild(linkElement);
+            devLog(
+              `[Shadow DOM] Injected custom stylesheet via link element: ${customCssUrl}`
+            );
+          }
+        } catch (error) {
+          devWarn(
+            `[Shadow DOM] Error fetching custom CSS, using link element:`,
+            error
+          );
+          // Fallback to link element
+          const linkElement = document.createElement('link');
+          linkElement.rel = 'stylesheet';
+          linkElement.href = customCssUrl;
+          shadowRoot.appendChild(linkElement);
+          devLog(
+            `[Shadow DOM] Injected custom stylesheet via link element: ${customCssUrl}`
+          );
+        }
       } else {
         devWarn(
           `[Shadow DOM] Invalid CSS URL for ${config.id}: ${config.stylesheetPath}, skipping stylesheet injection`
