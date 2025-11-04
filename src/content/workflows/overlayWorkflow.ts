@@ -3,6 +3,7 @@
  * Handles showing and managing the reflection overlay
  */
 
+import React from 'react';
 import { contentState } from '../state';
 import { instanceManager } from '../core';
 import { uiManager } from '../ui';
@@ -10,6 +11,17 @@ import { performanceMonitor } from '../../utils/performanceMonitor';
 import { sendMessageToBackground } from '../runtime/messageBus';
 import type { Settings } from '../../types';
 import { devLog } from '../../utils/logger';
+
+// Store renderOverlay function for overlay rendering
+let renderOverlayFn: (() => void) | null = null;
+
+/**
+ * Set the renderOverlay function
+ * This should be called from index.tsx after renderOverlay is created
+ */
+export function setRenderOverlayHandler(handler: () => void): void {
+  renderOverlayFn = handler;
+}
 
 /**
  * Show the Reflect Mode overlay
@@ -52,14 +64,16 @@ export async function showReflectModeOverlay(): Promise<void> {
     void audioManagerForPlay.playAmbientLoop();
   }
 
-  // Create overlay container using uiManager
-  // Note: renderOverlay is still in index.tsx for now, will be extracted later
-  // We need to call renderOverlay from index.tsx after showing overlay
-  // For now, we'll create a minimal placeholder
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
-  const React = require('react');
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+  // Create overlay container using uiManager with placeholder
+  // The placeholder ensures the container is created before rendering
   uiManager.showOverlay(React.createElement('div'));
+
+  // Render the actual MeditationFlowOverlay component
+  if (renderOverlayFn) {
+    renderOverlayFn();
+  } else {
+    devLog('Warning: renderOverlay not set, overlay may not display correctly');
+  }
 
   // End performance measurement
   performanceMonitor.endMeasure('overlay-render');

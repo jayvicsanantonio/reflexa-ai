@@ -4,13 +4,16 @@
  */
 
 import { uiManager } from '../ui';
+import { AIStatusModal } from '../components/AIStatusModal';
+import { QuickSettingsModal } from '../components/QuickSettingsModal';
+import { DashboardModal } from '../components/DashboardModal';
 
 /**
  * Show AI Status modal (help modal) in the center of the page
  */
-export async function showHelpModal(): Promise<void> {
-  const { AIStatusModal } = await import('../components/AIStatusModal');
+export function showHelpModal(): Promise<void> {
   uiManager.showHelpModal(<AIStatusModal onClose={hideHelpModal} />);
+  return Promise.resolve();
 }
 
 /**
@@ -23,13 +26,11 @@ export function hideHelpModal(): void {
 /**
  * Show Quick Settings modal in the center of the page
  */
-export async function showSettingsModal(): Promise<void> {
-  const { QuickSettingsModal } = await import(
-    '../components/QuickSettingsModal'
-  );
+export function showSettingsModal(): Promise<void> {
   uiManager.showSettingsModal(
     <QuickSettingsModal onClose={hideSettingsModal} />
   );
+  return Promise.resolve();
 }
 
 /**
@@ -42,9 +43,9 @@ export function hideSettingsModal(): void {
 /**
  * Show Dashboard modal
  */
-export async function showDashboardModal(): Promise<void> {
-  const { DashboardModal } = await import('../components/DashboardModal');
+export function showDashboardModal(): Promise<void> {
   uiManager.showDashboardModal(<DashboardModal onClose={hideDashboardModal} />);
+  return Promise.resolve();
 }
 
 /**

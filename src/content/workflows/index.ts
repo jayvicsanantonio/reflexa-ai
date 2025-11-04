@@ -4,10 +4,12 @@
 export {
   initiateReflectionFlow,
   setErrorModalHandler,
+  setRenderOverlayForReflection,
 } from './reflectionWorkflow';
 export {
   showReflectModeOverlay,
   hideReflectModeOverlay,
+  setRenderOverlayHandler,
 } from './overlayWorkflow';
 export {
   extractAndValidateContent,

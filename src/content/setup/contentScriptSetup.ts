@@ -86,7 +86,7 @@ export function setupMessageListener(dependencies: {
   ) => void;
   renderOverlay: () => void;
   initiateReflectionFlow: () => Promise<void>;
-  showDashboardModal: () => Promise<void>;
+  showDashboardModal: () => void;
 }): void {
   chrome.runtime.onMessage.addListener(
     (message: unknown, _sender, sendResponse) => {

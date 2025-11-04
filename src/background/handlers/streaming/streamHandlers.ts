@@ -71,6 +71,7 @@ export async function handleSummarizeStreamRequest(
     const settings = await settingsManager.getSettings();
     const translationEnabled =
       settings.enableTranslation ?? settings.translationEnabled;
+    // Only use preferred language if translation is enabled
     const outputLanguage = translationEnabled
       ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
       : typeof detectedLanguage === 'string'
