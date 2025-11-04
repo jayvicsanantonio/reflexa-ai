@@ -88,7 +88,9 @@ class UIManager {
       const extensionBaseUrl = chrome.runtime.getURL('');
       let tailwindInjected = false;
 
-      devLog(`[Shadow DOM] Looking for Tailwind CSS bundle. Extension base URL: ${extensionBaseUrl}`);
+      devLog(
+        `[Shadow DOM] Looking for Tailwind CSS bundle. Extension base URL: ${extensionBaseUrl}`
+      );
 
       // Strategy: Find the CSS bundle that was injected by the content script
       // CRXJS injects CSS automatically, but we need to fetch it directly for shadow DOM
@@ -108,16 +110,22 @@ class UIManager {
             if (response.ok) {
               const cssText = await response.text();
               // Check if it contains Tailwind classes
-              if (cssText.includes('.fixed') || cssText.includes('.z-') || cssText.length > 1000) {
+              if (
+                cssText.includes('.fixed') ||
+                cssText.includes('.z-') ||
+                cssText.length > 1000
+              ) {
                 const styleElement = document.createElement('style');
                 styleElement.textContent = cssText;
                 shadowRoot.appendChild(styleElement);
                 tailwindInjected = true;
-                devLog(`[Shadow DOM] Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${cssUrl}`);
+                devLog(
+                  `[Shadow DOM] Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${cssUrl}`
+                );
                 break;
               }
             }
-          } catch (e) {
+          } catch {
             // Try next path
             continue;
           }
@@ -127,8 +135,12 @@ class UIManager {
         if (!tailwindInjected) {
           const linkElements = Array.from(
             document.querySelectorAll('link[rel="stylesheet"]')
-          ) as HTMLLinkElement[];
-          devLog(`[Shadow DOM] Found ${linkElements.length} link elements on page`);
+          ).filter(
+            (el): el is HTMLLinkElement => el instanceof HTMLLinkElement
+          );
+          devLog(
+            `[Shadow DOM] Found ${linkElements.length} link elements on page`
+          );
 
           for (const link of linkElements) {
             const href = link.href;
@@ -136,7 +148,9 @@ class UIManager {
             if (
               href &&
               href.startsWith(extensionBaseUrl) &&
-              (href.includes('/assets/') || href.includes('style') || href.endsWith('.css'))
+              (href.includes('/assets/') ||
+                href.includes('style') ||
+                href.endsWith('.css'))
             ) {
               devLog(`[Shadow DOM] Found potential CSS bundle: ${href}`);
               try {
@@ -145,19 +159,30 @@ class UIManager {
                 if (response.ok) {
                   const cssText = await response.text();
                   // Check if it contains Tailwind classes (basic heuristic)
-                  if (cssText.includes('.fixed') || cssText.includes('.z-') || cssText.length > 1000) {
+                  if (
+                    cssText.includes('.fixed') ||
+                    cssText.includes('.z-') ||
+                    cssText.length > 1000
+                  ) {
                     const styleElement = document.createElement('style');
                     styleElement.textContent = cssText;
                     shadowRoot.appendChild(styleElement);
                     tailwindInjected = true;
-                    devLog(`[Shadow DOM] Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${href}`);
+                    devLog(
+                      `[Shadow DOM] Successfully injected Tailwind CSS bundle (${cssText.length} chars) from ${href}`
+                    );
                     break;
                   } else {
-                    devLog(`[Shadow DOM] CSS bundle doesn't appear to contain Tailwind, skipping: ${href}`);
+                    devLog(
+                      `[Shadow DOM] CSS bundle doesn't appear to contain Tailwind, skipping: ${href}`
+                    );
                   }
                 }
               } catch (fetchError) {
-                devLog(`[Shadow DOM] Could not fetch CSS from ${href}, trying next:`, fetchError);
+                devLog(
+                  `[Shadow DOM] Could not fetch CSS from ${href}, trying next:`,
+                  fetchError
+                );
                 // Try link element as fallback
                 try {
                   const linkElement = document.createElement('link');
@@ -178,12 +203,20 @@ class UIManager {
         // If not found via link elements, try page stylesheets
         if (!tailwindInjected) {
           const pageStylesheets = Array.from(document.styleSheets);
-          devLog(`[Shadow DOM] Checking ${pageStylesheets.length} page stylesheets`);
+          devLog(
+            `[Shadow DOM] Checking ${pageStylesheets.length} page stylesheets`
+          );
 
           for (const sheet of pageStylesheets) {
             try {
               const href = sheet.href;
-              if (href && href.startsWith(extensionBaseUrl) && (href.includes('/assets/') || href.includes('style') || href.endsWith('.css'))) {
+              if (
+                href &&
+                href.startsWith(extensionBaseUrl) &&
+                (href.includes('/assets/') ||
+                  href.includes('style') ||
+                  href.endsWith('.css'))
+              ) {
                 devLog(`[Shadow DOM] Found extension stylesheet: ${href}`);
                 try {
                   // Try to extract CSS rules (works for same-origin)
@@ -193,26 +226,42 @@ class UIManager {
                   for (const rule of rules) {
                     cssText += rule.cssText + '\n';
                   }
-                  if (cssText && (cssText.includes('.fixed') || cssText.includes('.z-') || cssText.length > 1000)) {
+                  if (
+                    cssText &&
+                    (cssText.includes('.fixed') ||
+                      cssText.includes('.z-') ||
+                      cssText.length > 1000)
+                  ) {
                     styleElement.textContent = cssText;
                     shadowRoot.appendChild(styleElement);
                     tailwindInjected = true;
-                    devLog(`[Shadow DOM] Injected Tailwind CSS from page stylesheet (${cssText.length} chars): ${href}`);
+                    devLog(
+                      `[Shadow DOM] Injected Tailwind CSS from page stylesheet (${cssText.length} chars): ${href}`
+                    );
                     break;
                   }
                 } catch (e) {
-                  devLog(`[Shadow DOM] CORS error accessing stylesheet rules, trying fetch:`, e);
+                  devLog(
+                    `[Shadow DOM] CORS error accessing stylesheet rules, trying fetch:`,
+                    e
+                  );
                   // Try fetch instead
                   try {
                     const response = await fetch(href);
                     if (response.ok) {
                       const cssText = await response.text();
-                      if (cssText.includes('.fixed') || cssText.includes('.z-') || cssText.length > 1000) {
+                      if (
+                        cssText.includes('.fixed') ||
+                        cssText.includes('.z-') ||
+                        cssText.length > 1000
+                      ) {
                         const styleElement = document.createElement('style');
                         styleElement.textContent = cssText;
                         shadowRoot.appendChild(styleElement);
                         tailwindInjected = true;
-                        devLog(`[Shadow DOM] Successfully fetched and injected CSS from ${href}`);
+                        devLog(
+                          `[Shadow DOM] Successfully fetched and injected CSS from ${href}`
+                        );
                         break;
                       }
                     }
@@ -221,7 +270,7 @@ class UIManager {
                   }
                 }
               }
-            } catch (e) {
+            } catch {
               // Ignore errors for individual stylesheets
             }
           }
@@ -231,7 +280,9 @@ class UIManager {
       }
 
       if (!tailwindInjected) {
-        devWarn('[Shadow DOM] Could not find Tailwind CSS bundle. Injecting minimal fallback styles.');
+        devWarn(
+          '[Shadow DOM] Could not find Tailwind CSS bundle. Injecting minimal fallback styles.'
+        );
         // Inject minimal fallback styles to ensure component is visible
         const fallbackStyle = document.createElement('style');
         fallbackStyle.textContent = `
