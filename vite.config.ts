@@ -6,4 +6,8 @@ import manifest from './public/manifest.json';
 
 export default defineConfig({
   plugins: [tailwindcss(), react(), crx({ manifest })],
+  build: {
+    // Ensure CSS files are processed by Tailwind
+    cssCodeSplit: false,
+  },
 });

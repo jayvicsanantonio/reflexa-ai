@@ -1,11 +1,331 @@
 /**
  * REFLEXA AI DESIGN SYSTEM - Content Script Styles
  * Theme and accessibility styles for shadow DOM
- * Tailwind CSS v4 is processed by Vite plugin at build time
+ *
+ * NOTE: @import 'tailwindcss' is removed because this file is loaded
+ * as a static asset via chrome.runtime.getURL() and not processed by Vite.
+ * Tailwind utilities are available via the content script's CSS bundle.
+ * Theme variables are defined here for use in custom styles.
  */
 
-@import 'tailwindcss';
-@import '../styles/animations.css';
+/* ===== ANIMATION KEYFRAMES ===== */
+/**
+ * Animation keyframes - inlined from src/styles/animations.css
+ * to avoid import resolution issues in content script
+ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes breathing {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes breathingBox {
+  0% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  25% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+}
+
+@keyframes breathingPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.95;
+    box-shadow:
+      0 0 40px rgba(14, 165, 233, 0.45),
+      inset 0 0 20px rgba(255, 255, 255, 0.22);
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 1;
+    box-shadow:
+      0 0 55px rgba(14, 165, 233, 0.6),
+      inset 0 0 28px rgba(255, 255, 255, 0.28);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+    box-shadow:
+      0 0 40px rgba(14, 165, 233, 0.45),
+      inset 0 0 20px rgba(255, 255, 255, 0.22);
+  }
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes meditateFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes meditateSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes reflexaPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulseGentle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes gradientDrift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes languagePillFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes voicePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes voiceIndicatorPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  }
+}
+
+@keyframes voiceIndicatorRing {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes recordingBorderPulse {
+  0%,
+  100% {
+    border-color: rgba(14, 165, 233, 0.6);
+    box-shadow:
+      0 0 0 3px rgba(14, 165, 233, 0.1),
+      0 0 16px rgba(14, 165, 233, 0.15);
+  }
+  50% {
+    border-color: rgba(56, 189, 248, 0.7);
+    box-shadow:
+      0 0 0 4px rgba(14, 165, 233, 0.15),
+      0 0 20px rgba(14, 165, 233, 0.2);
+  }
+}
+
+@keyframes interimTextFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes finalTextTransition {
+  0% {
+    color: rgba(148, 163, 184, 0.7);
+  }
+  100% {
+    color: var(--color-calm-50);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes highlightFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes voiceIndicatorFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 /* ===== THEME VARIABLES ===== */
 @theme {
@@ -99,14 +419,13 @@
 
 /* ===== FONT ISOLATION FOR SHADOW DOM ===== */
 /**
- * CRITICAL: Font isolation must come AFTER all Tailwind imports
- * This ensures fonts are isolated from host page styles and Tailwind's base layer
+ * CRITICAL: Font isolation for shadow DOM
+ * This ensures fonts are isolated from host page styles
  *
  * Using high specificity selectors and !important to override any inherited styles
- * from the host page or Tailwind's base layer.
+ * from the host page.
  *
- * IMPORTANT: This rule must come AFTER @import 'tailwindcss' to override
- * Tailwind's base layer font settings.
+ * IMPORTANT: Font isolation rules to override host page styles
  */
 
 /*

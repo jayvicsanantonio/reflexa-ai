@@ -7,6 +7,7 @@ import type { createRoot } from 'react-dom/client';
 export interface ShadowContainerConfig {
   id: string;
   stylesheetPath?: string;
+  stylesheetPaths?: string[];
   inlineStyles?: string;
   containerStyles?: string;
 }
