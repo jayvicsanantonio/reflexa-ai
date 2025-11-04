@@ -351,19 +351,18 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   useEffect(() => {
     audioManagerRef.current = new AudioManager(settings);
     audioManagerRef.current.loadAudioFiles();
+    // Capture timer ref value for cleanup
+    const timer = typingTimerRef.current;
 
     return () => {
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
       }
-      // Capture current timer value for cleanup
-      const timer = typingTimerRef.current;
       if (timer) {
         clearTimeout(timer);
       }
     };
-    // typingTimerRef is stable ref, but included for linter completeness
-  }, [settings, typingTimerRef]);
+  }, [settings]);
 
   // Check Writer and Rewriter API availability
   useEffect(() => {
