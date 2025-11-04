@@ -10,8 +10,13 @@ import { setNudgeLoadingState, createShowErrorModal } from '../ui';
 import { showReflectModeOverlay } from './overlayWorkflow';
 import { extractAndStoreContent } from './contentExtraction';
 import { applyTranslationPreference } from './translationPreferences';
+import { summarizeWithStreaming } from './summarizationStreaming';
 import { uiManager } from '../ui';
-import type { AICapabilities, LanguageDetection } from '../../types';
+import type {
+  AICapabilities,
+  LanguageDetection,
+  SummaryFormat,
+} from '../../types';
 import { ERROR_MESSAGES } from '../../constants';
 import { devLog, devWarn, devError } from '../../utils/logger';
 
@@ -29,6 +34,13 @@ function getShowErrorModal() {
     uiManager.hideErrorModal();
   });
   return showErrorModal;
+}
+
+// Store renderOverlay function for summarization
+let renderOverlayFn: (() => void) | null = null;
+
+export function setRenderOverlayForReflection(handler: () => void): void {
+  renderOverlayFn = handler;
 }
 
 /**
@@ -209,7 +221,80 @@ export async function initiateReflectionFlow(): Promise<void> {
     console.log('Starting summarization...');
     setNudgeLoadingState(false); // Hide nudge, overlay handles loading state
 
-    // Summarization will be handled by overlay workflow's streaming logic
+    // Get summary format from settings
+    const settingsForSummary = instanceManager.getSettings();
+    const summaryFormat: SummaryFormat =
+      settingsForSummary?.defaultSummaryFormat ?? 'bullets';
+
+    // Set summary format in state
+    contentState.setSummaryFormat(summaryFormat);
+
+    // Handle summarization based on format
+    // headline-bullets doesn't support streaming, so use non-streaming API
+    if (summaryFormat === 'headline-bullets') {
+      // Use non-streaming API for headline-bullets format
+      if (renderOverlayFn) {
+        void (async () => {
+          try {
+            const summaryResponse = await sendMessageToBackground<string[]>({
+              type: 'summarize',
+              payload: {
+                content: extractedContentInitial.text,
+                format: summaryFormat,
+                detectedLanguage: detectedLanguageCode,
+              },
+            });
+
+            if (summaryResponse.success && summaryResponse.data.length > 0) {
+              contentState.setSummary(summaryResponse.data);
+              contentState.setSummaryDisplay(summaryResponse.data);
+              contentState.setSummaryStreamComplete(true);
+              contentState.setIsLoadingSummary(false);
+              renderOverlayFn();
+              devLog('Summary generated successfully (non-streaming)');
+            } else {
+              const errorMessage =
+                summaryResponse.success === false
+                  ? summaryResponse.error
+                  : 'Summary generation failed';
+              throw new Error(errorMessage);
+            }
+          } catch (error) {
+            devError('Summarization failed:', error);
+            contentState.setIsLoadingSummary(false);
+            getShowErrorModal()(
+              'Summarization Failed',
+              'Unable to generate summary. Please try again.',
+              'ai-unavailable'
+            );
+          }
+        })();
+      } else {
+        devWarn('renderOverlay not set, cannot start summarization');
+        contentState.setIsLoadingSummary(false);
+      }
+    } else {
+      // Use streaming API for bullets and paragraph formats
+      if (renderOverlayFn) {
+        void summarizeWithStreaming(
+          extractedContentInitial.text,
+          summaryFormat,
+          detectedLanguageCode,
+          renderOverlayFn
+        ).catch((error) => {
+          devError('Summarization failed:', error);
+          contentState.setIsLoadingSummary(false);
+          getShowErrorModal()(
+            'Summarization Failed',
+            'Unable to generate summary. Please try again.',
+            'ai-unavailable'
+          );
+        });
+      } else {
+        devWarn('renderOverlay not set, cannot start summarization');
+        contentState.setIsLoadingSummary(false);
+      }
+    }
   } catch (error) {
     devError('Error in reflection flow:', error);
     setNudgeLoadingState(false);

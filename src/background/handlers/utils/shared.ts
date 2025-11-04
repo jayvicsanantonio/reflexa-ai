@@ -58,6 +58,7 @@ export async function getSettings(): Promise<
 
 /**
  * Get output language from settings, considering translation settings
+ * Only uses preferred language if translation is enabled
  */
 export async function getOutputLanguage(
   override?: string
@@ -75,6 +76,7 @@ export async function getOutputLanguage(
     return override.trim();
   }
 
+  // Only use preferred language if translation is enabled
   return translationEnabled
     ? (settings.preferredTranslationLanguage ?? settings.targetLanguage)
     : undefined;

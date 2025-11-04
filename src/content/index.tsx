@@ -10,6 +10,8 @@ import {
   stopSummaryAnimation,
   handleFormatChange as handleFormatChangeWorkflow,
   createRenderOverlay,
+  setRenderOverlayHandler,
+  setRenderOverlayForReflection,
 } from './workflows';
 import {
   setupMessageListener,
@@ -99,6 +101,12 @@ const renderOverlay = createRenderOverlay((format: SummaryFormat) =>
     stopSummaryAnimation
   )
 );
+
+// Set renderOverlay handler for overlay workflow
+setRenderOverlayHandler(renderOverlay);
+
+// Set renderOverlay handler for reflection workflow (summarization)
+setRenderOverlayForReflection(renderOverlay);
 
 /**
  * Clean up on page unload
