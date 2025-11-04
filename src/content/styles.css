@@ -63,6 +63,9 @@
   --font-mono:
     'JetBrains Mono', 'Courier New', Consolas, 'Liberation Mono', monospace;
 
+  /* Configure Tailwind to use our default font */
+  --font-family-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
   /* Spacing */
   --spacing-1: 4px;
   --spacing-2: 8px;
@@ -92,4 +95,108 @@
   --animate-fade-out: fadeOut 1s ease-in-out;
   --animate-pulse-gentle: pulseGentle 2s ease-in-out infinite;
   --animate-gradient-drift: gradientDrift 8s linear infinite;
+}
+
+/* ===== FONT ISOLATION FOR SHADOW DOM ===== */
+/**
+ * CRITICAL: Font isolation must come AFTER all Tailwind imports
+ * This ensures fonts are isolated from host page styles and Tailwind's base layer
+ *
+ * Using high specificity selectors and !important to override any inherited styles
+ * from the host page or Tailwind's base layer.
+ *
+ * IMPORTANT: This rule must come AFTER @import 'tailwindcss' to override
+ * Tailwind's base layer font settings.
+ */
+
+/*
+ * ULTRA-AGGRESSIVE font reset - targets every possible element
+ * This must override both Tailwind's base layer AND any host page styles
+ */
+:root,
+:host,
+:host *,
+*,
+*::before,
+*::after,
+html,
+html *,
+body,
+body *,
+div,
+div *,
+span,
+span *,
+button,
+button *,
+input,
+input *,
+textarea,
+textarea *,
+select,
+select *,
+p,
+p *,
+h1,
+h1 *,
+h2,
+h2 *,
+h3,
+h3 *,
+h4,
+h4 *,
+h5,
+h5 *,
+h6,
+h6 *,
+a,
+a *,
+li,
+li *,
+ul,
+ul *,
+ol,
+ol *,
+label,
+label *,
+td,
+td *,
+th,
+th *,
+table,
+table * {
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif !important;
+  font-style: normal !important;
+}
+
+/* Allow explicit font utilities to override the default */
+.font-sans,
+.font-sans * {
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif !important;
+}
+
+.font-display,
+.font-display * {
+  font-family: 'Noto Sans Display', 'Inter', system-ui, sans-serif !important;
+}
+
+.font-serif,
+.font-serif * {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif !important;
+}
+
+.font-mono,
+.font-mono * {
+  font-family:
+    'JetBrains Mono', 'Courier New', Consolas, 'Liberation Mono', monospace !important;
 }

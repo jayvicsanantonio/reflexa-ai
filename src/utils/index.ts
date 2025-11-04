@@ -201,17 +201,23 @@ export function calculateStreak(reflectionDates: string[]): number {
   }
 
   let streak = 1;
-  let currentDate = new Date(sortedDates[0]);
+  let currentDateStr = sortedDates[0];
 
   for (let i = 1; i < sortedDates.length; i++) {
-    const prevDate = new Date(sortedDates[i]);
+    const prevDateStr = sortedDates[i];
+
+    // Parse dates as UTC midnight to avoid timezone issues
+    const currentDate = new Date(currentDateStr + 'T00:00:00.000Z');
+    const prevDate = new Date(prevDateStr + 'T00:00:00.000Z');
+
+    // Calculate difference in days
     const dayDiff = Math.floor(
       (currentDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000)
     );
 
     if (dayDiff === 1) {
       streak++;
-      currentDate = prevDate;
+      currentDateStr = prevDateStr;
     } else if (dayDiff > 1) {
       break;
     }

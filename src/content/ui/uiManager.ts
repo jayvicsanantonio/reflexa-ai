@@ -44,6 +44,21 @@ class UIManager {
     // Create shadow root
     const shadowRoot = container.attachShadow({ mode: 'open' });
 
+    // CRITICAL: Inject font reset FIRST as inline style to prevent font leakage
+    // This ensures fonts are set immediately, before stylesheet loads
+    const fontResetStyle = document.createElement('style');
+    fontResetStyle.textContent = `
+      *,
+      *::before,
+      *::after,
+      :host,
+      :host * {
+        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif !important;
+        font-style: normal !important;
+      }
+    `;
+    shadowRoot.appendChild(fontResetStyle);
+
     // Inject styles
     if (config.inlineStyles) {
       const styleElement = document.createElement('style');
@@ -63,9 +78,20 @@ class UIManager {
       }
     }
 
-    // Create root element for React
+    // Create root element for React with inline font style as final fallback
     const rootElement = document.createElement('div');
+    rootElement.style.fontFamily =
+      "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
+    rootElement.style.fontStyle = 'normal';
+    rootElement.id = 'reflexa-root';
     shadowRoot.appendChild(rootElement);
+
+    // Apply font reset to shadow root host element as well
+    if (shadowRoot.host) {
+      (shadowRoot.host as HTMLElement).style.fontFamily =
+        "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
+      (shadowRoot.host as HTMLElement).style.fontStyle = 'normal';
+    }
 
     return { container, shadowRoot, rootElement };
   }

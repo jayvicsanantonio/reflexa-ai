@@ -147,10 +147,8 @@ describe('Utility Functions', () => {
 
     it('should calculate streak for consecutive days', () => {
       const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const twoDaysAgo = new Date(today);
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      const twoDaysAgo = new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000);
 
       const dates = [
         formatISODate(today.getTime()),
@@ -202,10 +200,8 @@ describe('Utility Functions', () => {
     });
 
     it('should accept yesterday as valid for streak', () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
       const dates = [
         formatISODate(yesterday.getTime()),
