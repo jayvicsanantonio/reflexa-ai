@@ -24,7 +24,7 @@ import {
 } from './setup';
 
 // Import logger
-import { devLog } from '../utils/logger';
+import { devLog, devError } from '../utils/logger';
 devLog('Content script initialized');
 
 // Language names map removed (no longer shown in UI)
@@ -109,11 +109,47 @@ setRenderOverlayHandler(renderOverlay);
 setRenderOverlayForReflection(renderOverlay);
 
 /**
+ * Cleanup function for content script
+ * Removes event listeners and cleans up resources
+ */
+let cleanupFunctions: Array<() => void> = [];
+
+/**
+ * Register a cleanup function to be called on page unload
+ */
+function registerCleanup(cleanup: () => void): void {
+  cleanupFunctions.push(cleanup);
+}
+
+/**
  * Clean up on page unload
  */
-window.addEventListener('beforeunload', () => {
+const handleBeforeUnload = () => {
+  // Run all registered cleanup functions
+  cleanupFunctions.forEach((cleanup) => {
+    try {
+      cleanup();
+    } catch (error) {
+      devError('Error during cleanup:', error);
+    }
+  });
+
+  // Cleanup core managers
   instanceManager.cleanup();
   uiManager.cleanup();
+
+  // Clear cleanup functions
+  cleanupFunctions = [];
+};
+
+window.addEventListener('beforeunload', handleBeforeUnload);
+
+// Also cleanup on visibility change (page hidden)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Page is hidden, cleanup resources
+    instanceManager.cleanup();
+  }
 });
 
 // Modal functions are now imported from './setup'
@@ -122,11 +158,12 @@ void initializeContentScript({
   onDwellThresholdReached: handleDwellThresholdReached,
 });
 
-// Set up message listener with dependencies
-setupMessageListener({
+// Set up message listener with dependencies and register cleanup
+const messageListenerCleanup = setupMessageListener({
   applyTranslationPreference,
   showNotification,
   renderOverlay,
   initiateReflectionFlow,
   showDashboardModal,
 });
+registerCleanup(messageListenerCleanup);

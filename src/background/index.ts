@@ -351,7 +351,24 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 /**
- * Suppress benign Chrome extension errors
+ * Global error handler for service worker
+ * Suppresses benign Chrome extension errors that don't affect functionality
+ */
+self.addEventListener('error', (event) => {
+  const message = event.message ?? '';
+  
+  // Suppress FrameDoesNotExistError - happens when iframes are destroyed
+  if (message.includes('Frame') && message.includes('does not exist')) {
+    event.preventDefault();
+    return;
+  }
+
+  // Log other errors for debugging
+  devError('Service worker error:', event.error);
+});
+
+/**
+ * Suppress benign Chrome extension promise rejections
  * These errors are common and don't affect functionality
  */
 self.addEventListener('unhandledrejection', (event) => {
@@ -369,6 +386,9 @@ self.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
     return;
   }
+
+  // Log other unhandled rejections for debugging
+  devWarn('Unhandled promise rejection:', reason);
 });
 
 /**

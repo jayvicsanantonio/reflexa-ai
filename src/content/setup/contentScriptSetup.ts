@@ -75,7 +75,9 @@ export function setupNavigationListeners(): void {
 /**
  * Set up message listener for background worker responses
  * Handles any messages sent from the background worker
+ * Returns cleanup function to remove listener
  * @param dependencies - Dependencies needed for message handling
+ * @returns Cleanup function to remove the listener
  */
 export function setupMessageListener(dependencies: {
   applyTranslationPreference: (settings: Settings) => void;
@@ -87,73 +89,82 @@ export function setupMessageListener(dependencies: {
   renderOverlay: () => void;
   initiateReflectionFlow: () => Promise<void>;
   showDashboardModal: () => void;
-}): void {
-  chrome.runtime.onMessage.addListener(
-    (message: unknown, _sender, sendResponse) => {
-      try {
-        if (message && typeof message === 'object' && 'type' in message) {
-          const { type } = message as { type: string };
-          if (type === 'settingsUpdated') {
-            const updated = (message as { data?: unknown }).data as
-              | Settings
-              | undefined;
-            if (updated) {
-              devLog('Applying live settings update:', updated);
-              dependencies.applyTranslationPreference(updated);
-              // Toast for user feedback
-              try {
-                dependencies.showNotification('Settings updated', '', 'info');
-              } catch {
-                // no-op
-              }
-              // Live-update audio behavior for overlay
-              const audioManagerForSettings = instanceManager.getAudioManager();
-              if (
-                contentState.getOverlayState().isVisible &&
-                audioManagerForSettings
-              ) {
-                if (updated.enableSound) {
-                  void audioManagerForSettings.playAmbientLoopGracefully(300);
-                } else {
-                  void audioManagerForSettings.stopAmbientLoopGracefully(300);
-                }
-              }
-
-              // If overlay is mounted, re-render via unified renderer to reflect toggles consistently
-              const overlayStateMessage = contentState.getOverlayState();
-              if (
-                overlayStateMessage.isVisible &&
-                overlayStateMessage.root &&
-                overlayStateMessage.container
-              ) {
-                dependencies.renderOverlay();
+}): () => void {
+  const messageHandler = (
+    message: unknown,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response: { success: boolean }) => void
+  ): boolean => {
+    try {
+      if (message && typeof message === 'object' && 'type' in message) {
+        const { type } = message as { type: string };
+        if (type === 'settingsUpdated') {
+          const updated = (message as { data?: unknown }).data as
+            | Settings
+            | undefined;
+          if (updated) {
+            devLog('Applying live settings update:', updated);
+            dependencies.applyTranslationPreference(updated);
+            // Toast for user feedback
+            try {
+              dependencies.showNotification('Settings updated', '', 'info');
+            } catch {
+              // no-op
+            }
+            // Live-update audio behavior for overlay
+            const audioManagerForSettings = instanceManager.getAudioManager();
+            if (
+              contentState.getOverlayState().isVisible &&
+              audioManagerForSettings
+            ) {
+              if (updated.enableSound) {
+                void audioManagerForSettings.playAmbientLoopGracefully(300);
+              } else {
+                void audioManagerForSettings.stopAmbientLoopGracefully(300);
               }
             }
-          } else if (type === 'openDashboard') {
-            void dependencies.showDashboardModal();
-            sendResponse({ success: true });
-            return true;
-          } else if (type === 'startReflection') {
-            // Mirror lotus click behavior
-            void (async () => {
-              try {
-                await dependencies.initiateReflectionFlow();
-                sendResponse({ success: true });
-              } catch {
-                sendResponse({ success: false });
-              }
-            })();
-            return true;
-          }
-        }
-      } catch (e) {
-        devWarn('Error handling incoming message in content script:', e);
-      }
 
-      sendResponse({ success: true });
-      return true;
+            // If overlay is mounted, re-render via unified renderer to reflect toggles consistently
+            const overlayStateMessage = contentState.getOverlayState();
+            if (
+              overlayStateMessage.isVisible &&
+              overlayStateMessage.root &&
+              overlayStateMessage.container
+            ) {
+              dependencies.renderOverlay();
+            }
+          }
+        } else if (type === 'openDashboard') {
+          void dependencies.showDashboardModal();
+          sendResponse({ success: true });
+          return true;
+        } else if (type === 'startReflection') {
+          // Mirror lotus click behavior
+          void (async () => {
+            try {
+              await dependencies.initiateReflectionFlow();
+              sendResponse({ success: true });
+            } catch {
+              sendResponse({ success: false });
+            }
+          })();
+          return true;
+        }
+      }
+    } catch (e) {
+      devWarn('Error handling incoming message in content script:', e);
     }
-  );
+
+    sendResponse({ success: true });
+    return true;
+  };
+
+  chrome.runtime.onMessage.addListener(messageHandler);
+
+  // Return cleanup function
+  return () => {
+    chrome.runtime.onMessage.removeListener(messageHandler);
+  };
 }
 
 /**
