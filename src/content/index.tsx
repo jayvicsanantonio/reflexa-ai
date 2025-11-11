@@ -1,3 +1,12 @@
+/**
+ * Content script entry point
+ * Initializes the extension's content script functionality including:
+ * - Dwell tracking and reflection prompts
+ * - UI overlays and modals
+ * - Message handling for background communication
+ * - Cleanup on page unload
+ */
+
 import './styles.css';
 import type { SummaryFormat } from '../types';
 import { instanceManager } from './core';
@@ -22,23 +31,15 @@ import {
   showSettingsModal,
   showDashboardModal,
 } from './setup';
-
-// Import logger
 import { devLog } from '../utils/logger';
+
 devLog('Content script initialized');
 
-// Language names map removed (no longer shown in UI)
-// LOTUS_NUDGE_STYLES is now imported from './setup'
-
-// Legacy code removed - all functionality has been migrated to workflows
-// Note: renderOverlay will be created after showNotification is defined below
-
-// Initialize and setup functions are now imported from './setup'
-// Initialize content script with dependencies
-
-// Setup functions are now imported from './setup'
-// Create wrapper functions with proper dependencies
-const handleDwellThresholdReached = () => {
+/**
+ * Handle dwell threshold reached event
+ * Shows the lotus nudge to prompt user for reflection
+ */
+const handleDwellThresholdReached = (): void => {
   devLog('Dwell threshold reached!');
   showLotusNudgeSetup({
     onNudgeClick: () => handleNudgeClick(initiateReflectionFlow),
@@ -48,51 +49,30 @@ const handleDwellThresholdReached = () => {
   });
 };
 
-// Message listener and navigation listeners are now imported from './setup'
-
 /**
- * Show error modal with specified configuration
- * @param title Modal title
- * @param message Error message
- * @param type Error type
- * @param onAction Optional action callback
- * @param actionLabel Optional action button label
+ * Error modal handlers
  */
-
-/**
- * Hide the error modal
- * Removes the component and cleans up the DOM
- */
-const hideErrorModal = () => {
+const hideErrorModal = (): void => {
   uiManager.hideErrorModal();
 };
 
-/**
- * Show error modal - created with hide callback
- */
 const showErrorModal = createShowErrorModal(hideErrorModal);
-
-// Set error modal handler for workflows
 setErrorModalHandler(showErrorModal);
 
 /**
- * Hide the notification toast
- * Removes the component and cleans up the DOM
+ * Notification handlers
  */
-const hideNotification = () => {
+const hideNotification = (): void => {
   uiManager.hideNotification();
 };
 
-/**
- * Show notification - created with hide callback
- */
 const showNotification = createShowNotification(hideNotification);
-
-// Set notification handler for reflection actions
 setNotificationHandler(showNotification);
 
-// Create renderOverlay function with handleFormatChange as dependency
-// The factory function will bind the callbacks properly
+/**
+ * Overlay renderer with format change handler
+ * Creates a circular dependency that is resolved by the factory function
+ */
 const renderOverlay = createRenderOverlay((format: SummaryFormat) =>
   handleFormatChangeWorkflow(
     format,
@@ -102,27 +82,30 @@ const renderOverlay = createRenderOverlay((format: SummaryFormat) =>
   )
 );
 
-// Set renderOverlay handler for overlay workflow
 setRenderOverlayHandler(renderOverlay);
-
-// Set renderOverlay handler for reflection workflow (summarization)
 setRenderOverlayForReflection(renderOverlay);
 
 /**
- * Clean up on page unload
+ * Cleanup on page unload
+ * Ensures all event listeners and UI components are properly removed
  */
-window.addEventListener('beforeunload', () => {
+const handleBeforeUnload = (): void => {
   instanceManager.cleanup();
   uiManager.cleanup();
-});
+};
 
-// Modal functions are now imported from './setup'
-// Initialize the content script with dependencies
+window.addEventListener('beforeunload', handleBeforeUnload);
+
+/**
+ * Initialize content script with all dependencies
+ */
 void initializeContentScript({
   onDwellThresholdReached: handleDwellThresholdReached,
 });
 
-// Set up message listener with dependencies
+/**
+ * Set up message listener for background communication
+ */
 setupMessageListener({
   applyTranslationPreference,
   showNotification,

@@ -93,10 +93,14 @@ function isValidMessage(message: unknown): message is Message {
 
 /**
  * Message listener for communication with content scripts and popup
- * Handles all cross-component communication
+ * Handles all cross-component communication with proper error handling
  */
 chrome.runtime.onMessage.addListener(
-  (message: unknown, _sender, sendResponse) => {
+  (
+    message: unknown,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response: AIResponse) => void
+  ): boolean => {
     const startTime = Date.now();
     devLog('Received message:', message);
 
@@ -110,7 +114,7 @@ chrome.runtime.onMessage.addListener(
           duration
         ) as AIResponse
       );
-      return true;
+      return true; // Keep channel open for async response
     }
 
     // Route message to appropriate handler
@@ -137,6 +141,10 @@ chrome.runtime.onMessage.addListener(
             duration
           ) as AIResponse
         );
+      })
+      .catch((fallbackError) => {
+        // Last resort error handler in case sendResponse fails
+        devError('Failed to send error response:', fallbackError);
       });
 
     // Return true to indicate async response
@@ -144,19 +152,38 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'ai-stream') return;
+/**
+ * Connection listener for streaming AI operations
+ * Handles long-running operations that stream results back
+ */
+chrome.runtime.onConnect.addListener((port: chrome.runtime.Port): void => {
+  if (port.name !== 'ai-stream') {
+    devWarn(`Unexpected port connection: ${port.name}`);
+    return;
+  }
 
   let disconnected = false;
-  const isDisconnected = () => disconnected;
+  const isDisconnected = (): boolean => disconnected;
 
+  // Handle port disconnection
   port.onDisconnect.addListener(() => {
     disconnected = true;
+    devLog('AI stream port disconnected');
   });
 
-  port.onMessage.addListener((message) => {
-    if (isDisconnected()) return;
+  // Handle incoming stream messages
+  port.onMessage.addListener((message: unknown): void => {
+    if (isDisconnected()) {
+      devWarn('Received message on disconnected port');
+      return;
+    }
+
     if (!message || typeof message !== 'object') {
+      safePostStreamMessage(port, isDisconnected, {
+        event: 'error',
+        requestId: undefined,
+        error: 'Invalid message format',
+      });
       return;
     }
 
@@ -170,11 +197,12 @@ chrome.runtime.onConnect.addListener((port) => {
       safePostStreamMessage(port, isDisconnected, {
         event: 'error',
         requestId,
-        error: 'Invalid stream message',
+        error: 'Invalid stream message: missing type or requestId',
       });
       return;
     }
 
+    // Route to appropriate stream handler
     switch (type) {
       case 'summarize-stream':
         void handleSummarizeStreamRequest(
@@ -351,25 +379,32 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 /**
- * Suppress benign Chrome extension errors
- * These errors are common and don't affect functionality
+ * Global error handler for unhandled promise rejections
+ * Suppresses benign Chrome extension errors that don't affect functionality
  */
-self.addEventListener('unhandledrejection', (event) => {
-  const reason = event.reason as Error | undefined;
-  const message = reason?.message ?? '';
+self.addEventListener(
+  'unhandledrejection',
+  (event: PromiseRejectionEvent): void => {
+    const reason = event.reason as Error | undefined;
+    const message = reason?.message ?? '';
 
-  // Suppress FrameDoesNotExistError - happens when iframes are destroyed
-  if (message.includes('Frame') && message.includes('does not exist')) {
-    event.preventDefault();
-    return;
-  }
+    // Suppress FrameDoesNotExistError - happens when iframes are destroyed
+    if (message.includes('Frame') && message.includes('does not exist')) {
+      event.preventDefault();
+      return;
+    }
 
-  // Suppress "Could not establish connection" errors
-  if (message.includes('Could not establish connection')) {
-    event.preventDefault();
-    return;
+    // Suppress "Could not establish connection" errors
+    // These occur when popups/tabs close before messages complete
+    if (message.includes('Could not establish connection')) {
+      event.preventDefault();
+      return;
+    }
+
+    // Log other unhandled rejections for debugging
+    devWarn('Unhandled promise rejection:', reason);
   }
-});
+);
 
 /**
  * Migrate un-namespaced storage keys to namespaced keys.

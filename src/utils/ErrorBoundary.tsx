@@ -23,12 +23,12 @@ export class ErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: unknown, errorInfo: unknown): void {
+  componentDidCatch(error: unknown, errorInfo: React.ErrorInfo): void {
     // Log non-sensitive error details for diagnostics
     try {
       devError('UI ErrorBoundary caught error:', error, errorInfo);
     } catch {
-      // no-op
+      // Silently fail if logging itself fails
     }
   }
 
