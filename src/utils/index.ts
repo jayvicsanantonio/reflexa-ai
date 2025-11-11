@@ -22,6 +22,52 @@ export {
   getAccessibleDuration,
 } from './accessibility';
 
+// Export error utilities
+export {
+  getErrorMessage,
+  getDetailedErrorInfo,
+  isNetworkError,
+  isPermissionError,
+  withRetry,
+  withTimeout,
+  safeJsonParse,
+  assert,
+} from './errorUtils';
+
+// Export memory management utilities
+export {
+  EventListenerManager,
+  TimerManager,
+  LimitedCache,
+  WeakCache,
+  createDebouncedFunction,
+  ResourceManager,
+} from './memoryManager';
+
+// Export performance utilities
+export {
+  measurePerformance,
+  measureAsyncPerformance,
+  BatchedRAF,
+  ObserverManager,
+  memoize,
+  calculateVisibleRange,
+  debounceTrailing,
+  throttle,
+  isElementVisible,
+  getMemoryUsage,
+} from './performanceUtils';
+
+// Export enhanced accessibility utilities
+export {
+  AccessibilityAnnouncer,
+  SkipLinkManager,
+  FocusTrap,
+  validateHeadingStructure,
+  checkContrast,
+  generateAccessibleId,
+} from './a11yEnhanced';
+
 /**
  * Generate a UUID v4
  * @returns A UUID v4 string

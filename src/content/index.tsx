@@ -1,3 +1,13 @@
+/**
+ * Content Script Entry Point
+ *
+ * Responsibilities:
+ * - Initialize UI managers and core components
+ * - Setup event listeners and workflows
+ * - Coordinate between content script features and background worker
+ * - Handle cleanup and lifecycle events
+ */
+
 import './styles.css';
 import type { SummaryFormat } from '../types';
 import { instanceManager } from './core';
@@ -22,111 +32,112 @@ import {
   showSettingsModal,
   showDashboardModal,
 } from './setup';
-
-// Import logger
 import { devLog } from '../utils/logger';
+
 devLog('Content script initialized');
 
-// Language names map removed (no longer shown in UI)
-// LOTUS_NUDGE_STYLES is now imported from './setup'
+/**
+ * Initialize UI handlers
+ * Creates callbacks for showing/hiding modals and notifications
+ */
+function initializeUIHandlers() {
+  const hideErrorModal = () => {
+    uiManager.hideErrorModal();
+  };
 
-// Legacy code removed - all functionality has been migrated to workflows
-// Note: renderOverlay will be created after showNotification is defined below
+  const showErrorModal = createShowErrorModal(hideErrorModal);
+  setErrorModalHandler(showErrorModal);
 
-// Initialize and setup functions are now imported from './setup'
-// Initialize content script with dependencies
+  const hideNotification = () => {
+    uiManager.hideNotification();
+  };
 
-// Setup functions are now imported from './setup'
-// Create wrapper functions with proper dependencies
-const handleDwellThresholdReached = () => {
-  devLog('Dwell threshold reached!');
-  showLotusNudgeSetup({
-    onNudgeClick: () => handleNudgeClick(initiateReflectionFlow),
-    onDashboard: showDashboardModal,
-    onHelp: showHelpModal,
-    onSettings: showSettingsModal,
+  const showNotification = createShowNotification(hideNotification);
+  setNotificationHandler(showNotification);
+
+  return { showErrorModal, showNotification };
+}
+
+/**
+ * Initialize overlay rendering with format change handling
+ * Creates the overlay render function with proper dependency injection
+ */
+function initializeOverlayRendering(
+  showNotification: ReturnType<typeof createShowNotification>
+) {
+  const renderOverlay = createRenderOverlay((format: SummaryFormat) =>
+    handleFormatChangeWorkflow(
+      format,
+      renderOverlay,
+      showNotification,
+      stopSummaryAnimation
+    )
+  );
+
+  setRenderOverlayHandler(renderOverlay);
+  setRenderOverlayForReflection(renderOverlay);
+
+  return renderOverlay;
+}
+
+/**
+ * Handle dwell threshold reached event
+ * Shows lotus nudge with action callbacks
+ */
+function createDwellThresholdHandler() {
+  return () => {
+    devLog('Dwell threshold reached!');
+    showLotusNudgeSetup({
+      onNudgeClick: () => handleNudgeClick(initiateReflectionFlow),
+      onDashboard: showDashboardModal,
+      onHelp: showHelpModal,
+      onSettings: showSettingsModal,
+    });
+  };
+}
+
+/**
+ * Setup cleanup handlers for page unload
+ * Ensures all resources are properly released
+ */
+function setupCleanupHandlers() {
+  window.addEventListener('beforeunload', () => {
+    instanceManager.cleanup();
+    uiManager.cleanup();
   });
-};
-
-// Message listener and navigation listeners are now imported from './setup'
+}
 
 /**
- * Show error modal with specified configuration
- * @param title Modal title
- * @param message Error message
- * @param type Error type
- * @param onAction Optional action callback
- * @param actionLabel Optional action button label
+ * Initialize all content script components
+ * Runs in sequence to ensure proper dependency ordering
  */
+function initializeContentScriptComponents() {
+  // Initialize UI handlers
+  const { showNotification } = initializeUIHandlers();
 
-/**
- * Hide the error modal
- * Removes the component and cleans up the DOM
- */
-const hideErrorModal = () => {
-  uiManager.hideErrorModal();
-};
+  // Initialize overlay rendering
+  const renderOverlay = initializeOverlayRendering(showNotification);
 
-/**
- * Show error modal - created with hide callback
- */
-const showErrorModal = createShowErrorModal(hideErrorModal);
+  // Create dwell threshold handler
+  const handleDwellThresholdReached = createDwellThresholdHandler();
 
-// Set error modal handler for workflows
-setErrorModalHandler(showErrorModal);
+  // Setup cleanup handlers
+  setupCleanupHandlers();
 
-/**
- * Hide the notification toast
- * Removes the component and cleans up the DOM
- */
-const hideNotification = () => {
-  uiManager.hideNotification();
-};
+  // Initialize the content script with dependencies
+  void initializeContentScript({
+    onDwellThresholdReached: handleDwellThresholdReached,
+  });
 
-/**
- * Show notification - created with hide callback
- */
-const showNotification = createShowNotification(hideNotification);
-
-// Set notification handler for reflection actions
-setNotificationHandler(showNotification);
-
-// Create renderOverlay function with handleFormatChange as dependency
-// The factory function will bind the callbacks properly
-const renderOverlay = createRenderOverlay((format: SummaryFormat) =>
-  handleFormatChangeWorkflow(
-    format,
-    renderOverlay,
+  // Set up message listener with dependencies
+  setupMessageListener({
+    applyTranslationPreference,
     showNotification,
-    stopSummaryAnimation
-  )
-);
+    renderOverlay,
+    initiateReflectionFlow,
+    showDashboardModal,
+  });
+}
 
-// Set renderOverlay handler for overlay workflow
-setRenderOverlayHandler(renderOverlay);
-
-// Set renderOverlay handler for reflection workflow (summarization)
-setRenderOverlayForReflection(renderOverlay);
-
-/**
- * Clean up on page unload
- */
-window.addEventListener('beforeunload', () => {
-  instanceManager.cleanup();
-  uiManager.cleanup();
-});
-
-// Modal functions are now imported from './setup'
-// Initialize the content script with dependencies
-void initializeContentScript({
-  onDwellThresholdReached: handleDwellThresholdReached,
-});
-
-// Set up message listener with dependencies
-setupMessageListener({
-  applyTranslationPreference,
-  showNotification,
-  renderOverlay,
-  initiateReflectionFlow,
-  showDashboardModal,
-});
+// Run initialization
+initializeContentScriptComponents();

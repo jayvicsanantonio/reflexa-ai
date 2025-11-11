@@ -12,33 +12,30 @@ import { VirtualList } from './VirtualList';
 import { StreakCounter } from './StreakCounter';
 import { CalmStats } from './CalmStats';
 import { ExportModal } from './ExportModal';
-import type {
-  Reflection,
-  StreakData,
-  CalmStats as CalmStatsType,
-} from '../types';
-import { STORAGE_KEYS, PRIVACY_NOTICE } from '../constants';
-import { formatISODate } from '../utils';
+import type { CalmStats as CalmStatsType } from '../types';
+import { PRIVACY_NOTICE } from '../constants';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
-import './styles.css';
 import { ErrorBoundary } from '../utils/ErrorBoundary';
-import { devLog, devError } from '../utils/logger';
+import { devLog } from '../utils/logger';
+import { useReflections, useFirstLaunch } from './hooks';
+import './styles.css';
 
 /**
  * Dashboard Popup Application
- * Main interface for viewing reflection history, stats, and exporting data
+ *
+ * Responsibilities:
+ * - Display reflection history and statistics
+ * - Provide quick access to reflection workflow
+ * - Allow reflection export and deletion
+ * - Show privacy notice on first launch
  */
 export const App: React.FC = () => {
   // Enable keyboard navigation detection
   useKeyboardNavigation();
 
-  const [reflections, setReflections] = useState<Reflection[]>([]);
-  const [streakData, setStreakData] = useState<StreakData>({
-    current: 0,
-    lastReflectionDate: '',
-  });
-  const [, setIsLoading] = useState(true);
-  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+  // Use custom hooks for data management
+  const { reflections, streakData, handleDelete } = useReflections();
+  const { showPrivacyNotice, setShowPrivacyNotice } = useFirstLaunch();
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Calculate calm stats from reflections
@@ -62,11 +59,11 @@ export const App: React.FC = () => {
       )
     );
 
-    // Estimate reading time (assume 200 words per minute, 5 min average per article)
-    const totalReadingTime = reflections.length * 5 * 60; // 5 minutes per article in seconds
+    // Estimate reading time (assume 5 min average per article)
+    const totalReadingTime = reflections.length * 5 * 60; // in seconds
 
     // Estimate reflection time (assume 3 minutes per reflection)
-    const totalReflectionTime = reflections.length * 3 * 60; // 3 minutes per reflection in seconds
+    const totalReflectionTime = reflections.length * 3 * 60; // in seconds
 
     return {
       totalReflections: reflections.length,
@@ -77,160 +74,6 @@ export const App: React.FC = () => {
         totalReflectionTime / (totalReadingTime + totalReflectionTime),
     };
   }, [reflections]);
-
-  // Load data from storage on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-
-        // Load reflections, streak, and first launch flag
-        const result = await chrome.storage.local.get([
-          STORAGE_KEYS.REFLECTIONS,
-          STORAGE_KEYS.STREAK,
-          STORAGE_KEYS.FIRST_LAUNCH,
-        ]);
-
-        // Set reflections (sorted by date, most recent first)
-        const loadedReflections = (result[STORAGE_KEYS.REFLECTIONS] ??
-          []) as Reflection[];
-        const sortedReflections = loadedReflections.sort(
-          (a, b) => b.createdAt - a.createdAt
-        );
-        setReflections(sortedReflections);
-
-        // Set streak data
-        if (result[STORAGE_KEYS.STREAK]) {
-          setStreakData(result[STORAGE_KEYS.STREAK] as StreakData);
-        }
-
-        // Check if first launch
-        if (!result[STORAGE_KEYS.FIRST_LAUNCH]) {
-          setShowPrivacyNotice(true);
-          // Mark as launched
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.FIRST_LAUNCH]: true,
-          });
-        }
-      } catch (error) {
-        devError('Failed to load dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void loadData();
-  }, []);
-
-  // Listen for storage changes to update data in real-time
-  useEffect(() => {
-    const handleStorageChange = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      areaName: string
-    ) => {
-      if (areaName !== 'local') return;
-
-      // Update reflections if changed
-      if (changes[STORAGE_KEYS.REFLECTIONS]?.newValue) {
-        const newReflections = changes[STORAGE_KEYS.REFLECTIONS]
-          .newValue as Reflection[];
-        const sortedReflections = newReflections.sort(
-          (a, b) => b.createdAt - a.createdAt
-        );
-        setReflections(sortedReflections);
-      }
-
-      // Update streak if changed
-      if (changes[STORAGE_KEYS.STREAK]?.newValue) {
-        setStreakData(changes[STORAGE_KEYS.STREAK].newValue as StreakData);
-      }
-    };
-
-    chrome.storage.onChanged.addListener(handleStorageChange);
-
-    return () => {
-      chrome.storage.onChanged.removeListener(handleStorageChange);
-    };
-  }, []);
-
-  // Handle reflection deletion
-  const handleDelete = useCallback((id: string) => {
-    void (async () => {
-      try {
-        // Get current reflections
-        const result = await chrome.storage.local.get(STORAGE_KEYS.REFLECTIONS);
-        const currentReflections = (result[STORAGE_KEYS.REFLECTIONS] ??
-          []) as Reflection[];
-
-        // Filter out deleted reflection
-        const updatedReflections = currentReflections.filter(
-          (r) => r.id !== id
-        );
-
-        // Save updated reflections
-        await chrome.storage.local.set({
-          [STORAGE_KEYS.REFLECTIONS]: updatedReflections,
-        });
-
-        // Recalculate streak
-        if (updatedReflections.length > 0) {
-          const dates = updatedReflections.map((r) =>
-            formatISODate(r.createdAt)
-          );
-          const uniqueDates = [...new Set(dates)].sort(
-            (a, b) => new Date(b).getTime() - new Date(a).getTime()
-          );
-
-          // Calculate streak
-          const today = formatISODate(Date.now());
-          const yesterday = formatISODate(Date.now() - 24 * 60 * 60 * 1000);
-
-          let streak = 0;
-          if (uniqueDates[0] === today || uniqueDates[0] === yesterday) {
-            streak = 1;
-            let currentDate = new Date(uniqueDates[0]);
-
-            for (let i = 1; i < uniqueDates.length; i++) {
-              const prevDate = new Date(uniqueDates[i]);
-              const dayDiff = Math.floor(
-                (currentDate.getTime() - prevDate.getTime()) /
-                  (24 * 60 * 60 * 1000)
-              );
-
-              if (dayDiff === 1) {
-                streak++;
-                currentDate = prevDate;
-              } else if (dayDiff > 1) {
-                break;
-              }
-            }
-          }
-
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.STREAK]: {
-              current: streak,
-              lastReflectionDate: uniqueDates[0],
-            },
-          });
-        } else {
-          // No reflections left, reset streak
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.STREAK]: {
-              current: 0,
-              lastReflectionDate: '',
-            },
-          });
-        }
-
-        // Update local state
-        setReflections(
-          updatedReflections.sort((a, b) => b.createdAt - a.createdAt)
-        );
-      } catch (error) {
-        devError('Failed to delete reflection:', error);
-      }
-    })();
-  }, []);
 
   const handleStreakIncrease = useCallback(() => {
     devLog('Streak increased! 🎉');
@@ -255,7 +98,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [reflections.length]);
+  }, [reflections.length, setShowExportModal, setShowPrivacyNotice]);
 
   // Option B: open in-page Dashboard overlay and close popup
   // Disabled per new design: toolbar click shows minimalist popup hero

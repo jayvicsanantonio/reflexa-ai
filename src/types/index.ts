@@ -148,8 +148,41 @@ export interface Message {
  * Success response includes data, failure response includes error
  */
 export type AIResponse<T = unknown> =
-  | { success: true; data: T; apiUsed: string; duration: number }
-  | { success: false; error: string; apiUsed?: string; duration: number };
+  | {
+      success: true;
+      data: T;
+      apiUsed: string;
+      duration: number;
+    }
+  | {
+      success: false;
+      error: string;
+      apiUsed?: string;
+      duration: number;
+    };
+
+/**
+ * Type guard for successful AI responses
+ */
+export function isSuccessResponse<T = unknown>(
+  response: AIResponse<T>
+): response is { success: true; data: T; apiUsed: string; duration: number } {
+  return response.success === true;
+}
+
+/**
+ * Type guard for failed AI responses
+ */
+export function isErrorResponse<T = unknown>(
+  response: AIResponse<T>
+): response is {
+  success: false;
+  error: string;
+  apiUsed?: string;
+  duration: number;
+} {
+  return response.success === false;
+}
 
 /**
  * Chrome AI APIs Integration Types

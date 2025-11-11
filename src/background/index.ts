@@ -1,6 +1,12 @@
 /**
  * Background service worker entry point
  * Orchestrates AI operations, manages data persistence, and coordinates between components
+ *
+ * Key responsibilities:
+ * - Handle message routing between content scripts and background services
+ * - Manage streaming operations
+ * - Maintain storage and settings
+ * - Coordinate AI capability detection
  */
 
 import { aiService } from './services/ai/aiService';
@@ -47,9 +53,41 @@ devLog('Background service worker initialized');
 aiService.initialize();
 
 /**
+ * Valid message types - source of truth for accepted messages
+ */
+const VALID_MESSAGE_TYPES = new Set<MessageType>([
+  'checkAI',
+  'checkAllAI',
+  'getCapabilities',
+  'summarize',
+  'reflect',
+  'proofread',
+  'write',
+  'rewrite',
+  'translate',
+  'detectLanguage',
+  'save',
+  'load',
+  'getSettings',
+  'updateSettings',
+  'resetSettings',
+  'getUsageStats',
+  'getPerformanceStats',
+  'canTranslate',
+  'checkTranslationAvailability',
+  'getStreak',
+  'deleteReflection',
+  'exportReflections',
+  'openDashboardInActiveTab',
+  'startReflectInActiveTab',
+]);
+
+/**
  * Type guard to validate message structure and type
+ * Uses a Set for better performance and single source of truth
+ *
  * @param message Unknown message object
- * @returns True if message is valid Message type
+ * @returns True if message is valid Message type with known type
  */
 function isValidMessage(message: unknown): message is Message {
   if (!message || typeof message !== 'object') {
@@ -60,40 +98,17 @@ function isValidMessage(message: unknown): message is Message {
     return false;
   }
 
-  // Validate message type is one of the allowed types
-  const validTypes: MessageType[] = [
-    'checkAI',
-    'checkAllAI',
-    'getCapabilities',
-    'summarize',
-    'reflect',
-    'proofread',
-    'write',
-    'rewrite',
-    'translate',
-    'detectLanguage',
-    'save',
-    'load',
-    'getSettings',
-    'updateSettings',
-    'resetSettings',
-    'getUsageStats',
-    'getPerformanceStats',
-    'canTranslate',
-    'checkTranslationAvailability',
-    'getStreak',
-    'deleteReflection',
-    'exportReflections',
-    'openDashboardInActiveTab',
-    'startReflectInActiveTab',
-  ];
-
-  return validTypes.includes(message.type as MessageType);
+  return VALID_MESSAGE_TYPES.has(message.type as MessageType);
 }
 
 /**
  * Message listener for communication with content scripts and popup
- * Handles all cross-component communication
+ * Routes messages to appropriate handlers and manages response lifecycle
+ *
+ * @param message - Unknown message from sender
+ * @param _sender - Message sender metadata (unused)
+ * @param sendResponse - Callback to send response back to sender
+ * @returns true to indicate async response will be sent
  */
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
@@ -114,7 +129,7 @@ chrome.runtime.onMessage.addListener(
     }
 
     // Route message to appropriate handler
-    handleMessage(message)
+    void handleMessage(message)
       .then((response) => {
         const duration = Date.now() - startTime;
         devLog(
@@ -123,27 +138,26 @@ chrome.runtime.onMessage.addListener(
         );
         sendResponse(response);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         const duration = Date.now() - startTime;
+        const errorMessage =
+          error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR;
         devError(
           `Message '${message.type}' failed after ${duration}ms:`,
           error
         );
-        sendResponse(
-          createErrorResponse(
-            error instanceof Error
-              ? error.message
-              : ERROR_MESSAGES.GENERIC_ERROR,
-            duration
-          ) as AIResponse
-        );
+        sendResponse(createErrorResponse(errorMessage, duration) as AIResponse);
       });
 
-    // Return true to indicate async response
+    // Return true to indicate async response will be sent
     return true;
   }
 );
 
+/**
+ * Stream connection handler for long-running AI operations
+ * Manages persistent connections for streaming responses
+ */
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'ai-stream') return;
 
@@ -154,9 +168,12 @@ chrome.runtime.onConnect.addListener((port) => {
     disconnected = true;
   });
 
-  port.onMessage.addListener((message) => {
+  port.onMessage.addListener((message: unknown) => {
     if (isDisconnected()) return;
+
+    // Validate message is object
     if (!message || typeof message !== 'object') {
+      devWarn('Received non-object stream message:', message);
       return;
     }
 
@@ -166,15 +183,17 @@ chrome.runtime.onConnect.addListener((port) => {
       payload?: unknown;
     };
 
-    if (!type || !requestId) {
+    // Validate required fields
+    if (!type || !requestId || typeof type !== 'string') {
       safePostStreamMessage(port, isDisconnected, {
         event: 'error',
-        requestId,
-        error: 'Invalid stream message',
+        requestId: requestId ?? 'unknown',
+        error: 'Invalid stream message: missing type or requestId',
       });
       return;
     }
 
+    // Route to appropriate stream handler
     switch (type) {
       case 'summarize-stream':
         void handleSummarizeStreamRequest(
@@ -184,6 +203,7 @@ chrome.runtime.onConnect.addListener((port) => {
           isDisconnected
         );
         break;
+
       case 'writer-stream':
         void handleWriterStreamRequest(
           port,
@@ -192,6 +212,7 @@ chrome.runtime.onConnect.addListener((port) => {
           isDisconnected
         );
         break;
+
       default:
         safePostStreamMessage(port, isDisconnected, {
           event: 'error',
@@ -294,86 +315,106 @@ export async function handleMessage(
 }
 
 /**
- * Check AI availability on extension startup
+ * Initialize extension on first install or update
+ * Performs data migrations and capability checks
  */
 chrome.runtime.onInstalled.addListener(async () => {
-  devLog('Reflexa AI extension installed');
+  try {
+    devLog('Reflexa AI extension installed');
 
-  // Initialize AI Service
-  aiService.initialize();
+    // Initialize AI Service
+    aiService.initialize();
 
-  // Migrate storage keys to namespaced versions if needed
-  await migrateStorageKeysIfNeeded();
+    // Migrate storage keys to namespaced versions if needed
+    await migrateStorageKeysIfNeeded();
 
-  // Check if Gemini Nano is available
-  const available = await aiService.prompt.checkAvailability();
-  if (available) {
-    resetAIAvailability(); // Reset cache to mark as available
-  }
+    // Check if Gemini Nano is available
+    const available = await aiService.prompt.checkAvailability();
+    if (available) {
+      resetAIAvailability(); // Reset cache to mark as available
+    }
 
-  devLog('Gemini Nano available:', available);
+    devLog('Gemini Nano available:', available);
 
-  // Log all API capabilities
-  const capabilities = aiService.getCapabilities();
-  devLog('AI Capabilities:', capabilities);
+    // Log all API capabilities
+    const capabilities = aiService.getCapabilities();
+    devLog('AI Capabilities:', capabilities);
 
-  // Set first launch flag if not already set
-  const result = await chrome.storage.local.get(STORAGE_KEYS.FIRST_LAUNCH);
-  if (!result[STORAGE_KEYS.FIRST_LAUNCH]) {
-    await chrome.storage.local.set({ [STORAGE_KEYS.FIRST_LAUNCH]: true });
-    devLog('First launch detected');
+    // Set first launch flag if not already set
+    const result = await chrome.storage.local.get(STORAGE_KEYS.FIRST_LAUNCH);
+    if (!result[STORAGE_KEYS.FIRST_LAUNCH]) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.FIRST_LAUNCH]: true });
+      devLog('First launch detected');
+    }
+  } catch (error) {
+    devError('Error during extension installation:', error);
   }
 });
 
 /**
- * Check AI availability on service worker startup
+ * Initialize service worker on browser startup
+ * Restores state and performs capability checks
  */
 chrome.runtime.onStartup.addListener(async () => {
-  devLog('Reflexa AI service worker started');
+  try {
+    devLog('Reflexa AI service worker started');
 
-  // Initialize AI Service
-  aiService.initialize();
+    // Initialize AI Service
+    aiService.initialize();
 
-  // Opportunistically migrate storage keys on startup as well
-  await migrateStorageKeysIfNeeded();
+    // Opportunistically migrate storage keys on startup as well
+    await migrateStorageKeysIfNeeded();
 
-  // Check if Gemini Nano is available
-  const available = await aiService.prompt.checkAvailability();
-  if (available) {
-    resetAIAvailability(); // Reset cache to mark as available
+    // Check if Gemini Nano is available
+    const available = await aiService.prompt.checkAvailability();
+    if (available) {
+      resetAIAvailability(); // Reset cache to mark as available
+    }
+
+    devLog('Gemini Nano available:', available);
+
+    // Log all API capabilities
+    const capabilities = aiService.getCapabilities();
+    devLog('AI Capabilities:', capabilities);
+  } catch (error) {
+    devError('Error during service worker startup:', error);
   }
-
-  devLog('Gemini Nano available:', available);
-
-  // Log all API capabilities
-  const capabilities = aiService.getCapabilities();
-  devLog('AI Capabilities:', capabilities);
 });
 
 /**
  * Suppress benign Chrome extension errors
- * These errors are common and don't affect functionality
+ * These are expected errors that don't affect functionality
  */
 self.addEventListener('unhandledrejection', (event) => {
   const reason = event.reason as Error | undefined;
   const message = reason?.message ?? '';
 
-  // Suppress FrameDoesNotExistError - happens when iframes are destroyed
-  if (message.includes('Frame') && message.includes('does not exist')) {
+  // List of benign error patterns to suppress
+  const benignPatterns = [
+    // FrameDoesNotExistError - happens when iframes are destroyed
+    /frame.*does not exist/i,
+    // Connection errors when content script is unloaded
+    /Could not establish connection/i,
+    // Port errors when connection is closed unexpectedly
+    /The port closed before a response was received/i,
+  ];
+
+  // Check if error matches any benign pattern
+  if (benignPatterns.some((pattern) => pattern.test(message))) {
+    devLog('Suppressed benign error:', message);
     event.preventDefault();
     return;
   }
 
-  // Suppress "Could not establish connection" errors
-  if (message.includes('Could not establish connection')) {
-    event.preventDefault();
-    return;
-  }
+  // Log unexpected unhandled rejections for debugging
+  devWarn('Unhandled rejection:', reason);
 });
 
 /**
  * Migrate un-namespaced storage keys to namespaced keys.
  * This preserves existing user data while adopting safer key names.
+ *
+ * Migration is idempotent and safe to run multiple times.
  */
 async function migrateStorageKeysIfNeeded(): Promise<void> {
   try {
@@ -385,6 +426,7 @@ async function migrateStorageKeysIfNeeded(): Promise<void> {
       FIRST_LAUNCH: 'firstLaunch',
     } as const;
 
+    // Fetch both legacy and namespaced values in parallel
     const [legacyValues, namespacedValues] = await Promise.all([
       chrome.storage.local.get(Object.values(legacyKeys)),
       chrome.storage.local.get([
@@ -399,24 +441,31 @@ async function migrateStorageKeysIfNeeded(): Promise<void> {
     const updates: Record<string, unknown> = {};
     const removals: string[] = [];
 
-    // For each legacy key: if value exists and namespaced is missing, migrate
+    // Check each legacy key and migrate if needed
     (Object.keys(legacyKeys) as (keyof typeof legacyKeys)[]).forEach((k) => {
       const legacyKey = legacyKeys[k];
       const namespacedKey = (STORAGE_KEYS as Record<string, string>)[k];
       const legacyHasValue = legacyValues[legacyKey] !== undefined;
       const namespacedHasValue = namespacedValues[namespacedKey] !== undefined;
+
+      // Only migrate if legacy exists and namespaced doesn't
       if (legacyHasValue && !namespacedHasValue) {
         updates[namespacedKey] = legacyValues[legacyKey];
         removals.push(legacyKey);
       }
     });
 
+    // Apply migrations if any keys need updating
     if (Object.keys(updates).length > 0) {
       await chrome.storage.local.set(updates);
       await chrome.storage.local.remove(removals);
-      devLog('[Storage] Migrated legacy keys to namespaced keys');
+      devLog(
+        '[Storage] Migrated legacy keys to namespaced keys:',
+        Object.keys(updates).length
+      );
     }
-  } catch (e) {
-    devWarn('[Storage] Key migration failed:', e);
+  } catch (error) {
+    devWarn('[Storage] Key migration failed:', error);
+    // Don't throw - migration failure shouldn't block extension
   }
 }
