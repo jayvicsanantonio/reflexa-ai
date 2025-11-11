@@ -4,6 +4,7 @@
  */
 
 import type { Settings } from '../../types';
+import { DEFAULT_SETTINGS } from '../../constants';
 import { contentState } from '../state';
 import { instanceManager } from '../core';
 import { sendMessageToBackground } from '../runtime/messageBus';
@@ -24,23 +25,7 @@ export async function getSettings(): Promise<Settings> {
   } else {
     devError('Failed to load settings:', settingsResponse.error);
     // Return default settings as fallback
-    return {
-      dwellThreshold: 30,
-      enableSound: true,
-      reduceMotion: false,
-      proofreadEnabled: true,
-      privacyMode: 'local',
-      useNativeSummarizer: false,
-      useNativeProofreader: false,
-      translationEnabled: false,
-      targetLanguage: 'en',
-      defaultSummaryFormat: 'bullets',
-      enableProofreading: true,
-      enableTranslation: false,
-      preferredTranslationLanguage: 'en',
-      experimentalMode: false,
-      autoDetectLanguage: true,
-    };
+    return DEFAULT_SETTINGS;
   }
 }
 

@@ -351,6 +351,25 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 /**
+ * Global error handler for service worker
+ * Suppresses benign Chrome extension errors and logs critical ones
+ */
+self.addEventListener('error', (event) => {
+  const error = event.error;
+  const message = error?.message ?? '';
+
+  // Log unexpected errors for debugging
+  if (
+    !message.includes('Frame') &&
+    !message.includes('does not exist') &&
+    !message.includes('Could not establish connection') &&
+    !message.includes('Extension context invalidated')
+  ) {
+    devError('Service worker error:', error);
+  }
+});
+
+/**
  * Suppress benign Chrome extension errors
  * These errors are common and don't affect functionality
  */
@@ -369,6 +388,15 @@ self.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
     return;
   }
+
+  // Suppress extension context invalidated errors
+  if (message.includes('Extension context invalidated')) {
+    event.preventDefault();
+    return;
+  }
+
+  // Log unexpected rejections for debugging
+  devError('Unhandled promise rejection:', reason);
 });
 
 /**

@@ -80,6 +80,20 @@ export const PERFORMANCE = {
 };
 
 /**
+ * UI dimensions and layout constants
+ */
+export const UI_DIMENSIONS = {
+  POPUP_HERO_HEIGHT: 120, // Height of popup hero component in pixels
+  POPUP_HERO_MAX_WIDTH: 460, // Maximum width of popup hero in pixels
+  POPUP_HERO_CARD_MAX_WIDTH: 440, // Maximum width of popup hero card in pixels
+  POPUP_HERO_PADDING: 8, // Padding around popup hero container
+  VIRTUAL_LIST_ITEM_HEIGHT: 280, // Height of each item in virtual list
+  VIRTUAL_LIST_CONTAINER_HEIGHT: 400, // Height of virtual list container
+  VIRTUAL_LIST_OVERSCAN: 2, // Number of items to render outside viewport
+  VIRTUAL_LIST_THRESHOLD: 10, // Minimum items before using virtual scrolling
+};
+
+/**
  * Storage keys
  */
 export const STORAGE_NAMESPACE = 'reflexa:' as const;
