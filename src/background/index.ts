@@ -94,6 +94,12 @@ function isValidMessage(message: unknown): message is Message {
 /**
  * Message listener for communication with content scripts and popup
  * Handles all cross-component communication
+ * 
+ * Best practices:
+ * - Always return true for async responses
+ * - Validate messages before processing
+ * - Handle errors gracefully
+ * - Log performance metrics
  */
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
@@ -110,7 +116,7 @@ chrome.runtime.onMessage.addListener(
           duration
         ) as AIResponse
       );
-      return true;
+      return true; // Return true to indicate we will send a response
     }
 
     // Route message to appropriate handler
@@ -137,6 +143,10 @@ chrome.runtime.onMessage.addListener(
             duration
           ) as AIResponse
         );
+      })
+      .catch((fallbackError) => {
+        // Fallback error handler in case sendResponse fails
+        devError('Failed to send error response:', fallbackError);
       });
 
     // Return true to indicate async response
@@ -144,19 +154,42 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+/**
+ * Port connection listener for streaming AI operations
+ * Handles long-running AI operations that stream results
+ * 
+ * Best practices:
+ * - Check port name before processing
+ * - Track disconnection state
+ * - Validate message structure
+ * - Handle errors gracefully
+ */
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'ai-stream') return;
+  if (port.name !== 'ai-stream') {
+    devWarn('Unknown port connection:', port.name);
+    return;
+  }
 
   let disconnected = false;
   const isDisconnected = () => disconnected;
 
+  // Clean up on disconnect
   port.onDisconnect.addListener(() => {
     disconnected = true;
+    devLog('Stream port disconnected');
   });
 
+  // Handle incoming stream messages
   port.onMessage.addListener((message) => {
-    if (isDisconnected()) return;
+    // Early return if already disconnected
+    if (isDisconnected()) {
+      devWarn('Received message on disconnected port');
+      return;
+    }
+
+    // Validate message structure
     if (!message || typeof message !== 'object') {
+      devWarn('Invalid stream message format:', message);
       return;
     }
 
@@ -166,39 +199,53 @@ chrome.runtime.onConnect.addListener((port) => {
       payload?: unknown;
     };
 
+    // Validate required fields
     if (!type || !requestId) {
       safePostStreamMessage(port, isDisconnected, {
         event: 'error',
-        requestId,
-        error: 'Invalid stream message',
+        requestId: requestId ?? 'unknown',
+        error: 'Invalid stream message: missing type or requestId',
       });
       return;
     }
 
-    switch (type) {
-      case 'summarize-stream':
-        void handleSummarizeStreamRequest(
-          port,
-          requestId,
-          payload,
-          isDisconnected
-        );
-        break;
-      case 'writer-stream':
-        void handleWriterStreamRequest(
-          port,
-          requestId,
-          payload,
-          isDisconnected
-        );
-        break;
-      default:
-        safePostStreamMessage(port, isDisconnected, {
-          event: 'error',
-          requestId,
-          error: `Unknown stream type: ${type}`,
-        });
-        break;
+    // Route to appropriate stream handler
+    try {
+      switch (type) {
+        case 'summarize-stream':
+          void handleSummarizeStreamRequest(
+            port,
+            requestId,
+            payload,
+            isDisconnected
+          );
+          break;
+        case 'writer-stream':
+          void handleWriterStreamRequest(
+            port,
+            requestId,
+            payload,
+            isDisconnected
+          );
+          break;
+        default:
+          safePostStreamMessage(port, isDisconnected, {
+            event: 'error',
+            requestId,
+            error: `Unknown stream type: ${type}`,
+          });
+          break;
+      }
+    } catch (error) {
+      devError(`Error handling stream message '${type}':`, error);
+      safePostStreamMessage(port, isDisconnected, {
+        event: 'error',
+        requestId,
+        error:
+          error instanceof Error
+            ? error.message
+            : ERROR_MESSAGES.GENERIC_ERROR,
+      });
     }
   });
 });
