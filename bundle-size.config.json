@@ -1,0 +1,19 @@
+{
+  "$schema": "./bundle-size.schema.json",
+  "thresholds": {
+    "content": 512000,
+    "background": 256000,
+    "popup": 256000,
+    "options": 128000,
+    "total": 1048576
+  },
+  "warnOnIncrease": true,
+  "failOnExceed": false,
+  "historyFile": ".bundle-size-history.json",
+  "patterns": {
+    "content": "dist/assets/index.tsx-*.js",
+    "background": "dist/assets/index.ts-*.js",
+    "popup": "dist/assets/index.html-*.js",
+    "options": "dist/assets/index.html-*.js"
+  }
+}

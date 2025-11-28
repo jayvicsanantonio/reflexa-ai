@@ -49,3 +49,6 @@ yarn.lock
 # Husky (git hooks are tracked, but _ directory is cache)
 .husky/_
 
+# Bundle size history (local build artifact)
+.bundle-size-history.json
+

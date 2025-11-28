@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bundle Size Configuration",
+  "description": "Configuration for bundle size monitoring in the Reflexa AI Chrome Extension",
+  "type": "object",
+  "properties": {
+    "thresholds": {
+      "type": "object",
+      "description": "Size thresholds in bytes for each bundle type",
+      "properties": {
+        "content": {
+          "type": "number",
+          "description": "Maximum size in bytes for content script bundle",
+          "default": 512000
+        },
+        "background": {
+          "type": "number",
+          "description": "Maximum size in bytes for background script bundle",
+          "default": 256000
+        },
+        "popup": {
+          "type": "number",
+          "description": "Maximum size in bytes for popup bundle",
+          "default": 256000
+        },
+        "options": {
+          "type": "number",
+          "description": "Maximum size in bytes for options page bundle",
+          "default": 128000
+        },
+        "total": {
+          "type": "number",
+          "description": "Maximum total size in bytes for all bundles combined",
+          "default": 1048576
+        }
+      },
+      "required": ["content", "background", "popup"],
+      "additionalProperties": false
+    },
+    "warnOnIncrease": {
+      "type": "boolean",
+      "description": "Whether to emit warnings when bundle size increases from previous build",
+      "default": true
+    },
+    "failOnExceed": {
+      "type": "boolean",
+      "description": "Whether to fail the build when thresholds are exceeded",
+      "default": false
+    },
+    "historyFile": {
+      "type": "string",
+      "description": "Path to the file storing bundle size history",
+      "default": ".bundle-size-history.json"
+    },
+    "patterns": {
+      "type": "object",
+      "description": "Glob patterns to match bundle files for each type",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "Glob pattern for content script bundle"
+        },
+        "background": {
+          "type": "string",
+          "description": "Glob pattern for background script bundle"
+        },
+        "popup": {
+          "type": "string",
+          "description": "Glob pattern for popup bundle"
+        },
+        "options": {
+          "type": "string",
+          "description": "Glob pattern for options page bundle"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["thresholds"],
+  "additionalProperties": false
+}
