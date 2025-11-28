@@ -4,8 +4,9 @@
  */
 
 import type { Settings } from '../../types';
+import type { IContentExtractor } from '../features/contentExtraction';
 import { DwellTracker } from '../features/dwellTracking';
-import { ContentExtractor } from '../features/contentExtraction/contentExtractor';
+import { createContentExtractor } from '../features/contentExtraction';
 import { AudioManager } from '../../utils/audioManager';
 
 /**
@@ -13,7 +14,7 @@ import { AudioManager } from '../../utils/audioManager';
  */
 class InstanceManager {
   private dwellTracker: DwellTracker | null = null;
-  private contentExtractor: ContentExtractor | null = null;
+  private contentExtractor: IContentExtractor | null = null;
   private audioManager: AudioManager | null = null;
   private settings: Settings | null = null;
 
@@ -86,8 +87,8 @@ class InstanceManager {
   /**
    * Get content extractor instance (creates if doesn't exist)
    */
-  getContentExtractor(): ContentExtractor {
-    this.contentExtractor ??= new ContentExtractor();
+  getContentExtractor(): IContentExtractor {
+    this.contentExtractor ??= createContentExtractor();
     return this.contentExtractor;
   }
 
