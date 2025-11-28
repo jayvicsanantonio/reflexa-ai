@@ -27,14 +27,6 @@ export interface AICapabilities {
 }
 
 /**
- * Options for summarization operations
- */
-export interface SummarizeOptions {
-  format: SummaryFormat;
-  maxLength?: number;
-}
-
-/**
  * Options for Writer API draft generation
  */
 export interface WriterOptions {
@@ -71,14 +63,6 @@ export interface LanguageDetection {
   detectedLanguage: string;
   confidence: number;
   languageName: string;
-}
-
-/**
- * Options for translation operations
- */
-export interface TranslateOptions {
-  sourceLanguage?: string;
-  targetLanguage: string;
 }
 
 /**
@@ -128,13 +112,4 @@ export interface PerformanceStats {
   slowOperationsCount: number;
   operationsByType: Record<string, { count: number; averageDuration: number }>;
   operationsByAPI: Record<string, { count: number; averageDuration: number }>;
-}
-
-/**
- * Capability cache for storing API availability checks
- */
-export interface CapabilityCache {
-  capabilities: AICapabilities;
-  lastChecked: number;
-  ttl: number;
 }

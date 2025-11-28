@@ -4,24 +4,6 @@
 
 import { CONTENT_LIMITS } from '../constants';
 
-// Export AudioManager
-export { AudioManager } from './audioManager';
-
-// Export PerformanceMonitor
-export { PerformanceMonitor, performanceMonitor } from './performanceMonitor';
-
-// Export accessibility utilities
-export {
-  prefersReducedMotion as prefersReducedMotionUtil,
-  trapFocus,
-  announceToScreenReader,
-  cleanupAllAnnouncements,
-  meetsContrastRequirement,
-  getContrastRatio,
-  createKeyboardHandler,
-  getAccessibleDuration,
-} from './accessibility';
-
 /**
  * Generate a UUID v4
  * @returns A UUID v4 string
@@ -149,37 +131,6 @@ export function sanitizeText(text: string): string {
 }
 
 /**
- * Debounce a function call
- * @param func The function to debounce
- * @param wait Wait time in milliseconds
- * @returns Debounced function
- */
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
-
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-/**
- * Check if user prefers reduced motion
- * @returns True if user prefers reduced motion
- */
-export function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-/**
  * Calculate streak from reflection dates
  * @param reflectionDates Array of ISO date strings (YYYY-MM-DD)
  * @returns Current streak count
@@ -219,54 +170,4 @@ export function calculateStreak(reflectionDates: string[]): number {
   }
 
   return streak;
-}
-
-/**
- * Validate settings object
- * @param settings Settings object to validate
- * @returns True if valid, false otherwise
- */
-export function validateSettings(settings: unknown): boolean {
-  if (typeof settings !== 'object' || settings === null) return false;
-
-  const {
-    dwellThreshold,
-    enableSound,
-    reduceMotion,
-    proofreadEnabled,
-    privacyMode,
-  } = settings as Record<string, unknown>;
-
-  if (
-    typeof dwellThreshold !== 'number' ||
-    dwellThreshold < 30 ||
-    dwellThreshold > 300
-  ) {
-    return false;
-  }
-
-  if (typeof enableSound !== 'boolean') return false;
-  if (typeof reduceMotion !== 'boolean') return false;
-  if (typeof proofreadEnabled !== 'boolean') return false;
-  if (privacyMode !== 'local' && privacyMode !== 'sync') return false;
-
-  return true;
-}
-
-/**
- * Deep clone an object
- * @param obj Object to clone
- * @returns Cloned object
- */
-export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj)) as T;
-}
-
-/**
- * Sleep for a specified duration
- * @param ms Duration in milliseconds
- * @returns Promise that resolves after the duration
- */
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

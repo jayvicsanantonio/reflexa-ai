@@ -14,7 +14,7 @@ import { devLog, devWarn, devError } from '../../utils/logger';
  * Get settings from background worker
  * @returns Settings object
  */
-export async function getSettings(): Promise<Settings> {
+async function getSettings(): Promise<Settings> {
   const settingsResponse = await sendMessageToBackground<Settings>({
     type: 'getSettings',
   });
@@ -48,7 +48,7 @@ export async function getSettings(): Promise<Settings> {
  * Set up listeners for page navigation
  * Resets the dwell tracker when navigating to a new page
  */
-export function setupNavigationListeners(): void {
+function setupNavigationListeners(): void {
   // Listen for popstate events (back/forward navigation)
   window.addEventListener('popstate', () => {
     instanceManager.resetDwellTracker();

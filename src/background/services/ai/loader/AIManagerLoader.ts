@@ -154,8 +154,3 @@ export class AIManagerLoader implements IAIManagerLoader {
     }
   }
 }
-
-/**
- * Singleton instance of AIManagerLoader for application-wide use
- */
-export const aiManagerLoader = new AIManagerLoader();

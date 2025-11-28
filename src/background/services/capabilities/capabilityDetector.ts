@@ -24,7 +24,7 @@ interface CapabilityCache {
  * Capability Detector Class
  * Handles detection and caching of Chrome AI API availability
  */
-export class CapabilityDetector {
+class CapabilityDetector {
   private cache: CapabilityCache | null = null;
 
   /**

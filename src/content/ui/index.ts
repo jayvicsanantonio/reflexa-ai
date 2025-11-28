@@ -11,5 +11,4 @@ export type {
   ShadowContainerConfig,
   ErrorModalOptions,
   NotificationOptions,
-  UIManagerState,
 } from './types';

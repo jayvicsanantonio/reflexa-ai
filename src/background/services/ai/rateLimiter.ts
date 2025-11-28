@@ -8,7 +8,7 @@ import { devWarn, devError } from '../../../utils/logger';
 /**
  * Rate limit error detection
  */
-export function isRateLimitError(error: unknown): boolean {
+function isRateLimitError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     return (
@@ -17,34 +17,6 @@ export function isRateLimitError(error: unknown): boolean {
       message.includes('too many requests') ||
       message.includes('429')
     );
-  }
-  return false;
-}
-
-/**
- * Session error detection
- */
-export function isSessionError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('session') ||
-      message.includes('invalid session') ||
-      message.includes('session expired') ||
-      message.includes('session closed') ||
-      message.includes('session not found')
-    );
-  }
-  return false;
-}
-
-/**
- * Timeout error detection
- */
-export function isTimeoutError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return message.includes('timeout');
   }
   return false;
 }
@@ -76,7 +48,7 @@ interface UsageStats {
  * Rate Limiter class
  * Handles retry logic with exponential backoff and usage tracking
  */
-export class RateLimiter {
+class RateLimiter {
   private usageStats: UsageStats = {
     summarizations: 0,
     drafts: 0,

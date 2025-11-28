@@ -19,7 +19,7 @@ export function showHelpModal(): Promise<void> {
 /**
  * Hide AI Status modal
  */
-export function hideHelpModal(): void {
+function hideHelpModal(): void {
   uiManager.hideHelpModal();
 }
 
@@ -36,7 +36,7 @@ export function showSettingsModal(): Promise<void> {
 /**
  * Hide Quick Settings modal
  */
-export function hideSettingsModal(): void {
+function hideSettingsModal(): void {
   uiManager.hideSettingsModal();
 }
 
@@ -51,6 +51,6 @@ export function showDashboardModal(): Promise<void> {
 /**
  * Hide Dashboard modal
  */
-export function hideDashboardModal(): void {
+function hideDashboardModal(): void {
   uiManager.hideDashboardModal();
 }

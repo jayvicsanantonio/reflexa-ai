@@ -49,12 +49,6 @@ function showNotification(
   }
 }
 
-export function setErrorModalHandler(
-  handler: ReturnType<typeof createShowErrorModal>
-): void {
-  showErrorModalHandler = handler;
-}
-
 function getShowErrorModal() {
   showErrorModalHandler ??= createShowErrorModal(() => {
     uiManager.hideErrorModal();

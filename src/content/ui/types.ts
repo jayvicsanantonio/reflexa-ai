@@ -2,8 +2,6 @@
  * Type definitions for UI Manager
  */
 
-import type { createRoot } from 'react-dom/client';
-
 export interface ShadowContainerConfig {
   id: string;
   stylesheetPath?: string;
@@ -24,10 +22,4 @@ export interface NotificationOptions {
   message: string;
   type: 'warning' | 'error' | 'info';
   duration?: number;
-}
-
-export interface UIManagerState {
-  containers: Map<string, HTMLDivElement>;
-  roots: Map<string, ReturnType<typeof createRoot>>;
-  visibility: Map<string, boolean>;
 }

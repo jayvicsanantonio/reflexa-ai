@@ -16,8 +16,6 @@ export const SUPPORTED_LANGUAGES = [
   'ar',
 ] as const;
 
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-
 export interface ITranslatorManager {
   checkAvailability(): Promise<boolean>;
   isAvailable(): boolean;

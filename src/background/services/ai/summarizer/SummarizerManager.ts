@@ -30,17 +30,6 @@ const SUMMARIZE_TIMEOUT = 30000;
 const RETRY_TIMEOUT = 60000;
 
 /**
- * Factory function to create SummarizerManager with custom dependencies
- */
-export function createSummarizerManager(
-  sessionPool: ISessionPool,
-  retryHandler: IRetryHandler,
-  strategies: ISummaryStrategy[]
-): SummarizerManager {
-  return new SummarizerManager(sessionPool, retryHandler, strategies);
-}
-
-/**
  * Create default dependencies for backward compatibility
  */
 function createDefaultDependencies(): {

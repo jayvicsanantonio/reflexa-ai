@@ -49,6 +49,3 @@ export {
   handleStartReflectInActiveTab,
   resetAIAvailability,
 } from './utils/utilityHandlers';
-
-// Shared utilities (for internal use)
-export { settingsManager, ensureAIAvailable } from './utils/shared';

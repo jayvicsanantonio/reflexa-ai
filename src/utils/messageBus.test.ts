@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendMessage } from './messageBus';
+import { sendMessageToBackground as sendMessage } from './messageBus';
 
 describe('utils/messageBus', () => {
   beforeEach(() => {

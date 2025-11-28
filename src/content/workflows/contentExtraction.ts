@@ -13,7 +13,7 @@ import { devLog, devWarn, devError } from '../../utils/logger';
  * Handles token limit checking and truncation automatically
  * @returns ExtractedContent or null if extraction fails
  */
-export function extractAndValidateContent(): ExtractedContent | null {
+function extractAndValidateContent(): ExtractedContent | null {
   const contentExtractor = instanceManager.getContentExtractor();
   const extractedContent = contentExtractor.extractMainContent();
 

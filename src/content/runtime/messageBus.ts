@@ -4,7 +4,6 @@
  */
 
 export {
-  sendMessage,
   sendMessageToBackground,
   startAIStream,
   type AIStreamHandlers,

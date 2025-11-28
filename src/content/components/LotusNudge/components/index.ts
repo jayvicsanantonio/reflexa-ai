@@ -3,4 +3,3 @@
  */
 export { QuickActions } from './QuickActions';
 export { LotusButton } from './LotusButton';
-export { LotusIcon } from './LotusIcon';

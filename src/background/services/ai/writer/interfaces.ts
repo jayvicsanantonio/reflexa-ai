@@ -4,7 +4,6 @@
  */
 
 import type { WriterOptions } from '../../../../types';
-import type { AIWriter } from '../../../../types/chrome-ai';
 
 export interface WriterLanguageOptions {
   expectedInputLanguages?: string[];
@@ -20,11 +19,6 @@ export interface WriterSessionConfig {
   expectedInputLanguages?: string[];
   expectedContextLanguages?: string[];
   languageOptions?: WriterLanguageOptions;
-}
-
-export interface IWriterAPI {
-  isAvailable(): boolean;
-  create(config: WriterSessionConfig): Promise<AIWriter | null>;
 }
 
 export interface IWriterManager {

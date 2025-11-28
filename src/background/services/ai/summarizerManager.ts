@@ -6,16 +6,7 @@
  * and is located in the ./summarizer directory.
  */
 
-export {
-  SummarizerManager,
-  createSummarizerManager,
-  SessionPool,
-  ChromeSummarizerAPI,
-  RetryHandler,
-  BulletsStrategy,
-  ParagraphStrategy,
-  HeadlineBulletsStrategy,
-} from './summarizer';
+export { SummarizerManager } from './summarizer';
 
 export type {
   ISummarizerManager,

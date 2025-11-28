@@ -3,7 +3,7 @@
  * Helper functions for exporting reflections
  */
 
-export const triggerDownload = (
+const triggerDownload = (
   data: string,
   filename: string,
   type: string

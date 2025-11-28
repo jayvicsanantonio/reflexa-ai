@@ -57,7 +57,7 @@ const MAX_METRICS_HISTORY = 100;
  * Performance Monitor class
  * Tracks and analyzes AI operation performance
  */
-export class PerformanceMonitor {
+class PerformanceMonitor {
   private metrics: PerformanceMetric[] = [];
 
   /**

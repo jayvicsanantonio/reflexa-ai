@@ -65,12 +65,3 @@ export const devWarn = (...args: unknown[]): void => {
 export const devError = (...args: unknown[]): void => {
   console.error('[Reflexa]', ...args);
 };
-
-/**
- * Performance logging (always enabled for monitoring)
- */
-export const perfLog = (...args: unknown[]): void => {
-  if (isDev) {
-    console.log('[Reflexa Perf]', ...args);
-  }
-};

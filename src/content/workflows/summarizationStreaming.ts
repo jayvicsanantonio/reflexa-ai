@@ -12,10 +12,7 @@ import { devWarn } from '../../utils/logger';
  * Parse summary buffer into array of summary items
  * Handles different formats (bullets, paragraph, etc.)
  */
-export function parseSummaryBuffer(
-  buffer: string,
-  format: SummaryFormat
-): string[] {
+function parseSummaryBuffer(buffer: string, format: SummaryFormat): string[] {
   const normalized = buffer.replace(/\r/g, '');
   if (!normalized.trim()) {
     return [];
@@ -56,7 +53,7 @@ export function stopSummaryAnimation(): void {
  * Progressively reveals summary text with animation
  * Requires renderOverlay callback for UI updates
  */
-export function stepSummaryAnimation(renderOverlay: () => void): void {
+function stepSummaryAnimation(renderOverlay: () => void): void {
   const targetLength = contentState.getSummaryBuffer().length;
   if (contentState.getSummaryAnimationIndex() >= targetLength) {
     contentState.setSummaryAnimationTimer(null);
@@ -93,7 +90,7 @@ export function stepSummaryAnimation(renderOverlay: () => void): void {
  * Start summary animation
  * Requires renderOverlay callback for UI updates
  */
-export function startSummaryAnimation(
+function startSummaryAnimation(
   format: SummaryFormat,
   renderOverlay: () => void
 ): void {

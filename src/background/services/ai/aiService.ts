@@ -46,7 +46,7 @@ function createDefaultDependencies(): AIServiceDependencies {
   };
 }
 
-export class AIService {
+class AIService {
   public readonly prompt: PromptManager;
   public readonly proofreader: ProofreaderManager;
   public readonly summarizer: SummarizerManager;

@@ -43,17 +43,3 @@ export function renderMarkdown(markdown: string): string {
 
   return html;
 }
-
-/**
- * Convert markdown array (like bullet points) to HTML list
- * @param items - Array of markdown strings
- * @param ordered - Whether to use ordered list (ol) or unordered (ul)
- * @returns HTML string
- */
-export function renderMarkdownList(items: string[], ordered = false): string {
-  const tag = ordered ? 'ol' : 'ul';
-  const listItems = items
-    .map((item) => `<li>${renderMarkdown(item)}</li>`)
-    .join('');
-  return `<${tag}>${listItems}</${tag}>`;
-}

@@ -680,6 +680,3 @@ export const useVoiceInput = (
     isLanguageFallback,
   };
 };
-
-// Export helper functions for use in other components
-export { getEffectiveLanguage, getLanguageName };

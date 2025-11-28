@@ -8,8 +8,8 @@ import { sendMessageToBackground } from '../runtime/messageBus';
 import type {
   ProofreadResult,
   LanguageDetection,
-  TonePreset,
   SummaryFormat,
+  AIResponse,
 } from '../../types';
 import { getLanguageName } from '../../utils/translationHelpers';
 import { devLog, devWarn, devError } from '../../utils/logger';
@@ -113,10 +113,11 @@ export async function handleTranslate(targetLanguage: string): Promise<void> {
     );
 
     const summaryResponses = await Promise.all(summaryPromises);
-    const translatedSummary = summaryResponses.map((response, index) =>
-      response.success
-        ? response.data
-        : `Translation failed for summary item ${index}`
+    const translatedSummary = summaryResponses.map(
+      (response: AIResponse<string>, idx: number) =>
+        response.success
+          ? response.data
+          : `Translation failed for summary item ${idx}`
     );
 
     // Translate prompts
@@ -132,10 +133,11 @@ export async function handleTranslate(targetLanguage: string): Promise<void> {
     );
 
     const promptResponses = await Promise.all(promptPromises);
-    const translatedPrompts = promptResponses.map((response, index) =>
-      response.success
-        ? response.data
-        : `Translation failed for prompt ${index}`
+    const translatedPrompts = promptResponses.map(
+      (response: AIResponse<string>, idx: number) =>
+        response.success
+          ? response.data
+          : `Translation failed for prompt ${idx}`
     );
 
     // Update state with translations
@@ -183,7 +185,7 @@ export async function handleTranslateToEnglish(): Promise<void> {
 
   try {
     // Translate summary
-    const summaryPromises = currentSummary.map((item) =>
+    const summaryPromises2 = currentSummary.map((item) =>
       sendMessageToBackground<string>({
         type: 'translate',
         payload: {
@@ -194,15 +196,16 @@ export async function handleTranslateToEnglish(): Promise<void> {
       })
     );
 
-    const summaryResponses = await Promise.all(summaryPromises);
-    const translatedSummary = summaryResponses.map((response, index) =>
-      response.success
-        ? response.data
-        : `Translation failed for summary item ${index}`
+    const summaryResponses2 = await Promise.all(summaryPromises2);
+    const translatedSummary2 = summaryResponses2.map(
+      (response: AIResponse<string>, idx: number) =>
+        response.success
+          ? response.data
+          : `Translation failed for summary item ${idx}`
     );
 
     // Translate prompts
-    const promptPromises = currentPrompts.map((prompt) =>
+    const promptPromises2 = currentPrompts.map((prompt) =>
       sendMessageToBackground<string>({
         type: 'translate',
         payload: {
@@ -213,17 +216,18 @@ export async function handleTranslateToEnglish(): Promise<void> {
       })
     );
 
-    const promptResponses = await Promise.all(promptPromises);
-    const translatedPrompts = promptResponses.map((response, index) =>
-      response.success
-        ? response.data
-        : `Translation failed for prompt ${index}`
+    const promptResponses2 = await Promise.all(promptPromises2);
+    const translatedPrompts2 = promptResponses2.map(
+      (response: AIResponse<string>, idx: number) =>
+        response.success
+          ? response.data
+          : `Translation failed for prompt ${idx}`
     );
 
     // Update state with translations
-    contentState.setSummary(translatedSummary);
-    contentState.setSummaryDisplay(translatedSummary);
-    contentState.setPrompts(translatedPrompts);
+    contentState.setSummary(translatedSummary2);
+    contentState.setSummaryDisplay(translatedSummary2);
+    contentState.setPrompts(translatedPrompts2);
 
     // Update language detection to English
     contentState.setLanguageDetection({
@@ -241,63 +245,6 @@ export async function handleTranslateToEnglish(): Promise<void> {
     throw error;
   } finally {
     contentState.setIsTranslating(false);
-  }
-}
-
-/**
- * Handle rewrite request
- * Rewrites text with selected tone preset
- */
-export async function handleRewrite(
-  text: string,
-  tone: TonePreset,
-  index: number
-): Promise<{ original: string; rewritten: string }> {
-  devLog(`Rewriting reflection ${index} with tone: ${tone}...`);
-
-  contentState.setIsRewriting(index, true);
-
-  try {
-    // Build context from summary and reflection prompt
-    const contextParts: string[] = [];
-
-    const summary = contentState.getSummary();
-    if (summary?.length > 0) {
-      contextParts.push(`Summary: ${summary.join(' ')}`);
-    }
-
-    const prompts = contentState.getPrompts();
-    if (prompts?.[index]) {
-      contextParts.push(`Reflection prompt: ${prompts[index]}`);
-    }
-
-    const context =
-      contextParts.length > 0 ? contextParts.join('\n\n') : undefined;
-
-    const rewriteResponse = await sendMessageToBackground<{
-      original: string;
-      rewritten: string;
-    }>({
-      type: 'rewrite',
-      payload: {
-        text,
-        tone,
-        context,
-      },
-    });
-
-    if (rewriteResponse.success) {
-      devLog('Rewrite completed');
-      return rewriteResponse.data;
-    } else {
-      devError('Rewrite failed:', rewriteResponse.error);
-      throw new Error(rewriteResponse.error);
-    }
-  } catch (error) {
-    devError('Error rewriting:', error);
-    throw error;
-  } finally {
-    contentState.setIsRewriting(index, false);
   }
 }
 

@@ -20,7 +20,7 @@ interface MemoryInfo {
 /**
  * PerformanceMonitor class for tracking extension performance
  */
-export class PerformanceMonitor {
+class PerformanceMonitor {
   private metrics: PerformanceMetric[] = [];
   private maxMetrics = 100; // Keep last 100 metrics
   private frameRates: number[] = [];

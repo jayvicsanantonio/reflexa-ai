@@ -9,7 +9,9 @@ import { devError, devWarn } from './logger';
 /**
  * Send a message to the background script
  */
-export function sendMessage<T>(message: Message): Promise<AIResponse<T>> {
+export function sendMessageToBackground<T>(
+  message: Message
+): Promise<AIResponse<T>> {
   return new Promise((resolve) => {
     chrome.runtime
       .sendMessage(message)
@@ -26,11 +28,6 @@ export function sendMessage<T>(message: Message): Promise<AIResponse<T>> {
       });
   });
 }
-
-/**
- * Alias for sendMessage (backward compatibility)
- */
-export const sendMessageToBackground = sendMessage;
 
 /**
  * Handlers for AI streaming operations

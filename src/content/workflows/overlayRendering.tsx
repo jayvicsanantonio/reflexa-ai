@@ -22,7 +22,7 @@ import {
  * Get default settings as fallback
  * @returns Default Settings object
  */
-export function getDefaultSettings(): Settings {
+function getDefaultSettings(): Settings {
   return {
     dwellThreshold: 10,
     enableSound: true,

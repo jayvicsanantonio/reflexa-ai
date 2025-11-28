@@ -69,9 +69,6 @@ export const uniqueSessionKeysArb = fc.uniqueArray(sessionKeyArb, {
 /**
  * Arbitrary for generating mock session data
  */
-export const mockSessionDataArb = fc.record({
-  id: fc.uuid(),
-});
 
 /**
  * Arbitrary for generating timeout values (in milliseconds)

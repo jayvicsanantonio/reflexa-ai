@@ -71,18 +71,9 @@ export const CONTENT_LIMITS = {
 };
 
 /**
- * Performance targets
- */
-export const PERFORMANCE = {
-  MAX_MEMORY_MB: 150, // Maximum memory usage in MB
-  TARGET_FPS: 60, // Target animation frame rate
-  MAX_RENDER_TIME: 300, // Maximum overlay render time in ms
-};
-
-/**
  * Storage keys
  */
-export const STORAGE_NAMESPACE = 'reflexa:' as const;
+const STORAGE_NAMESPACE = 'reflexa:' as const;
 export const STORAGE_KEYS = {
   REFLECTIONS: `${STORAGE_NAMESPACE}reflections`,
   SETTINGS: `${STORAGE_NAMESPACE}settings`,
@@ -90,117 +81,6 @@ export const STORAGE_KEYS = {
   STREAK: `${STORAGE_NAMESPACE}streak`,
   FIRST_LAUNCH: `${STORAGE_NAMESPACE}firstLaunch`,
 };
-
-/**
- * AI prompts for Gemini Nano
- *
- * These prompts are carefully designed based on learning science research:
- *
- * SUMMARIZE:
- * - Three-bullet format follows cognitive load theory (3-5 items optimal for retention)
- * - "Insight" connects new information to existing knowledge (elaborative encoding)
- * - "Surprise" highlights novel elements that aid memory formation (von Restorff effect)
- * - "Apply" encourages practical application, improving long-term retention (transfer-appropriate processing)
- * - 20-word limit ensures conciseness and forces prioritization of key information
- *
- * REFLECT:
- * - Two questions balance depth with brevity (prevents cognitive overload)
- * - Action-oriented questions promote active learning and application
- * - 15-word limit keeps questions focused and clear
- * - Designed to trigger deeper processing (levels of processing theory)
- *
- * PROOFREAD:
- * - Preserves user's authentic voice (important for personal reflections)
- * - Minimal editing (max 2 per sentence) maintains original meaning
- * - Focuses on clarity over perfection (reduces friction in reflection process)
- */
-export const AI_PROMPTS = {
-  /**
-   * Summarization prompt
-   * Generates a three-bullet summary with specific structure:
-   * - Insight: Main idea or key takeaway
-   * - Surprise: Unexpected or counterintuitive element
-   * - Apply: Practical application or action item
-   *
-   * Placeholder: {content} - The article text to summarize
-   */
-  SUMMARIZE: `Summarize the following article into exactly 3 concise bullets. Each bullet should be no more than 20 words.
-
-Format your response as:
-- Insight: [One key insight from the article]
-- Surprise: [One surprising or unexpected element]
-- Apply: [One actionable takeaway]
-
-Article content:
-{content}`,
-
-  /**
-   * Reflection prompt generation
-   * Creates two action-oriented questions to deepen understanding.
-   * Questions should be:
-   * - Thought-provoking and open-ended
-   * - Focused on application or deeper analysis
-   * - Concise (max 15 words each)
-   *
-   * Placeholder: {summary} - The three-bullet summary to base questions on
-   */
-  REFLECT: `Based on this article summary, generate exactly 2 thoughtful reflection questions that help the reader think deeper about the content. Each question should be:
-- Action-oriented and practical
-- No more than 15 words
-- Designed to help apply the insights
-
-Summary:
-{summary}
-
-Format your response as:
-1. [First reflection question]
-2. [Second reflection question]`,
-
-  /**
-   * Proofreading prompt
-   * Improves grammar and clarity while preserving the user's voice.
-   * Guidelines:
-   * - Maximum 2 edits per sentence (minimal intervention)
-   * - Preserve original tone and style
-   * - Focus on clarity and correctness, not perfection
-   *
-   * Placeholder: {text} - The user's reflection text to proofread
-   */
-  PROOFREAD: `Proofread the following text for grammar and clarity. Preserve the original tone and voice. Make no more than 2 edits per sentence. Only fix clear errors or improve clarity.
-
-Original text:
-{text}
-
-Provide only the corrected version without explanations.`,
-};
-
-/**
- * UI constants
- */
-export const UI = {
-  NUDGE_Z_INDEX: 999999,
-  OVERLAY_Z_INDEX: 2147483647, // Maximum z-index
-  SHADOW_DOM_ID: 'reflexa-shadow-root',
-  NUDGE_ID: 'reflexa-nudge',
-  OVERLAY_ID: 'reflexa-overlay',
-};
-
-/**
- * Accessibility
- */
-export const A11Y = {
-  MIN_CONTRAST_RATIO: 4.5, // WCAG AA standard
-  FOCUS_OUTLINE_WIDTH: 2, // Focus outline width in pixels
-  FOCUS_OUTLINE_OFFSET: 2, // Focus outline offset in pixels
-};
-
-/**
- * Export formats
- */
-export const EXPORT_FORMATS = {
-  JSON: 'json',
-  MARKDOWN: 'markdown',
-} as const;
 
 /**
  * Privacy notice text

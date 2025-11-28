@@ -83,15 +83,3 @@ export const DEFAULT_EXTRACTION_CONFIG: ContentExtractionConfig = {
   highScoreThreshold: 5000,
   minTextLength: 100,
 };
-
-/**
- * Create a custom configuration by merging with defaults
- */
-export function createExtractionConfig(
-  overrides: Partial<ContentExtractionConfig>
-): ContentExtractionConfig {
-  return {
-    ...DEFAULT_EXTRACTION_CONFIG,
-    ...overrides,
-  };
-}

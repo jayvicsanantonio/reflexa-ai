@@ -11,7 +11,7 @@ import { devLog } from '../../utils/logger';
 /**
  * Lotus nudge styles constant for better maintainability
  */
-export const LOTUS_NUDGE_STYLES = `
+const LOTUS_NUDGE_STYLES = `
   /* Keyframe animations */
   @keyframes fadeIn {
     0% {
@@ -264,7 +264,7 @@ export function showLotusNudge(dependencies: {
  * Hide the lotus nudge icon
  * Removes the component and cleans up the DOM
  */
-export function hideLotusNudge(): void {
+function hideLotusNudge(): void {
   uiManager.hideNudge();
 }
 
