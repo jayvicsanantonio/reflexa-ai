@@ -6,7 +6,7 @@
 
 import type { WriterOptions } from '../../../types';
 import type { AIWriter } from '../../../types/chrome-ai';
-import { capabilityDetector } from '../../capabilityDetector';
+import { capabilityDetector } from '../capabilities/capabilityDetector';
 import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**

@@ -27,7 +27,7 @@ describe('QuickSettingsModal accessibility and interactions', () => {
   let mockedSendMessage: any;
 
   beforeEach(() => {
-    originalSendMessage = (global.chrome as any).runtime.sendMessage;
+    originalSendMessage = (globalThis.chrome as any).runtime.sendMessage;
     mockedSendMessage = vi.fn((msg: { type: string; payload?: unknown }) => {
       if (msg.type === 'getSettings') {
         const resp: AIResponse<Settings> = {
@@ -40,11 +40,11 @@ describe('QuickSettingsModal accessibility and interactions', () => {
       }
       return Promise.resolve({ success: true } as unknown as AIResponse);
     });
-    (global.chrome as any).runtime.sendMessage = mockedSendMessage;
+    (globalThis.chrome as any).runtime.sendMessage = mockedSendMessage;
   });
 
   afterEach(() => {
-    (global.chrome as any).runtime.sendMessage = originalSendMessage as any;
+    (globalThis.chrome as any).runtime.sendMessage = originalSendMessage as any;
   });
 
   it('renders as an accessible dialog and wires aria-labelledby', async () => {

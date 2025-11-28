@@ -92,7 +92,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   // Refs needed by hooks and handlers
   const audioManagerRef = useRef<AudioManager | null>(null);
-  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTextValueRef = useRef<string[]>(['', '']);
 
   // Writer streaming hook

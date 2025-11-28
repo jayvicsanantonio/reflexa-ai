@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { LotusOrb } from '../LotusOrb/LotusOrb';
+
 import type { Settings } from '../../../types';
 
 interface BreathingPhaseProps {
@@ -42,7 +42,7 @@ const MEDITATIVE_PHRASES = [
 
 export const BreathingPhase: React.FC<BreathingPhaseProps> = ({
   isLoadingSummary,
-  settings,
+  // settings,
   breathCue,
   setBreathCue,
   currentPhraseIndex,
@@ -81,11 +81,14 @@ export const BreathingPhase: React.FC<BreathingPhaseProps> = ({
   return (
     <div className="reflexa-meditation-fade">
       <div style={{ marginBottom: 60 }}>
-        <LotusOrb
-          enabled={!settings?.reduceMotion}
-          duration={8}
-          iterations={isLoadingSummary ? Infinity : 2}
-          size={200}
+        {/* LotusOrb removed */}
+        <div
+          style={{
+            width: 200,
+            height: 200,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.1)',
+          }}
         />
       </div>
       <h1

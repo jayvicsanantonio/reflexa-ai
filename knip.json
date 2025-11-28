@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/background/index.ts",
+    "src/content/index.tsx",
+    "src/popup/App.tsx",
+    "src/options/App.tsx",
+    "src/popup/index.html",
+    "src/options/index.html",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "eslint.config.js",
+    "lighthouse.config.js",
+    "scripts/*.js"
+  ],
+  "project": ["src/**/*.{ts,tsx}!"],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
+  "tags": ["-lintignore"]
+}

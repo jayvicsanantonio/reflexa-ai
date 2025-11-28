@@ -34,7 +34,7 @@ interface ReflectionInputProps {
   onDiscardProofread: () => void;
   onAcceptProofread: () => void;
   lastTextValueRef: React.MutableRefObject<string[]>;
-  typingTimerRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  typingTimerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
   onVoiceToggle: () => void;
 }
 

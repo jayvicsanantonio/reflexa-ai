@@ -10,7 +10,7 @@ import { SummarizerManager } from './summarizerManager';
 import { WriterManager } from './writerManager';
 import { RewriterManager } from './rewriterManager';
 import { ProofreaderManager } from './proofreaderManager';
-import { capabilityDetector } from '../../capabilityDetector';
+import { capabilityDetector } from '../capabilities/capabilityDetector';
 import {
   setupMockChromeAI,
   cleanupMockChromeAI,

@@ -256,8 +256,8 @@ export const useVoiceInput = (
   // Refs for managing recognition instance and timers
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
-  const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const noSpeechTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStoppingRef = useRef(false);
   const isPausedRef = useRef(false);
   const hasSpeechDetectedRef = useRef(false);

@@ -289,11 +289,11 @@ describe('MoreToolsMenu', () => {
       apiUsed: 'writer',
       duration: 1000,
     });
-    global.chrome = {
+    (globalThis as any).chrome = {
       runtime: {
         sendMessage: mockSendMessage,
       },
-    } as any;
+    };
 
     render(
       <MoreToolsMenu

@@ -60,8 +60,9 @@ const mockChromeRuntime = {
 };
 
 // Setup global chrome object
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-global.chrome = {
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+(globalThis as any).chrome = {
   storage: mockChromeStorage,
   runtime: mockChromeRuntime,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

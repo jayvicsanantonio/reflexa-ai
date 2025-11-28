@@ -20,11 +20,7 @@ import {
   getAccessibleDuration,
   cleanupAllAnnouncements,
 } from '../utils/accessibility';
-import {
-  MeditationFlowOverlay,
-  LotusNudge,
-  BreathingOrb,
-} from '../content/components';
+import { MeditationFlowOverlay, LotusNudge } from '../content/components';
 import type { Settings } from '../types';
 
 describe('Accessibility Tests', () => {
@@ -361,32 +357,6 @@ describe('Accessibility Tests', () => {
       });
     });
 
-    describe('BreathingOrb', () => {
-      it('should have presentation role when enabled', () => {
-        render(<BreathingOrb enabled={true} duration={7} size={120} />);
-
-        // Use hidden option since aria-hidden makes it inaccessible
-        const orb = screen.getByRole('presentation', { hidden: true });
-        expect(orb).toBeInTheDocument();
-      });
-
-      it('should have aria-hidden attribute', () => {
-        render(<BreathingOrb enabled={true} duration={7} size={120} />);
-
-        const orb = screen.getByRole('presentation', { hidden: true });
-        expect(orb).toHaveAttribute('aria-hidden', 'true');
-      });
-
-      it('should disable animation when enabled is false', () => {
-        const { container } = render(
-          <BreathingOrb enabled={false} duration={7} size={120} />
-        );
-
-        const orb = container.querySelector('.reflexa-breathing-orb');
-        expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
-      });
-    });
-
     describe('MeditationFlowOverlay', () => {
       const defaultSettings: Settings = {
         dwellThreshold: 30,
@@ -434,27 +404,6 @@ describe('Accessibility Tests', () => {
         }
 
         expect(onCancel).toHaveBeenCalled();
-      });
-
-      it('should disable breathing orb when reduceMotion is true', () => {
-        const settingsWithReducedMotion: Settings = {
-          ...defaultSettings,
-          reduceMotion: true,
-        };
-
-        const { container } = render(
-          <MeditationFlowOverlay
-            {...defaultProps}
-            settings={settingsWithReducedMotion}
-          />
-        );
-
-        const orb = container.querySelector('.reflexa-breathing-orb');
-        if (orb) {
-          expect(orb).not.toHaveClass('reflexa-breathing-orb--animated');
-        } else {
-          expect(orb).toBeNull();
-        }
       });
     });
   });
