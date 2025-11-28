@@ -1,6 +1,6 @@
 /**
  * UI Manager for content script
- * Centralizes lifecycle management of all UI components (nudge, overlay, modals, notifications)
+ * Centralizes lifecycle management of all UI components
  */
 
 import { createRoot } from 'react-dom/client';
@@ -13,14 +13,53 @@ import type {
   NotificationOptions,
 } from './types';
 
-/**
- * Manages lifecycle of all UI components in the content script
- * Handles shadow DOM creation, React root management, and component mounting/unmounting
- */
+type ModalType =
+  | 'nudge'
+  | 'overlay'
+  | 'errorModal'
+  | 'notification'
+  | 'helpModal'
+  | 'settingsModal'
+  | 'dashboardModal';
+
+interface ModalConfig {
+  id: string;
+  stylesheetPath?: string;
+  containerStyles?: string;
+  inlineStyles?: string;
+}
+
+const MODAL_CONFIGS: Record<ModalType, ModalConfig> = {
+  nudge: { id: 'reflexa-nudge-container' },
+  overlay: {
+    id: 'reflexa-overlay-container',
+    stylesheetPath: 'src/content/styles.css',
+    containerStyles:
+      'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647;',
+  },
+  errorModal: {
+    id: 'reflexa-error-modal-container',
+    stylesheetPath: 'src/content/styles.css',
+  },
+  notification: {
+    id: 'reflexa-notification-container',
+    stylesheetPath: 'src/content/styles.css',
+  },
+  helpModal: {
+    id: 'reflexa-ai-status-container',
+    stylesheetPath: 'src/content/styles.css',
+  },
+  settingsModal: {
+    id: 'reflexa-settings-container',
+    stylesheetPath: 'src/content/styles.css',
+  },
+  dashboardModal: {
+    id: 'reflexa-dashboard-container',
+    stylesheetPath: 'src/content/styles.css',
+  },
+};
+
 class UIManager {
-  /**
-   * Create a shadow DOM container with stylesheet or inline styles
-   */
   private createShadowContainer(config: ShadowContainerConfig): {
     container: HTMLDivElement;
     shadowRoot: ShadowRoot;
@@ -29,22 +68,17 @@ class UIManager {
     const container = document.createElement('div');
     container.id = config.id;
 
-    // Apply container styles if provided
     if (config.containerStyles) {
       container.style.cssText = config.containerStyles;
     }
 
-    // Ensure document.body is available
     if (!document.body) {
       throw new Error('document.body not available');
     }
 
     document.body.appendChild(container);
-
-    // Create shadow root
     const shadowRoot = container.attachShadow({ mode: 'open' });
 
-    // Inject styles
     if (config.inlineStyles) {
       const styleElement = document.createElement('style');
       styleElement.textContent = config.inlineStyles;
@@ -63,437 +97,197 @@ class UIManager {
       }
     }
 
-    // Create root element for React
     const rootElement = document.createElement('div');
     shadowRoot.appendChild(rootElement);
 
     return { container, shadowRoot, rootElement };
   }
 
-  /**
-   * Show the lotus nudge icon
-   */
-  showNudge(component: ReactNode, inlineStyles: string): void {
-    const nudgeState = contentState.getNudgeState();
-    if (nudgeState.isVisible) {
-      devLog('Nudge already visible');
+  private getStateAccessors(type: ModalType) {
+    const accessors = {
+      nudge: {
+        get: () => contentState.getNudgeState(),
+        set: contentState.setNudgeState.bind(contentState),
+      },
+      overlay: {
+        get: () => contentState.getOverlayState(),
+        set: contentState.setOverlayState.bind(contentState),
+      },
+      errorModal: {
+        get: () => contentState.getErrorModalState(),
+        set: contentState.setErrorModalState.bind(contentState),
+      },
+      notification: {
+        get: () => contentState.getNotificationState(),
+        set: contentState.setNotificationState.bind(contentState),
+      },
+      helpModal: {
+        get: () => contentState.getHelpModalState(),
+        set: contentState.setHelpModalState.bind(contentState),
+      },
+      settingsModal: {
+        get: () => contentState.getSettingsModalState(),
+        set: contentState.setSettingsModalState.bind(contentState),
+      },
+      dashboardModal: {
+        get: () => contentState.getDashboardModalState(),
+        set: contentState.setDashboardModalState.bind(contentState),
+      },
+    };
+    return accessors[type];
+  }
+
+  private showModal(
+    type: ModalType,
+    component: ReactNode,
+    overrideConfig?: Partial<ModalConfig>
+  ): void {
+    const { get, set } = this.getStateAccessors(type);
+    const state = get();
+
+    if (state.isVisible) {
+      devLog(`${type} already visible`);
       return;
     }
 
     try {
-      const { container, rootElement } = this.createShadowContainer({
-        id: 'reflexa-nudge-container',
-        inlineStyles,
-      });
+      const config = { ...MODAL_CONFIGS[type], ...overrideConfig };
+      const { container, rootElement } = this.createShadowContainer(config);
 
       const root = createRoot(rootElement);
       root.render(component);
 
-      contentState.setNudgeState({
+      set({
         container,
         root,
         isVisible: true,
-        isLoading: false,
+        ...(type === 'nudge' ? { isLoading: false } : {}),
       });
-
-      devLog('Lotus nudge displayed');
+      devLog(`${type} displayed`);
     } catch (error) {
-      devError('Failed to show nudge:', error);
-      // Retry after a delay if document.body not ready
+      devError(`Failed to show ${type}:`, error);
       if (error instanceof Error && error.message.includes('document.body')) {
-        setTimeout(() => this.showNudge(component, inlineStyles), 100);
+        setTimeout(() => this.showModal(type, component, overrideConfig), 100);
       }
     }
   }
 
-  /**
-   * Hide the lotus nudge icon
-   */
+  private hideModal(type: ModalType): void {
+    const { get, set } = this.getStateAccessors(type);
+    const state = get();
+
+    if (!state.isVisible) return;
+
+    if (state.root) {
+      state.root.unmount();
+    }
+
+    if (state.container?.parentNode) {
+      state.container.parentNode.removeChild(state.container);
+    }
+
+    set({
+      container: null,
+      root: null,
+      isVisible: false,
+      ...(type === 'nudge' ? { isLoading: false } : {}),
+    });
+    devLog(`${type} hidden`);
+  }
+
+  // Public API - Nudge
+  showNudge(component: ReactNode, inlineStyles: string): void {
+    this.showModal('nudge', component, { inlineStyles });
+  }
+
   hideNudge(): void {
-    const nudgeState = contentState.getNudgeState();
-    if (!nudgeState.isVisible) {
-      return;
-    }
-
-    if (nudgeState.root) {
-      nudgeState.root.unmount();
-    }
-
-    if (nudgeState.container?.parentNode) {
-      nudgeState.container.parentNode.removeChild(nudgeState.container);
-    }
-
-    contentState.setNudgeState({
-      container: null,
-      root: null,
-      isVisible: false,
-      isLoading: false,
-    });
-
-    devLog('Lotus nudge hidden');
+    this.hideModal('nudge');
   }
 
-  /**
-   * Show the reflection overlay
-   */
+  // Public API - Overlay
   showOverlay(component: ReactNode): void {
-    const overlayState = contentState.getOverlayState();
-    if (overlayState.isVisible) {
-      devLog('Overlay already visible');
-      return;
-    }
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-overlay-container',
-      stylesheetPath: 'src/content/styles.css',
-      containerStyles:
-        'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647;',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setOverlayState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Overlay displayed');
+    this.showModal('overlay', component);
   }
 
-  /**
-   * Hide the reflection overlay
-   */
   hideOverlay(): void {
-    const overlayState = contentState.getOverlayState();
-    if (!overlayState.isVisible) {
-      return;
-    }
-
-    if (overlayState.root) {
-      overlayState.root.unmount();
-    }
-
-    if (overlayState.container?.parentNode) {
-      overlayState.container.parentNode.removeChild(overlayState.container);
-    }
-
-    contentState.setOverlayState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Overlay hidden');
+    this.hideModal('overlay');
   }
 
-  /**
-   * Show error modal
-   */
+  // Public API - Error Modal
   showErrorModal(options: ErrorModalOptions, component: ReactNode): void {
-    const errorModalState = contentState.getErrorModalState();
-    if (errorModalState.isVisible) {
-      devLog('Error modal already visible');
-      return;
-    }
-
     devLog('Showing error modal:', options.type);
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-error-modal-container',
-      stylesheetPath: 'src/content/styles.css',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setErrorModalState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Error modal displayed');
+    this.showModal('errorModal', component);
   }
 
-  /**
-   * Hide error modal
-   */
   hideErrorModal(): void {
-    const errorModalState = contentState.getErrorModalState();
-    if (!errorModalState.isVisible) {
-      return;
-    }
-
-    if (errorModalState.root) {
-      errorModalState.root.unmount();
-    }
-
-    if (errorModalState.container?.parentNode) {
-      errorModalState.container.parentNode.removeChild(
-        errorModalState.container
-      );
-    }
-
-    contentState.setErrorModalState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Error modal hidden');
+    this.hideModal('errorModal');
   }
 
-  /**
-   * Show notification toast
-   */
+  // Public API - Notification
   showNotification(options: NotificationOptions, component: ReactNode): void {
-    // Hide existing notification if visible
-    const notificationState = contentState.getNotificationState();
-    if (notificationState.isVisible) {
+    if (contentState.getNotificationState().isVisible) {
       this.hideNotification();
     }
-
     devLog('Showing notification:', options.type, options.title);
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-notification-container',
-      stylesheetPath: 'src/content/styles.css',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setNotificationState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Notification displayed');
+    this.showModal('notification', component);
   }
 
-  /**
-   * Hide notification toast
-   */
   hideNotification(): void {
-    const notificationState = contentState.getNotificationState();
-    if (!notificationState.isVisible) {
-      return;
-    }
-
-    if (notificationState.root) {
-      notificationState.root.unmount();
-    }
-
-    if (notificationState.container?.parentNode) {
-      notificationState.container.parentNode.removeChild(
-        notificationState.container
-      );
-    }
-
-    contentState.setNotificationState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Notification hidden');
+    this.hideModal('notification');
   }
 
-  /**
-   * Show help modal (AI Status)
-   */
+  // Public API - Help Modal
   showHelpModal(component: ReactNode): void {
-    const helpModalState = contentState.getHelpModalState();
-    if (helpModalState.isVisible) {
-      return;
-    }
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-ai-status-container',
-      stylesheetPath: 'src/content/styles.css',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setHelpModalState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Help modal displayed');
+    this.showModal('helpModal', component);
   }
 
-  /**
-   * Hide help modal
-   */
   hideHelpModal(): void {
-    const helpModalState = contentState.getHelpModalState();
-    if (!helpModalState.isVisible) {
-      return;
-    }
-
-    if (helpModalState.root) {
-      helpModalState.root.unmount();
-    }
-
-    if (helpModalState.container?.parentNode) {
-      helpModalState.container.parentNode.removeChild(helpModalState.container);
-    }
-
-    contentState.setHelpModalState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Help modal hidden');
+    this.hideModal('helpModal');
   }
 
-  /**
-   * Show settings modal
-   */
+  // Public API - Settings Modal
   showSettingsModal(component: ReactNode): void {
-    const settingsModalState = contentState.getSettingsModalState();
-    if (settingsModalState.isVisible) {
-      return;
-    }
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-settings-container',
-      stylesheetPath: 'src/content/styles.css',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setSettingsModalState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Settings modal displayed');
+    this.showModal('settingsModal', component);
   }
 
-  /**
-   * Hide settings modal
-   */
   hideSettingsModal(): void {
-    const settingsModalState = contentState.getSettingsModalState();
-    if (!settingsModalState.isVisible) {
-      return;
-    }
-
-    if (settingsModalState.root) {
-      settingsModalState.root.unmount();
-    }
-
-    if (settingsModalState.container?.parentNode) {
-      settingsModalState.container.parentNode.removeChild(
-        settingsModalState.container
-      );
-    }
-
-    contentState.setSettingsModalState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Settings modal hidden');
+    this.hideModal('settingsModal');
   }
 
-  /**
-   * Show dashboard modal
-   */
+  // Public API - Dashboard Modal
   showDashboardModal(component: ReactNode): void {
-    const dashboardModalState = contentState.getDashboardModalState();
-    if (dashboardModalState.isVisible) {
-      return;
-    }
-
-    const { container, rootElement } = this.createShadowContainer({
-      id: 'reflexa-dashboard-container',
-      stylesheetPath: 'src/content/styles.css',
-    });
-
-    const root = createRoot(rootElement);
-    root.render(component);
-
-    contentState.setDashboardModalState({
-      container,
-      root,
-      isVisible: true,
-    });
-
-    devLog('Dashboard modal displayed');
+    this.showModal('dashboardModal', component);
   }
 
-  /**
-   * Hide dashboard modal
-   */
   hideDashboardModal(): void {
-    const dashboardModalState = contentState.getDashboardModalState();
-    if (!dashboardModalState.isVisible) {
-      return;
-    }
-
-    if (dashboardModalState.root) {
-      dashboardModalState.root.unmount();
-    }
-
-    if (dashboardModalState.container?.parentNode) {
-      dashboardModalState.container.parentNode.removeChild(
-        dashboardModalState.container
-      );
-    }
-
-    contentState.setDashboardModalState({
-      container: null,
-      root: null,
-      isVisible: false,
-    });
-
-    devLog('Dashboard modal hidden');
+    this.hideModal('dashboardModal');
   }
 
-  /**
-   * Get overlay root for re-rendering
-   */
+  // Utility methods
   getOverlayRoot(): {
     root: ReturnType<typeof createRoot>;
     container: HTMLDivElement;
   } | null {
-    const overlayState = contentState.getOverlayState();
-    if (overlayState.isVisible && overlayState.root && overlayState.container) {
-      return {
-        root: overlayState.root,
-        container: overlayState.container,
-      };
+    const state = contentState.getOverlayState();
+    if (state.isVisible && state.root && state.container) {
+      return { root: state.root, container: state.container };
     }
     return null;
   }
 
-  /**
-   * Cleanup all UI components
-   */
   cleanup(): void {
-    this.hideNudge();
-    this.hideOverlay();
-    this.hideErrorModal();
-    this.hideNotification();
-    this.hideHelpModal();
-    this.hideSettingsModal();
-    this.hideDashboardModal();
+    (
+      [
+        'nudge',
+        'overlay',
+        'errorModal',
+        'notification',
+        'helpModal',
+        'settingsModal',
+        'dashboardModal',
+      ] as ModalType[]
+    ).forEach((type) => this.hideModal(type));
   }
 }
 
-/**
- * Singleton instance of the UI manager
- */
 export const uiManager = new UIManager();
