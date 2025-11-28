@@ -1,6 +1,11 @@
 /**
  * Unified AI Service
  * Central interface for all Gemini Nano AI capabilities
+ *
+ * SOLID Principles Applied:
+ * - SRP: Orchestrates managers, doesn't implement AI logic
+ * - OCP: New managers can be added without modifying existing code
+ * - DIP: Depends on abstractions via constructor injection
  */
 
 import { PromptManager } from './promptManager';
@@ -14,6 +19,33 @@ import type { AICapabilities } from '../../../types';
 import { capabilityDetector } from '../capabilities/capabilityDetector';
 import { devLog } from '../../../utils/logger';
 
+/**
+ * Interface for AI manager dependencies
+ * Supports Dependency Inversion Principle (DIP)
+ */
+interface AIServiceDependencies {
+  prompt: PromptManager;
+  proofreader: ProofreaderManager;
+  summarizer: SummarizerManager;
+  translator: TranslatorManager;
+  writer: WriterManager;
+  rewriter: RewriterManager;
+}
+
+/**
+ * Create default dependencies
+ */
+function createDefaultDependencies(): AIServiceDependencies {
+  return {
+    prompt: new PromptManager(),
+    proofreader: new ProofreaderManager(),
+    summarizer: new SummarizerManager(),
+    translator: new TranslatorManager(),
+    writer: new WriterManager(),
+    rewriter: new RewriterManager(),
+  };
+}
+
 export class AIService {
   public readonly prompt: PromptManager;
   public readonly proofreader: ProofreaderManager;
@@ -26,13 +58,17 @@ export class AIService {
   private capabilities: AICapabilities | null = null;
   private initialized = false;
 
-  constructor() {
-    this.prompt = new PromptManager();
-    this.proofreader = new ProofreaderManager();
-    this.summarizer = new SummarizerManager();
-    this.translator = new TranslatorManager();
-    this.writer = new WriterManager();
-    this.rewriter = new RewriterManager();
+  /**
+   * Constructor supports both DI and no-argument instantiation
+   */
+  constructor(dependencies?: Partial<AIServiceDependencies>) {
+    const defaults = createDefaultDependencies();
+    this.prompt = dependencies?.prompt ?? defaults.prompt;
+    this.proofreader = dependencies?.proofreader ?? defaults.proofreader;
+    this.summarizer = dependencies?.summarizer ?? defaults.summarizer;
+    this.translator = dependencies?.translator ?? defaults.translator;
+    this.writer = dependencies?.writer ?? defaults.writer;
+    this.rewriter = dependencies?.rewriter ?? defaults.rewriter;
   }
 
   initialize(experimentalMode = false): void {
