@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 
 import type { Settings } from '../../../types';
+import { LotusOrb } from '../LotusOrb';
 
 interface BreathingPhaseProps {
   isLoadingSummary: boolean;
@@ -81,15 +82,7 @@ export const BreathingPhase: React.FC<BreathingPhaseProps> = ({
   return (
     <div className="reflexa-meditation-fade">
       <div style={{ marginBottom: 60 }}>
-        {/* LotusOrb removed */}
-        <div
-          style={{
-            width: 200,
-            height: 200,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.1)',
-          }}
-        />
+        <LotusOrb enabled={isLoadingSummary} duration={8} size={200} />
       </div>
       <h1
         style={{
