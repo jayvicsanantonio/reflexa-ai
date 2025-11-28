@@ -147,7 +147,6 @@ describe('fast-check Arbitraries', () => {
       { numRuns: 100 }
     );
 
-    // Should generate multiple types
     expect(types.size).toBeGreaterThan(1);
   });
 });

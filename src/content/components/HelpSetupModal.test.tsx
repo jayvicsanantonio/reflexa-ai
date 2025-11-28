@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { HelpSetupModal } from '../content/components/HelpSetupModal';
+import { HelpSetupModal } from './HelpSetupModal';
 
 describe('HelpSetupModal accessibility and interactions', () => {
   it('renders as an accessible dialog with title association', () => {

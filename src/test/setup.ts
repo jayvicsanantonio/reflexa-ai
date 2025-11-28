@@ -60,13 +60,10 @@ const mockChromeRuntime = {
 };
 
 // Setup global chrome object
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-(globalThis as any).chrome = {
+(globalThis as unknown as { chrome: unknown }).chrome = {
   storage: mockChromeStorage,
   runtime: mockChromeRuntime,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any;
+};
 
 // Mock window.matchMedia for prefers-reduced-motion
 Object.defineProperty(window, 'matchMedia', {

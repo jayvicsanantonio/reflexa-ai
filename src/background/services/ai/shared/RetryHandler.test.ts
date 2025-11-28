@@ -18,7 +18,7 @@ import {
   errorPrefixArb,
   timeoutArb,
   shortTimeoutArb,
-} from './__tests__/testUtils';
+} from './testUtils';
 
 describe('RetryHandler', () => {
   beforeEach(() => {

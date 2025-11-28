@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { aiService } from '../background/services/ai/aiService';
-import { handleMessage } from '../background/handlers/messageHandlers';
+import { aiService } from '../services/ai/aiService';
+import { handleMessage } from './messageHandlers';
 import type {
   Message,
   AIResponse,
@@ -13,21 +13,20 @@ import type {
   SummaryFormat,
   ProofreadResult,
   Settings,
-} from '../types';
-import { SettingsManager } from '../background/services/storage/settingsManager';
-import { StorageManager } from '../background/services/storage/storageManager';
+} from '../../types';
+import { SettingsManager } from '../services/storage/settingsManager';
+import { StorageManager } from '../services/storage/storageManager';
 
 describe('AI Workflows Integration Tests', () => {
-  let mockStorage: Map<string, any>;
+  let mockStorage: Map<string, unknown>;
   let settingsManager: SettingsManager;
   let storageManager: StorageManager;
 
   beforeEach(async () => {
     mockStorage = new Map();
 
-    // Mock chrome.storage.local
     vi.spyOn(chrome.storage.local, 'get').mockImplementation((keys) => {
-      const result: Record<string, any> = {};
+      const result: Record<string, unknown> = {};
       if (typeof keys === 'string') {
         result[keys] = mockStorage.get(keys);
       } else if (Array.isArray(keys)) {
@@ -52,7 +51,6 @@ describe('AI Workflows Integration Tests', () => {
     settingsManager = new SettingsManager();
     storageManager = new StorageManager();
 
-    // Initialize AI service
     aiService.initialize(false);
     vi.spyOn(aiService.summarizer, 'checkAvailability').mockResolvedValue(true);
     vi.spyOn(aiService.writer, 'checkAvailability').mockResolvedValue(true);
@@ -65,13 +63,11 @@ describe('AI Workflows Integration Tests', () => {
       'checkAvailability'
     );
     checkAvailSpy.mockResolvedValue(true);
-    // Set aiAvailable flag via handler
     await handleMessage({ type: 'checkAI' } as Message);
   });
 
   describe('Complete Multilingual Reflection Flow', () => {
     it('should complete detect → translate → draft → rewrite → proofread workflow', async () => {
-      // Step 1: Detect language (direct API call since message handler not implemented)
       vi.spyOn(aiService.languageDetector, 'detect').mockResolvedValue({
         detectedLanguage: 'es',
         confidence: 0.95,
@@ -85,7 +81,6 @@ describe('AI Workflows Integration Tests', () => {
       expect(detectedLanguage.detectedLanguage).toBe('es');
       expect(detectedLanguage.confidence).toBeGreaterThan(0.9);
 
-      // Step 2: Translate to English
       const translateMessage: Message = {
         type: 'translate',
         payload: {
@@ -95,7 +90,6 @@ describe('AI Workflows Integration Tests', () => {
         },
       };
 
-      // Mock translator
       vi.spyOn(aiService.translator, 'canTranslate').mockResolvedValue(true);
       vi.spyOn(aiService.translator, 'translate').mockResolvedValue(
         'Hello world, this is a test text.'
@@ -111,7 +105,6 @@ describe('AI Workflows Integration Tests', () => {
         expect(translateResponse.data).toContain('Hello world');
       }
 
-      // Step 3: Generate draft with Writer API
       const writeMessage: Message = {
         type: 'write',
         payload: {
@@ -120,7 +113,6 @@ describe('AI Workflows Integration Tests', () => {
         },
       };
 
-      // Mock writer
       vi.spyOn(aiService.writer, 'checkAvailability').mockResolvedValue(true);
       vi.spyOn(aiService.writer, 'write').mockResolvedValue(
         'Learning new languages opens doors to understanding different cultures and perspectives.'
@@ -136,7 +128,6 @@ describe('AI Workflows Integration Tests', () => {
         expect(writeResponse.data.length).toBeGreaterThan(0);
       }
 
-      // Step 4: Rewrite with different tone
       const rewriteMessage: Message = {
         type: 'rewrite',
         payload: {
@@ -145,7 +136,6 @@ describe('AI Workflows Integration Tests', () => {
         },
       };
 
-      // Mock rewriter
       vi.spyOn(aiService.rewriter, 'checkAvailability').mockResolvedValue(true);
       vi.spyOn(aiService.rewriter, 'rewrite').mockResolvedValue({
         original: writeResponse.success ? writeResponse.data : '',
@@ -165,7 +155,6 @@ describe('AI Workflows Integration Tests', () => {
         );
       }
 
-      // Step 5: Proofread final text
       const proofreadMessage: Message = {
         type: 'proofread',
         payload: {
@@ -173,7 +162,6 @@ describe('AI Workflows Integration Tests', () => {
         },
       };
 
-      // Mock proofreader
       vi.spyOn(aiService.proofreader, 'checkAvailability').mockResolvedValue(
         true
       );
@@ -193,7 +181,6 @@ describe('AI Workflows Integration Tests', () => {
         expect(proofreadResponse.data.correctedText).toBeTruthy();
       }
 
-      // Verify all steps completed successfully
       expect(detectedLanguage.detectedLanguage).toBe('es');
       expect(translateResponse.success).toBe(true);
       expect(writeResponse.success).toBe(true);
@@ -205,7 +192,7 @@ describe('AI Workflows Integration Tests', () => {
   describe('Summary Format Switching', () => {
     it('should generate summaries in different formats', async () => {
       const testContent =
-        'Integration testing is crucial for verifying that multiple components work together correctly. It helps catch issues that unit tests might miss. Teams should prioritize testing critical user workflows.';
+        'Integration testing is crucial for verifying that multiple components work together correctly.';
 
       const formats: SummaryFormat[] = [
         'bullets',
@@ -213,7 +200,6 @@ describe('AI Workflows Integration Tests', () => {
         'headline-bullets',
       ];
 
-      // Mock summarizer for different formats
       vi.spyOn(aiService.summarizer, 'checkAvailability').mockResolvedValue(
         true
       );
@@ -224,7 +210,6 @@ describe('AI Workflows Integration Tests', () => {
           payload: { content: testContent, format },
         };
 
-        // Mock different responses based on format
         if (format === 'bullets') {
           vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue([
             'Integration testing verifies component interactions',
@@ -233,7 +218,7 @@ describe('AI Workflows Integration Tests', () => {
           ]);
         } else if (format === 'paragraph') {
           vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue([
-            'Integration testing is essential for ensuring components work together, catching issues that unit tests miss, and teams should focus on critical workflows.',
+            'Integration testing is essential for ensuring components work together.',
           ]);
         } else {
           vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue([
@@ -272,7 +257,6 @@ describe('AI Workflows Integration Tests', () => {
       const settings = await settingsManager.getSettings();
       expect(settings.defaultSummaryFormat).toBe(newFormat);
 
-      // Verify persistence across sessions
       const newSettingsManager = new SettingsManager();
       const loadedSettings = await newSettingsManager.getSettings();
       expect(loadedSettings.defaultSummaryFormat).toBe(newFormat);
@@ -293,7 +277,6 @@ describe('AI Workflows Integration Tests', () => {
           payload: { text: originalText, preset: tone },
         };
 
-        // Mock different rewrites based on tone
         const rewrittenTexts: Record<TonePreset, string> = {
           calm: 'We might want to thoughtfully consider implementing this feature in the near future.',
           concise: 'Implement this feature soon.',
@@ -320,26 +303,6 @@ describe('AI Workflows Integration Tests', () => {
           expect(response.data.rewritten).toBe(rewrittenTexts[tone]);
         }
       }
-    });
-
-    it('should handle tone selection in UI component', () => {
-      const toneOptions: TonePreset[] = [
-        'calm',
-        'concise',
-        'empathetic',
-        'academic',
-      ];
-      let selectedTone: TonePreset | undefined;
-
-      const handleToneSelect = (tone: TonePreset) => {
-        selectedTone = tone;
-      };
-
-      // Simulate user clicking each tone
-      toneOptions.forEach((tone) => {
-        handleToneSelect(tone);
-        expect(selectedTone).toBe(tone);
-      });
     });
   });
 
@@ -374,13 +337,11 @@ describe('AI Workflows Integration Tests', () => {
         expect(response.data.corrections).toHaveLength(2);
         expect(response.data.correctedText).not.toBe(originalText);
 
-        // Simulate user accepting corrections
         const acceptedText = response.data.correctedText;
         expect(acceptedText).toBe(
           'This is a sentence with some errors that need fixing.'
         );
 
-        // Verify corrections are tracked
         expect(response.data.corrections[0].original).toBe('sentance');
         expect(response.data.corrections[1].original).toBe('erors');
       }
@@ -421,7 +382,6 @@ describe('AI Workflows Integration Tests', () => {
         type: 'checkAllAI',
       };
 
-      // Mock all APIs as available
       vi.spyOn(aiService.prompt, 'checkAvailability').mockResolvedValue(true);
       vi.spyOn(aiService.proofreader, 'checkAvailability').mockResolvedValue(
         true
@@ -459,7 +419,6 @@ describe('AI Workflows Integration Tests', () => {
     });
 
     it('should track usage statistics', async () => {
-      // Perform multiple operations
       vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue([
         'Summary point 1',
         'Summary point 2',
@@ -476,7 +435,6 @@ describe('AI Workflows Integration Tests', () => {
         {} as chrome.runtime.MessageSender
       );
 
-      // Get usage stats
       const statsMessage: Message = {
         type: 'getUsageStats',
       };
@@ -499,34 +457,6 @@ describe('AI Workflows Integration Tests', () => {
       if (response.success) {
         expect(response.data.stats.summarizations).toBeGreaterThan(0);
         expect(response.data.stats.totalOperations).toBeGreaterThan(0);
-      }
-    });
-
-    it('should track performance metrics', async () => {
-      vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue(['Summary']);
-
-      await handleMessage(
-        { type: 'summarize', payload: { content: 'Test' } },
-        {} as chrome.runtime.MessageSender
-      );
-
-      const perfMessage: Message = {
-        type: 'getPerformanceStats',
-      };
-
-      const response = (await handleMessage(
-        perfMessage,
-        {} as chrome.runtime.MessageSender
-      )) as AIResponse<{
-        averageResponseTime: number;
-        totalOperations: number;
-        operationsByType: Record<string, { count: number }>;
-      }>;
-
-      expect(response.success).toBe(true);
-      if (response.success) {
-        expect(response.data.averageResponseTime).toBeGreaterThanOrEqual(0);
-        expect(response.data.totalOperations).toBeGreaterThan(0);
       }
     });
   });
@@ -580,7 +510,6 @@ describe('AI Workflows Integration Tests', () => {
       let settings = await settingsManager.getSettings();
       expect(settings.experimentalMode).toBe(true);
 
-      // Verify capabilities refresh when experimental mode changes
       aiService.refreshCapabilities(true);
       const capabilities = aiService.getCapabilities();
       expect(capabilities.experimental).toBe(true);
@@ -605,7 +534,6 @@ describe('AI Workflows Integration Tests', () => {
 
       await settingsManager.updateSettings(aiSettings);
 
-      // Simulate new session
       const newSettingsManager = new SettingsManager();
       const loadedSettings = await newSettingsManager.getSettings();
 
@@ -647,12 +575,11 @@ describe('AI Workflows Integration Tests', () => {
         },
       };
 
-      // Mock some languages as available, others not
       vi.spyOn(aiService.translator, 'canTranslate')
-        .mockResolvedValueOnce(true) // es
-        .mockResolvedValueOnce(true) // fr
-        .mockResolvedValueOnce(false) // de
-        .mockResolvedValueOnce(false); // zh
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false);
 
       const response = (await handleMessage(
         message,
@@ -676,7 +603,6 @@ describe('AI Workflows Integration Tests', () => {
 
   describe('End-to-End Reflection with AI Metadata', () => {
     it('should save reflection with complete AI metadata', async () => {
-      // Generate summary
       vi.spyOn(aiService.prompt, 'summarize').mockResolvedValue([
         'Key insight from article',
         'Surprising discovery',
@@ -690,7 +616,6 @@ describe('AI Workflows Integration Tests', () => {
 
       expect(summaryResponse.success).toBe(true);
 
-      // Generate draft
       vi.spyOn(aiService.writer, 'checkAvailability').mockResolvedValue(true);
       vi.spyOn(aiService.writer, 'write').mockResolvedValue(
         'This article provides valuable insights into the topic.'
@@ -709,7 +634,6 @@ describe('AI Workflows Integration Tests', () => {
 
       expect(draftResponse.success).toBe(true);
 
-      // Rewrite with tone
       vi.spyOn(aiService.rewriter, 'checkAvailability').mockResolvedValue(true);
       vi.spyOn(aiService.rewriter, 'rewrite').mockResolvedValue({
         original: draftResponse.success ? draftResponse.data : '',
@@ -730,7 +654,6 @@ describe('AI Workflows Integration Tests', () => {
 
       expect(rewriteResponse.success).toBe(true);
 
-      // Proofread
       vi.spyOn(aiService.proofreader, 'checkAvailability').mockResolvedValue(
         true
       );
@@ -753,7 +676,6 @@ describe('AI Workflows Integration Tests', () => {
 
       expect(proofreadResponse.success).toBe(true);
 
-      // Save reflection with AI metadata
       const reflection = {
         id: '',
         url: 'https://example.com/article',

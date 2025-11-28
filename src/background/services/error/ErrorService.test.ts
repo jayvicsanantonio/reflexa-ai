@@ -22,21 +22,18 @@ import {
 } from './interfaces';
 
 // Mock the logger module
-vi.mock('../../utils/logger', () => ({
+vi.mock('../../../utils/logger', () => ({
   devLog: vi.fn(),
   devWarn: vi.fn(),
   devError: vi.fn(),
 }));
 
-import { devLog, devWarn, devError } from '../../utils/logger';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 // ============================================
 // fast-check Arbitraries for Property Testing
 // ============================================
 
-/**
- * Arbitrary for generating valid error codes
- */
 const errorCodeArb = fc.constantFrom<ErrorCode>(
   'AI_UNAVAILABLE',
   'SESSION_CREATE_FAILED',
@@ -45,14 +42,8 @@ const errorCodeArb = fc.constantFrom<ErrorCode>(
   'UNKNOWN_ERROR'
 );
 
-/**
- * Arbitrary for generating error messages
- */
 const errorMessageArb = fc.string({ minLength: 1, maxLength: 200 });
 
-/**
- * Arbitrary for generating error context
- */
 const errorContextArb: fc.Arbitrary<ErrorContext> = fc.record(
   {
     operation: fc.option(fc.string({ minLength: 1, maxLength: 50 }), {
@@ -71,9 +62,6 @@ const errorContextArb: fc.Arbitrary<ErrorContext> = fc.record(
   { requiredKeys: [] }
 );
 
-/**
- * Arbitrary for generating recoverable error codes only
- */
 const recoverableErrorCodeArb = fc.constantFrom<ErrorCode>(
   'AI_UNAVAILABLE',
   'SESSION_CREATE_FAILED',
@@ -81,14 +69,8 @@ const recoverableErrorCodeArb = fc.constantFrom<ErrorCode>(
   'NETWORK_ERROR'
 );
 
-/**
- * Arbitrary for generating non-recoverable error codes only
- */
 const nonRecoverableErrorCodeArb = fc.constantFrom<ErrorCode>('UNKNOWN_ERROR');
 
-/**
- * Arbitrary for generating technical details that should be hidden
- */
 const technicalDetailsArb = fc.oneof(
   fc.constant('Error: '),
   fc.constant('at '),
@@ -195,38 +177,27 @@ describe('ErrorService', () => {
     describe('log', () => {
       it('should log info severity with devLog', () => {
         const error = errorService.createError('AI_UNAVAILABLE', 'Test');
-        // Override severity for testing
         error.severity = 'info';
-
         errorService.log(error);
-
         expect(devLog).toHaveBeenCalled();
       });
 
       it('should log warning severity with devWarn', () => {
         const error = errorService.createError('AI_UNAVAILABLE', 'Test');
-        // AI_UNAVAILABLE has warning severity by default
-
         errorService.log(error);
-
         expect(devWarn).toHaveBeenCalled();
       });
 
       it('should log error severity with devError', () => {
         const error = errorService.createError('SESSION_CREATE_FAILED', 'Test');
-        // SESSION_CREATE_FAILED has error severity by default
-
         errorService.log(error);
-
         expect(devError).toHaveBeenCalled();
       });
 
       it('should log critical severity with devError', () => {
         const error = errorService.createError('UNKNOWN_ERROR', 'Test');
         error.severity = 'critical';
-
         errorService.log(error);
-
         expect(devError).toHaveBeenCalled();
       });
     });
@@ -255,7 +226,6 @@ describe('ErrorService', () => {
       it('should return empty array for non-recoverable errors', () => {
         const error = errorService.createError('UNKNOWN_ERROR', 'Test');
         const suggestions = errorService.getSuggestions(error);
-
         expect(suggestions).toEqual([]);
       });
     });
@@ -280,21 +250,12 @@ describe('ErrorService', () => {
       it('should include provided context', () => {
         const context: ErrorContext = { operation: 'test' };
         const error = errorService.fromUnknown(new Error('Test'), context);
-
         expect(error.context?.operation).toBe('test');
       });
     });
   });
 
   describe('Property-Based Tests', () => {
-    /**
-     * **Feature: next-phase-improvements, Property 13: Error creation produces standardized object**
-     * **Validates: Requirements 4.1**
-     *
-     * For any error code, message, and optional context, the ErrorService should
-     * create an error object containing all required fields (code, message,
-     * recoverable, timestamp).
-     */
     it('Property 13: Error creation produces standardized object', () => {
       fc.assert(
         fc.property(
@@ -305,7 +266,6 @@ describe('ErrorService', () => {
             const service = new ErrorService();
             const error = service.createError(code, message, context);
 
-            // All required fields must be present
             expect(error.code).toBe(code);
             expect(error.message).toBe(message);
             expect(typeof error.recoverable).toBe('boolean');
@@ -313,12 +273,10 @@ describe('ErrorService', () => {
             expect(error.timestamp).toBeGreaterThan(0);
             expect(error.severity).toBeDefined();
 
-            // Context should be included if provided
             if (context !== undefined) {
               expect(error.context).toEqual(context);
             }
 
-            // Recoverability should match the error code mapping
             expect(error.recoverable).toBe(ERROR_CODE_RECOVERABLE[code]);
           }
         ),
@@ -326,13 +284,6 @@ describe('ErrorService', () => {
       );
     });
 
-    /**
-     * **Feature: next-phase-improvements, Property 14: Recoverable errors include suggestions**
-     * **Validates: Requirements 4.2**
-     *
-     * For any error that is marked as recoverable, the created error object
-     * should include a non-empty suggestions array.
-     */
     it('Property 14: Recoverable errors include suggestions', () => {
       fc.assert(
         fc.property(
@@ -342,15 +293,11 @@ describe('ErrorService', () => {
             const service = new ErrorService();
             const error = service.createError(code, message);
 
-            // Error should be recoverable
             expect(error.recoverable).toBe(true);
-
-            // Suggestions should be present and non-empty
             expect(error.suggestions).toBeDefined();
             expect(Array.isArray(error.suggestions)).toBe(true);
             expect(error.suggestions!.length).toBeGreaterThan(0);
 
-            // Each suggestion should be a non-empty string
             for (const suggestion of error.suggestions!) {
               expect(typeof suggestion).toBe('string');
               expect(suggestion.length).toBeGreaterThan(0);
@@ -361,18 +308,10 @@ describe('ErrorService', () => {
       );
     });
 
-    /**
-     * **Feature: next-phase-improvements, Property 15: User-friendly formatting hides technical details**
-     * **Validates: Requirements 4.4**
-     *
-     * For any StandardError object, the formatted user message should not
-     * contain stack traces, internal error codes, or implementation details.
-     */
     it('Property 15: User-friendly formatting hides technical details', () => {
       fc.assert(
         fc.property(
           errorCodeArb,
-          // Generate messages that might contain technical details
           fc.oneof(
             errorMessageArb,
             fc
@@ -385,12 +324,9 @@ describe('ErrorService', () => {
             const error = service.createError(code, message, context);
             const formatted = service.formatForUser(error);
 
-            // Formatted message should be the predefined user-friendly message
             expect(formatted).toBe(ERROR_CODE_MESSAGES[code]);
-
-            // Should not contain technical patterns
             expect(formatted).not.toMatch(/Error:/i);
-            expect(formatted).not.toMatch(/at\s+\w+/); // Stack trace pattern
+            expect(formatted).not.toMatch(/at\s+\w+/);
             expect(formatted).not.toMatch(/\.ts:/);
             expect(formatted).not.toMatch(/\.js:/);
             expect(formatted).not.toMatch(/line\s+\d+/i);
@@ -400,11 +336,7 @@ describe('ErrorService', () => {
             expect(formatted).not.toMatch(/undefined/);
             expect(formatted).not.toMatch(/null/);
 
-            // Should not contain the original technical message
-            // (unless it happens to match the user-friendly message)
             if (message !== ERROR_CODE_MESSAGES[code]) {
-              // Only check if the message is different from the user-friendly one
-              // and contains obvious technical content
               if (message.includes('Error:') || message.includes('.ts:')) {
                 expect(formatted).not.toBe(message);
               }
@@ -415,9 +347,6 @@ describe('ErrorService', () => {
       );
     });
 
-    /**
-     * Additional property: Non-recoverable errors have no suggestions
-     */
     it('Property: Non-recoverable errors have no suggestions', () => {
       fc.assert(
         fc.property(
@@ -427,10 +356,7 @@ describe('ErrorService', () => {
             const service = new ErrorService();
             const error = service.createError(code, message);
 
-            // Error should not be recoverable
             expect(error.recoverable).toBe(false);
-
-            // Suggestions should be undefined (not an empty array)
             expect(error.suggestions).toBeUndefined();
           }
         ),
@@ -438,9 +364,6 @@ describe('ErrorService', () => {
       );
     });
 
-    /**
-     * Additional property: Timestamp is always recent
-     */
     it('Property: Timestamp is always recent', () => {
       fc.assert(
         fc.property(errorCodeArb, errorMessageArb, (code, message) => {
@@ -449,7 +372,6 @@ describe('ErrorService', () => {
           const error = service.createError(code, message);
           const after = Date.now();
 
-          // Timestamp should be between before and after
           expect(error.timestamp).toBeGreaterThanOrEqual(before);
           expect(error.timestamp).toBeLessThanOrEqual(after);
         }),

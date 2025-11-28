@@ -19,7 +19,7 @@ import {
   createKeyboardHandler,
   getAccessibleDuration,
   cleanupAllAnnouncements,
-} from '../utils/accessibility';
+} from './accessibility';
 import { MeditationFlowOverlay, LotusNudge } from '../content/components';
 import type { Settings } from '../types';
 
@@ -81,7 +81,6 @@ describe('Accessibility Tests', () => {
     });
 
     it('should trap focus within container', () => {
-      // Create focusable elements
       const button1 = document.createElement('button');
       const button2 = document.createElement('button');
       const button3 = document.createElement('button');
@@ -96,10 +95,8 @@ describe('Accessibility Tests', () => {
 
       const cleanup = trapFocus(container);
 
-      // First element should be focused
       expect(document.activeElement).toBe(button1);
 
-      // Simulate Tab on last element
       button3.focus();
       const tabEvent = new KeyboardEvent('keydown', {
         key: 'Tab',
@@ -107,7 +104,6 @@ describe('Accessibility Tests', () => {
       });
       container.dispatchEvent(tabEvent);
 
-      // Should wrap to first element
       waitFor(() => {
         expect(document.activeElement).toBe(button1);
       });
@@ -140,7 +136,6 @@ describe('Accessibility Tests', () => {
 
       trapFocus(container);
 
-      // Focus first element and press Shift+Tab
       button1.focus();
       const shiftTabEvent = new KeyboardEvent('keydown', {
         key: 'Tab',
@@ -149,7 +144,6 @@ describe('Accessibility Tests', () => {
       });
       container.dispatchEvent(shiftTabEvent);
 
-      // Should wrap to last element
       waitFor(() => {
         expect(document.activeElement).toBe(button2);
       });
@@ -208,35 +202,30 @@ describe('Accessibility Tests', () => {
 
   describe('Color Contrast', () => {
     it('should pass WCAG AA for dark text on light background', () => {
-      // calm-900 on calm-50
       expect(meetsContrastRequirement('#0f172a', '#f8fafc')).toBe(true);
     });
 
     it('should pass WCAG AA for light text on dark background', () => {
-      // calm-50 on calm-900
       expect(meetsContrastRequirement('#f8fafc', '#0f172a')).toBe(true);
     });
 
     it('should check button text contrast ratio', () => {
-      // white on zen-500 - verify actual ratio
       const ratio = getContrastRatio('#ffffff', '#0ea5e9');
-      expect(ratio).toBeCloseTo(2.77, 1); // Actual ratio for this color combination
+      expect(ratio).toBeCloseTo(2.77, 1);
     });
 
     it('should check link text contrast ratio', () => {
-      // zen-600 on white - verify actual ratio
       const ratio = getContrastRatio('#0284c7', '#ffffff');
-      expect(ratio).toBeGreaterThan(3); // Meets WCAG AA for large text
+      expect(ratio).toBeGreaterThan(3);
     });
 
     it('should fail for insufficient contrast', () => {
-      // Light gray on white
       expect(meetsContrastRequirement('#e0e0e0', '#ffffff')).toBe(false);
     });
 
     it('should calculate correct contrast ratio', () => {
       const ratio = getContrastRatio('#000000', '#ffffff');
-      expect(ratio).toBeCloseTo(21, 0); // Black on white is 21:1
+      expect(ratio).toBeCloseTo(21, 0);
     });
 
     it('should handle RGB color format', () => {
@@ -267,7 +256,6 @@ describe('Accessibility Tests', () => {
 
   describe('Reduced Motion', () => {
     it('should detect prefers-reduced-motion', () => {
-      // Mock matchMedia to return true
       window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: query === '(prefers-reduced-motion: reduce)',
         media: query,

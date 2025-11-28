@@ -15,7 +15,7 @@ import {
   createFailingSessionFactory,
   sessionKeyArb,
   uniqueSessionKeysArb,
-} from './__tests__/testUtils';
+} from './testUtils';
 
 // Type alias for test sessions that satisfies DestroyableSession
 type TestSession = DestroyableSession & { id: string; destroyed: boolean };

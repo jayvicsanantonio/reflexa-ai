@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { QuickSettingsModal } from '../content/components/QuickSettingsModal';
-import type { Settings, AIResponse } from '../types';
+import { QuickSettingsModal } from './QuickSettingsModal';
+import type { Settings, AIResponse } from '../../types';
 
 describe('QuickSettingsModal accessibility and interactions', () => {
   const defaultSettings: Settings = {
@@ -24,10 +24,12 @@ describe('QuickSettingsModal accessibility and interactions', () => {
   };
 
   let originalSendMessage: unknown;
-  let mockedSendMessage: any;
+  let mockedSendMessage: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    originalSendMessage = (globalThis.chrome as any).runtime.sendMessage;
+    originalSendMessage = (
+      globalThis.chrome as unknown as { runtime: { sendMessage: unknown } }
+    ).runtime.sendMessage;
     mockedSendMessage = vi.fn((msg: { type: string; payload?: unknown }) => {
       if (msg.type === 'getSettings') {
         const resp: AIResponse<Settings> = {
@@ -38,13 +40,19 @@ describe('QuickSettingsModal accessibility and interactions', () => {
         };
         return Promise.resolve(resp);
       }
-      return Promise.resolve({ success: true } as unknown as AIResponse);
+      return Promise.resolve({
+        success: true,
+      } as unknown as AIResponse<unknown>);
     });
-    (globalThis.chrome as any).runtime.sendMessage = mockedSendMessage;
+    (
+      globalThis.chrome as unknown as { runtime: { sendMessage: unknown } }
+    ).runtime.sendMessage = mockedSendMessage;
   });
 
   afterEach(() => {
-    (globalThis.chrome as any).runtime.sendMessage = originalSendMessage as any;
+    (
+      globalThis.chrome as unknown as { runtime: { sendMessage: unknown } }
+    ).runtime.sendMessage = originalSendMessage;
   });
 
   it('renders as an accessible dialog and wires aria-labelledby', async () => {
@@ -62,7 +70,6 @@ describe('QuickSettingsModal accessibility and interactions', () => {
   it('toggles a switch and sends updateSettings payload', async () => {
     render(<QuickSettingsModal onClose={vi.fn()} />);
 
-    // Wait for settings to load
     await screen.findByText('Enable sound');
 
     const soundSwitch = screen.getByRole('switch', { name: 'Enable sound' });
@@ -81,7 +88,6 @@ describe('QuickSettingsModal accessibility and interactions', () => {
         payload?: Partial<Settings>;
       };
       expect(last.type).toBe('updateSettings');
-      // Payload should be a full settings object with possibly toggled enableSound
       expect(last.payload).toBeTruthy();
       expect(last.payload?.enableSound).toBe(!defaultSettings.enableSound);
     });
@@ -90,7 +96,6 @@ describe('QuickSettingsModal accessibility and interactions', () => {
   it('closes on Escape key', async () => {
     const onClose = vi.fn();
     const { container } = render(<QuickSettingsModal onClose={onClose} />);
-    // Wait for content
     await screen.findByText('Settings');
 
     const content = container.querySelector('.reflexa-modal-animate');

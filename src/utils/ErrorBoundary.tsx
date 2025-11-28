@@ -26,8 +26,8 @@
  */
 
 import React, { type ErrorInfo, type ReactNode } from 'react';
-import { errorService } from '../services/error/ErrorService';
-import { type StandardError } from '../services/error/interfaces';
+import { errorService } from '../background/services/error/ErrorService';
+import { type StandardError } from '../background/services/error/interfaces';
 
 /**
  * Props for the ErrorBoundary component.

@@ -15,11 +15,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import * as fc from 'fast-check';
 import { ErrorBoundary } from './ErrorBoundary';
-import { errorService } from '../services/error/ErrorService';
-import type { StandardError } from '../services/error/interfaces';
+import { errorService } from '../background/services/error/ErrorService';
+import type { StandardError } from '../background/services/error/interfaces';
 
 // Mock the ErrorService
-vi.mock('../services/error/ErrorService', () => {
+vi.mock('../background/services/error/ErrorService', () => {
   const mockErrorService = {
     fromUnknown: vi.fn((error: unknown, context?: Record<string, unknown>) => ({
       code: 'UNKNOWN_ERROR' as const,

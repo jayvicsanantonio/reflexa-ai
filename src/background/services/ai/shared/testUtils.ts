@@ -67,10 +67,6 @@ export const uniqueSessionKeysArb = fc.uniqueArray(sessionKeyArb, {
 });
 
 /**
- * Arbitrary for generating mock session data
- */
-
-/**
  * Arbitrary for generating timeout values (in milliseconds)
  */
 export const timeoutArb = fc.integer({ min: 10, max: 5000 });
