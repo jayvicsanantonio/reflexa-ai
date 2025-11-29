@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Zap } from 'lucide-react';
 import { createKeyboardHandler, trapFocus } from '../../utils/accessibility';
 import type { AICapabilities, Settings } from '../../types';
 import {
   ExperimentalModeBanner,
   CapabilityGrid,
   SetupGuideSection,
-  ModalHeader,
 } from './AIStatusModal/index';
+import { SharedModalHeader, SharedModalFooter } from './shared';
 
 interface AIStatusModalProps {
   onClose: () => void;
@@ -90,7 +91,13 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
           zIndex: 1,
         }}
       >
-        <ModalHeader onClose={onClose} />
+        <SharedModalHeader
+          title="AI Status"
+          subtitle="Chrome Built-in AI APIs"
+          icon={<Zap size={22} strokeWidth={2} />}
+          onClose={onClose}
+          titleId="reflexa-ai-status-title"
+        />
 
         <div style={{ padding: '16px 20px', overflow: 'auto' }}>
           <ExperimentalModeBanner
@@ -102,22 +109,7 @@ export const AIStatusModal: React.FC<AIStatusModalProps> = ({ onClose }) => {
           <SetupGuideSection copiedKey={copiedKey} onCopyFlag={copyFlag} />
         </div>
 
-        <div
-          style={{
-            padding: '12px 20px 16px 20px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            borderTop: '1px solid rgba(15, 23, 42, 0.06)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="reflexa-btn reflexa-btn--primary"
-          >
-            Done
-          </button>
-        </div>
+        <SharedModalFooter primaryLabel="Done" onPrimary={onClose} />
       </div>
     </div>
   );

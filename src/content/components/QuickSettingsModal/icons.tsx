@@ -13,7 +13,6 @@ import {
   List,
   Database,
   Mic,
-  Settings,
 } from 'lucide-react';
 
 export const IconSound = <Volume2 size={16} strokeWidth={2} aria-hidden />;
@@ -39,5 +38,3 @@ export const IconList = <List size={16} strokeWidth={2} aria-hidden />;
 export const IconDatabase = <Database size={16} strokeWidth={2} aria-hidden />;
 
 export const IconMic = <Mic size={16} strokeWidth={2} aria-hidden />;
-
-export const IconSettings = <Settings size={20} strokeWidth={2} aria-hidden />;

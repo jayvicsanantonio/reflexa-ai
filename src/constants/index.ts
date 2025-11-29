@@ -83,12 +83,6 @@ export const STORAGE_KEYS = {
 };
 
 /**
- * Privacy notice text
- */
-export const PRIVACY_NOTICE =
-  "Your reflections never leave your device. All AI processing happens locally using Chrome's built-in Gemini Nano.";
-
-/**
  * Error messages
  */
 export const ERROR_MESSAGES = {

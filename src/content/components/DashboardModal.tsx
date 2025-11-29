@@ -3,11 +3,11 @@ import { createKeyboardHandler, trapFocus } from '../../utils/accessibility';
 import { CalmStatsLite } from './CalmStatsLite';
 import {
   ModalHeader,
-  ModalFooter,
   StreakCard,
   ReflectionsList,
 } from './DashboardModal/components';
 import { useDashboardData, useStats } from './DashboardModal/hooks';
+import { SharedModalFooter } from './shared';
 
 interface DashboardModalProps {
   onClose: () => void;
@@ -82,7 +82,7 @@ export const DashboardModal: React.FC<DashboardModalProps> = ({ onClose }) => {
           </div>
         </div>
 
-        <ModalFooter onClose={onClose} />
+        <SharedModalFooter primaryLabel="Done" onPrimary={onClose} />
       </div>
     </div>
   );

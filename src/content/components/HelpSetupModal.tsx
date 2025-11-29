@@ -1,14 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { createKeyboardHandler, trapFocus } from '../../utils/accessibility';
 import {
-  ModalHeader,
-  ModalFooter,
   BaseAISection,
   CoreAPIsSection,
   WritingAssistanceSection,
   TranslationSection,
   WarningMessage,
 } from './HelpSetupModal/components';
+import { SharedModalHeader, SharedModalFooter } from './shared';
 
 interface HelpSetupModalProps {
   onClose: () => void;
@@ -38,7 +37,11 @@ export const HelpSetupModal: React.FC<HelpSetupModalProps> = ({ onClose }) => {
         className="reflexa-modal reflexa-modal--lg reflexa-modal-animate"
         onKeyDown={handleKeyDown}
       >
-        <ModalHeader onClose={onClose} />
+        <SharedModalHeader
+          title="Setup Chrome AI"
+          onClose={onClose}
+          titleId="reflexa-help-title"
+        />
 
         {/* Accent bar */}
         <div className="reflexa-modal__accent" />
@@ -57,7 +60,7 @@ export const HelpSetupModal: React.FC<HelpSetupModalProps> = ({ onClose }) => {
           <WarningMessage />
         </div>
 
-        <ModalFooter onClose={onClose} />
+        <SharedModalFooter primaryLabel="Got it" onPrimary={onClose} />
       </div>
     </div>
   );

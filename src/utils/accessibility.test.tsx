@@ -365,7 +365,10 @@ describe('Accessibility Tests', () => {
       };
 
       const defaultProps = {
-        summary: ['Insight text', 'Surprise text', 'Apply text'],
+        summaryConfig: {
+          summary: ['Insight text', 'Surprise text', 'Apply text'],
+          isLoadingSummary: false,
+        },
         prompts: ['Question 1?', 'Question 2?'],
         onSave: vi.fn(),
         onCancel: vi.fn(),

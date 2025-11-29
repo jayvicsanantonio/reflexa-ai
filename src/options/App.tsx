@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
-import type { Settings, AICapabilities } from '../types';
-import { DEFAULT_SETTINGS, TIMING } from '../constants';
+import type { AICapabilities } from '../types';
+import { TIMING } from '../constants';
 import { SettingsSection } from './components/SettingsSection';
 import { Slider } from './components/Slider';
 import { Toggle } from './components/Toggle';
@@ -9,133 +9,29 @@ import { RadioGroup, type RadioOption } from './components/RadioGroup';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Dropdown, type DropdownOption } from './components/Dropdown';
 import { useKeyboardNavigation } from '../utils/useKeyboardNavigation';
+import { useSettings, useCapabilities } from './hooks';
 import './styles.css';
 import { ErrorBoundary } from '../utils/ErrorBoundary';
-import { devError } from '../utils/logger';
 
 export const App: React.FC = () => {
   // Enable keyboard navigation detection
   useKeyboardNavigation();
 
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
-  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const [capabilities, setCapabilities] = useState<AICapabilities | null>(null);
-  const [checkingCapabilities, setCheckingCapabilities] = useState(false);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use extracted hooks for settings and capabilities management
+  const {
+    settings,
+    isLoading,
+    updateSetting,
+    resetSettings,
+    showSaveIndicator,
+  } = useSettings();
+  const {
+    capabilities,
+    isChecking,
+    refresh: refreshCapabilities,
+  } = useCapabilities(settings.experimentalMode);
 
-  // Load settings and capabilities on mount
-  useEffect(() => {
-    void loadSettings();
-    void loadCapabilities();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const response: unknown = await chrome.runtime.sendMessage({
-        type: 'getSettings',
-      });
-
-      if (
-        response &&
-        typeof response === 'object' &&
-        'success' in response &&
-        response.success &&
-        'data' in response
-      ) {
-        setSettings(response.data as Settings);
-      }
-    } catch (error) {
-      devError('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCapabilities = async () => {
-    try {
-      const response: unknown = await chrome.runtime.sendMessage({
-        type: 'getCapabilities',
-      });
-
-      if (
-        response &&
-        typeof response === 'object' &&
-        'success' in response &&
-        response.success &&
-        'data' in response
-      ) {
-        setCapabilities(response.data as AICapabilities);
-      }
-    } catch (error) {
-      devError('Failed to load capabilities:', error);
-    }
-  };
-
-  const refreshCapabilities = useCallback(
-    async (experimentalMode?: boolean) => {
-      setCheckingCapabilities(true);
-      try {
-        const response: unknown = await chrome.runtime.sendMessage({
-          type: 'getCapabilities',
-          payload: {
-            refresh: true,
-            experimentalMode: experimentalMode ?? settings.experimentalMode,
-          },
-        });
-
-        if (
-          response &&
-          typeof response === 'object' &&
-          'success' in response &&
-          response.success &&
-          'data' in response
-        ) {
-          setCapabilities(response.data as AICapabilities);
-        }
-      } catch (error) {
-        devError('Failed to refresh capabilities:', error);
-      } finally {
-        setCheckingCapabilities(false);
-      }
-    },
-    [settings.experimentalMode]
-  );
-
-  // Debounced auto-save function
-  const debouncedSave = useCallback((updatedSettings: Settings) => {
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced save
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        await chrome.runtime.sendMessage({
-          type: 'updateSettings',
-          payload: updatedSettings,
-        });
-
-        // Show save indicator
-        setShowSaveIndicator(true);
-      } catch (error) {
-        devError('Failed to save settings:', error);
-      }
-    }, TIMING.SETTINGS_DEBOUNCE);
-  }, []);
-
-  // Update a specific setting
-  const updateSetting = useCallback(
-    <K extends keyof Settings>(key: K, value: Settings[K]) => {
-      const updatedSettings = { ...settings, [key]: value };
-      setSettings(updatedSettings);
-      debouncedSave(updatedSettings);
-    },
-    [settings, debouncedSave]
-  );
-
-  // Reset to defaults
+  // Reset to defaults with confirmation
   const handleReset = async () => {
     if (
       !confirm(
@@ -144,25 +40,7 @@ export const App: React.FC = () => {
     ) {
       return;
     }
-
-    try {
-      const response: unknown = await chrome.runtime.sendMessage({
-        type: 'resetSettings',
-      });
-
-      if (
-        response &&
-        typeof response === 'object' &&
-        'success' in response &&
-        response.success &&
-        'data' in response
-      ) {
-        setSettings(response.data as Settings);
-        setShowSaveIndicator(true);
-      }
-    } catch (error) {
-      devError('Failed to reset settings:', error);
-    }
+    await resetSettings();
   };
 
   // Privacy mode options
@@ -213,7 +91,7 @@ export const App: React.FC = () => {
     { value: 'ar', label: 'Arabic' },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-calm-50 flex min-h-screen items-center justify-center">
         <div className="text-calm-600 text-center">
@@ -419,10 +297,10 @@ export const App: React.FC = () => {
 
                 <button
                   onClick={() => void refreshCapabilities()}
-                  disabled={checkingCapabilities}
+                  disabled={isChecking}
                   className="bg-accent-500 hover:bg-accent-600 focus:ring-accent-500 mt-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {checkingCapabilities ? (
+                  {isChecking ? (
                     <span className="flex items-center gap-2">
                       <svg
                         className="h-4 w-4 animate-spin"

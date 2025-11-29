@@ -1,0 +1,170 @@
+# Implementation Plan
+
+- [x] 1. Create shared modal components
+  - [x] 1.1 Create SharedModalHeader component
+    - Create `src/content/components/shared/ModalHeader.tsx` with title, subtitle, icon, and close button props
+    - Export from `src/content/components/shared/index.ts`
+    - _Requirements: 4.1_
+  - [x] 1.2 Create SharedModalFooter component
+    - Create `src/content/components/shared/ModalFooter.tsx` with primary/secondary button props
+    - Export from `src/content/components/shared/index.ts`
+    - _Requirements: 4.2_
+  - [x] 1.3 Write unit tests for shared modal components
+    - Test ModalHeader renders title, subtitle, icon correctly
+    - Test ModalFooter renders buttons and handles clicks
+    - _Requirements: 4.1, 4.2_
+
+- [x] 2. Create MeditationFlowOverlay hooks
+  - [x] 2.1 Create useRewritePreview hook
+    - Create `src/content/components/MeditationFlowOverlay/hooks/useRewritePreview.ts`
+    - Implement setPreview, acceptRewrite, discardRewrite functions
+    - _Requirements: 1.4_
+  - [x] 2.2 Write property test for useRewritePreview
+    - **Property 1: Rewrite preview state consistency**
+    - **Validates: Requirements 1.4**
+  - [x] 2.3 Create useProofreadResult hook
+    - Create `src/content/components/MeditationFlowOverlay/hooks/useProofreadResult.ts`
+    - Implement setResult, acceptProofread, discardProofread functions
+    - _Requirements: 1.5_
+  - [x] 2.4 Write property test for useProofreadResult
+    - **Property 2: Proofread result state consistency**
+    - **Validates: Requirements 1.5**
+  - [x] 2.5 Create useVoiceInputManager hook
+    - Create `src/content/components/MeditationFlowOverlay/hooks/useVoiceInputManager.ts`
+    - Manage both voice input instances and shared state
+    - Handle voice toggle, error state, and audio cues
+    - _Requirements: 1.2_
+  - [x] 2.6 Create useOverlayKeyboardShortcuts hook
+    - Create `src/content/components/MeditationFlowOverlay/hooks/useOverlayKeyboardShortcuts.ts`
+    - Handle ArrowRight, ArrowLeft, Escape, Cmd+G shortcuts
+    - Respect disabled states based on loading/processing
+    - _Requirements: 1.6_
+  - [x] 2.7 Write property test for useOverlayKeyboardShortcuts
+    - **Property 3: Keyboard shortcut event mapping**
+    - **Validates: Requirements 1.6**
+
+- [ ] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Refactor MeditationFlowOverlay component
+  - [x] 4.1 Move MeditationFlowOverlay.tsx into folder as index.tsx
+    - Move `src/content/components/MeditationFlowOverlay.tsx` to `src/content/components/MeditationFlowOverlay/index.tsx`
+    - Update all import paths
+    - _Requirements: 5.1, 5.2_
+  - [x] 4.2 Integrate new hooks into MeditationFlowOverlay
+    - Replace inline rewrite preview state with useRewritePreview
+    - Replace inline proofread result state with useProofreadResult
+    - Replace voice input management with useVoiceInputManager
+    - Replace keyboard event handling with useOverlayKeyboardShortcuts
+    - _Requirements: 1.1, 1.2, 1.4, 1.5, 1.6_
+  - [x] 4.3 Simplify MeditationFlowOverlay prop interface
+    - Group related props into sub-objects where beneficial
+    - Update all call sites
+    - _Requirements: 6.1_
+
+- [x] 5. Create popup hooks
+  - [x] 5.1 Create useReflections hook
+    - Create `src/popup/hooks/useReflections.ts`
+    - Handle loading from chrome.storage.local
+    - Handle storage change listener for real-time updates
+    - Implement deleteReflection with streak recalculation
+    - _Requirements: 2.1_
+  - [x] 5.2 Create useStreak hook
+    - Create `src/popup/hooks/useStreak.ts`
+    - Handle loading from chrome.storage.local
+    - Handle storage change listener for real-time updates
+    - _Requirements: 2.2_
+  - [x] 5.3 Create useCalmStats hook
+    - Create `src/popup/hooks/useCalmStats.ts`
+    - Derive stats from reflections using useMemo
+    - Pure computation with no side effects
+    - _Requirements: 2.3_
+  - [x] 5.4 Write property test for useCalmStats
+    - **Property 4: Calm stats derivation correctness**
+    - **Validates: Requirements 2.3**
+  - [x] 5.5 Create usePopupKeyboardShortcuts hook
+    - Create `src/popup/hooks/usePopupKeyboardShortcuts.ts`
+    - Handle Cmd+E for export, Escape for closing modals
+    - _Requirements: 2.5_
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Refactor popup App component
+  - [x] 7.1 Extract HeroSection component
+    - Create `src/popup/components/HeroSection.tsx` for the main hero UI
+    - _Requirements: 2.4_
+  - [x] 7.2 Extract PrivacyModal component
+    - Create `src/popup/components/PrivacyModal.tsx` for the privacy notice modal
+    - _Requirements: 2.4_
+  - [x] 7.3 Integrate hooks into popup App
+    - Replace inline reflections management with useReflections
+    - Replace inline streak management with useStreak
+    - Replace inline stats calculation with useCalmStats
+    - Replace inline keyboard handling with usePopupKeyboardShortcuts
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [x] 8. Create options hooks
+  - [x] 8.1 Create useSettings hook
+    - Create `src/options/hooks/useSettings.ts`
+    - Handle loading, debounced saving, and reset
+    - Expose showSaveIndicator state
+    - _Requirements: 3.1_
+  - [x] 8.2 Write property test for useSettings debounce
+    - **Property 5: Settings debounce behavior**
+    - **Validates: Requirements 3.1**
+  - [x] 8.3 Create useCapabilities hook
+    - Create `src/options/hooks/useCapabilities.ts`
+    - Handle loading and refresh with experimental mode
+    - _Requirements: 3.2_
+
+- [x] 9. Refactor options App component
+  - [x] 9.1 Integrate hooks into options App
+    - Replace inline settings management with useSettings
+    - Replace inline capabilities management with useCapabilities
+    - _Requirements: 3.1, 3.2, 3.3_
+
+- [ ] 10. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 11. Update existing modals to use shared components
+  - [x] 11.1 Update AIStatusModal to use shared ModalHeader
+    - Replace custom header with SharedModalHeader where appropriate
+    - Keep any unique functionality
+    - _Requirements: 4.3, 4.4_
+  - [x] 11.2 Update DashboardModal to use shared components
+    - Replace custom header/footer with shared components where appropriate
+    - _Requirements: 4.3, 4.4_
+  - [x] 11.3 Update QuickSettingsModal to use shared components
+    - Replace custom header/footer with shared components where appropriate
+    - _Requirements: 4.3, 4.4_
+  - [x] 11.4 Update HelpSetupModal to use shared components
+    - Replace custom header/footer with shared components where appropriate
+    - _Requirements: 4.3, 4.4_
+
+- [x] 12. Review and reduce unnecessary useEffect usage
+  - [x] 12.1 Audit MeditationFlowOverlay for unnecessary effects
+    - Replace derived state effects with useMemo or inline calculations
+    - Document any remaining effects that are necessary
+    - _Requirements: 8.1, 8.2, 8.3_
+  - [x] 12.2 Audit popup App for unnecessary effects
+    - Replace derived state effects with useMemo or inline calculations
+    - _Requirements: 8.1, 8.2_
+  - [x] 12.3 Audit options App for unnecessary effects
+    - Replace derived state effects with useMemo or inline calculations
+    - _Requirements: 8.1, 8.2_
+
+- [x] 13. Clean up unused code
+  - [x] 13.1 Run knip to identify unused code
+    - Execute `npx knip` and review output
+    - _Requirements: 7.1_
+  - [x] 13.2 Remove identified unused exports and files
+    - Remove unused code identified by knip
+    - _Requirements: 7.2_
+  - [x] 13.3 Verify build and tests pass
+    - Run `npm run build` and `npm test`
+    - _Requirements: 7.3_
+
+- [x] 14. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+

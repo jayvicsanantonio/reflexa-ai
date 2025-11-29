@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { createKeyboardHandler, trapFocus } from '../../utils/accessibility';
 import type { Settings, AICapabilities } from '../../types';
 import {
-  ModalHeader,
-  ModalFooter,
   BehaviorSection,
   ExperienceSection,
   AIFeaturesSection,
   PrivacySection,
   VoiceSection,
 } from './QuickSettingsModal/index';
+import { SharedModalHeader, SharedModalFooter } from './shared';
 
 interface QuickSettingsModalProps {
   onClose: () => void;
@@ -117,7 +117,13 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
           zIndex: 1,
         }}
       >
-        <ModalHeader onClose={onClose} />
+        <SharedModalHeader
+          title="Settings"
+          subtitle="Preferences & Features"
+          icon={<SettingsIcon size={20} strokeWidth={2} />}
+          onClose={onClose}
+          titleId="reflexa-quick-settings-title"
+        />
 
         <div style={{ padding: '8px 20px', overflow: 'auto' }}>
           {!settings ? (
@@ -148,7 +154,7 @@ export const QuickSettingsModal: React.FC<QuickSettingsModalProps> = ({
           )}
         </div>
 
-        <ModalFooter onClose={onClose} />
+        <SharedModalFooter primaryLabel="Done" onPrimary={onClose} />
       </div>
     </div>
   );

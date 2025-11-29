@@ -6,83 +6,130 @@ import type {
   TonePreset,
   ProofreadResult,
   VoiceInputMetadata,
-} from '../../types';
-import { trapFocus } from '../../utils/accessibility';
-import { devLog, devWarn, devError } from '../../utils/logger';
+} from '../../../types';
+import { trapFocus } from '../../../utils/accessibility';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
-import { Notification } from './Notification';
-import { useVoiceInput } from '../hooks/useVoiceInput';
-import type { VoiceInputError } from '../hooks/useVoiceInput';
-import { AudioManager } from '../../utils/audioManager';
-import type { AIResponse } from '../../types';
+import { Notification } from '../Notification';
+import type { AIResponse } from '../../../types';
+import { BreathingPhase } from './BreathingPhase';
+import { SummaryPhase } from './SummaryPhase';
+import { ReflectionInput } from './ReflectionInput';
+import { ToolsSection } from './ToolsSection';
 import {
-  BreathingPhase,
-  SummaryPhase,
-  ReflectionInput,
-  ToolsSection,
   useWriterStreaming,
-} from './MeditationFlowOverlay/index';
-import '../styles.css';
+  useRewritePreview,
+  useProofreadResult,
+  useVoiceInputManager,
+  useOverlayKeyboardShortcuts,
+} from './hooks';
+import '../../styles.css';
 
-interface MeditationFlowOverlayProps {
+/**
+ * Translation-related configuration
+ */
+export interface TranslationConfig {
+  onTranslateToEnglish?: () => Promise<void>;
+  onTranslate?: (targetLanguage: string) => Promise<void>;
+  isTranslating?: boolean;
+  languageDetection?: LanguageDetection;
+  summaryLanguageDetection?: LanguageDetection;
+}
+
+/**
+ * Audio/ambient-related configuration
+ */
+export interface AudioConfig {
+  ambientMuted?: boolean;
+  onToggleAmbient?: (mute: boolean) => void;
+}
+
+/**
+ * Summary display configuration
+ */
+export interface SummaryConfig {
   summary: string[];
   summaryDisplay?: string[];
+  currentFormat?: SummaryFormat;
+  onFormatChange?: (format: SummaryFormat) => Promise<void>;
+  isLoadingSummary?: boolean;
+}
+
+interface MeditationFlowOverlayProps {
+  /** Summary configuration */
+  summaryConfig: SummaryConfig;
+  /** Reflection prompts */
   prompts: string[];
+  /** Save handler */
   onSave: (
     reflections: string[],
     voiceMetadata?: VoiceInputMetadata[],
     originalReflections?: (string | null)[]
   ) => void;
+  /** Cancel handler */
   onCancel: () => void;
+  /** User settings */
   settings: Settings;
-  onFormatChange?: (format: SummaryFormat) => Promise<void>;
-  currentFormat?: SummaryFormat;
-  isLoadingSummary?: boolean;
-  languageDetection?: LanguageDetection;
-  summaryLanguageDetection?: LanguageDetection;
+  /** Proofread handler */
   onProofread?: (text: string, index: number) => Promise<ProofreadResult>;
-  onTranslateToEnglish?: () => Promise<void>;
-  onTranslate?: (targetLanguage: string) => Promise<void>;
-  isTranslating?: boolean;
+  /** Whether proofreader is available */
+  proofreaderAvailable?: boolean;
+  /** Translation configuration (optional) */
+  translationConfig?: TranslationConfig;
+  /** Audio configuration (optional) */
+  audioConfig?: AudioConfig;
+  /** Rewrite handler (experimental) */
   onRewrite?: (
     text: string,
     tone: TonePreset,
     index: number
   ) => Promise<{ original: string; rewritten: string }>;
+  /** Rewriting state per input */
   isRewriting?: boolean[];
-  proofreaderAvailable?: boolean;
-  ambientMuted?: boolean;
-  onToggleAmbient?: (mute: boolean) => void;
+  /** Reduce motion preference */
   reduceMotion?: boolean;
+  /** Toggle reduce motion handler */
   onToggleReduceMotion?: (enabled: boolean) => void;
-  // removed translated target pill per request
 }
 
 export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
-  summary,
-  summaryDisplay,
+  summaryConfig,
   prompts,
   onSave,
   onCancel,
   settings,
-  onFormatChange,
-  currentFormat = 'bullets',
-  isLoadingSummary = false,
-  languageDetection,
-  summaryLanguageDetection,
   onProofread,
-  onTranslateToEnglish: _onTranslateToEnglish,
-  onTranslate: _onTranslate,
-  isTranslating: _isTranslating,
   proofreaderAvailable = false,
-  ambientMuted: _ambientMuted = false,
-  onToggleAmbient: _onToggleAmbient,
+  translationConfig,
+  audioConfig,
   reduceMotion: _reduceMotion = false,
   onToggleReduceMotion: _onToggleReduceMotion,
 }) => {
-  // Summary display is handled by SummaryPhase component
+  // Destructure summary config
+  const {
+    summary,
+    summaryDisplay,
+    currentFormat = 'bullets',
+    onFormatChange,
+    isLoadingSummary = false,
+  } = summaryConfig;
+
+  // Destructure translation config with defaults
+  const {
+    onTranslateToEnglish: _onTranslateToEnglish,
+    onTranslate: _onTranslate,
+    isTranslating: _isTranslating = false,
+    languageDetection,
+    summaryLanguageDetection,
+  } = translationConfig ?? {};
+
+  // Destructure audio config with defaults
+  const {
+    ambientMuted: _ambientMuted = false,
+    onToggleAmbient: _onToggleAmbient,
+  } = audioConfig ?? {};
   const contentRef = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState<number>(0); // 0: settle, 1: summary, 2: q1, 3: q2
+  const [step, setStep] = useState<number>(0);
   const [answers, setAnswers] = useState<string[]>(['', '']);
 
   const [breathCue, setBreathCue] = useState<'inhale' | 'hold' | 'exhale'>(
@@ -91,7 +138,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState<number>(0);
 
   // Refs needed by hooks and handlers
-  const audioManagerRef = useRef<AudioManager | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTextValueRef = useRef<string[]>(['', '']);
 
@@ -104,22 +150,23 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     startWriterAnimation,
     setIsDraftGenerating,
   } = useWriterStreaming(setAnswers, lastTextValueRef);
-  // Resume silently if initial step/answers exist (popup removed)
-  const [voiceInputStates, setVoiceInputStates] = useState<
-    { isRecording: boolean; interimText: string }[]
-  >([
-    { isRecording: false, interimText: '' },
-    { isRecording: false, interimText: '' },
-  ]);
-  const [voiceError, setVoiceError] = useState<VoiceInputError | null>(null);
-  const [autoStopNotification, setAutoStopNotification] =
-    useState<boolean>(false);
 
-  const [rewritePreview, setRewritePreview] = useState<{
-    index: number;
-    original: string;
-    rewritten: string;
-  } | null>(null);
+  // Rewrite preview hook (replaces inline state)
+  const {
+    preview: rewritePreview,
+    setPreview: setRewritePreview,
+    acceptRewrite,
+    discardRewrite,
+  } = useRewritePreview();
+
+  // Proofread result hook (replaces inline state)
+  const {
+    result: proofreadResult,
+    setResult: setProofreadResult,
+    acceptProofread,
+    discardProofread,
+  } = useProofreadResult();
+
   const [writerAvailable, setWriterAvailable] = useState<boolean>(false);
   const [rewriterAvailable, setRewriterAvailable] = useState<boolean>(false);
   const [showVoiceEnhancePrompt, setShowVoiceEnhancePrompt] = useState<{
@@ -127,22 +174,10 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     index: number;
   }>({ show: false, index: 0 });
 
-  const [proofreadResult, setProofreadResult] = useState<{
-    index: number;
-    result: ProofreadResult;
-  } | null>(null);
   const [isProofreading, setIsProofreading] = useState<boolean[]>([
     false,
     false,
   ]);
-  const [languageFallbackNotification, setLanguageFallbackNotification] =
-    useState<{ show: boolean; languageName: string }>({
-      show: false,
-      languageName: '',
-    });
-
-  // Writer/Rewriter state (used in handlers, not directly in JSX)
-  // Managed by useWriterStreaming hook
 
   // Keep tone selection per reflection input (index 0 and 1)
   const [_selectedTones, setSelectedTones] = useState<
@@ -151,9 +186,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   const [_isRewriting, setIsRewriting] = useState<boolean[]>([false, false]);
 
-  // Meditative phrases are now managed by BreathingPhase component
-
-  // Voice input handlers for answer field 0
+  // Voice input transcript handlers
   const handleTranscript0 = useCallback((text: string, isFinal: boolean) => {
     if (isFinal) {
       setAnswers((prev) => {
@@ -165,56 +198,9 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         lastTextValueRef.current[0] = newAnswers[0];
         return newAnswers;
       });
-
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = '';
-        return newStates;
-      });
-
-      // Voice enhancement prompt disabled
-      // if (rewriterAvailable && text.trim().length > 30) {
-      //   setTimeout(() => {
-      //     setShowVoiceEnhancePrompt({ show: true, index: 0 });
-      //   }, 1000);
-      // }
-    } else {
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[0].interimText = text;
-        return newStates;
-      });
     }
   }, []);
 
-  const handleVoiceError0 = useCallback((error: VoiceInputError) => {
-    devError('Voice input error (field 0):', error);
-    setVoiceError(error);
-  }, []);
-
-  const handleAutoStop0 = useCallback(() => {
-    devLog('Auto-stop triggered for field 0');
-    setAutoStopNotification(true);
-
-    if (settings.enableSound && audioManagerRef.current) {
-      audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        devError('Failed to play voice stop audio cue:', err);
-      });
-    }
-  }, [settings.enableSound]);
-
-  const voiceInput0 = useVoiceInput({
-    language:
-      settings.voiceLanguage ??
-      settings.preferredTranslationLanguage ??
-      navigator.language,
-    onTranscript: handleTranscript0,
-    onError: handleVoiceError0,
-    onAutoStop: handleAutoStop0,
-    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
-  });
-
-  // Voice input handlers for answer field 1
   const handleTranscript1 = useCallback((text: string, isFinal: boolean) => {
     if (isFinal) {
       setAnswers((prev) => {
@@ -226,65 +212,39 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         lastTextValueRef.current[1] = newAnswers[1];
         return newAnswers;
       });
-
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = '';
-        return newStates;
-      });
-
-      // Voice enhancement prompt disabled
-      // if (rewriterAvailable && text.trim().length > 30) {
-      //   setTimeout(() => {
-      //     setShowVoiceEnhancePrompt({ show: true, index: 1 });
-      //   }, 1000);
-      // }
-    } else {
-      setVoiceInputStates((prev) => {
-        const newStates = [...prev];
-        newStates[1].interimText = text;
-        return newStates;
-      });
     }
   }, []);
 
-  const handleVoiceError1 = useCallback((error: VoiceInputError) => {
-    devError('Voice input error (field 1):', error);
-    setVoiceError(error);
-  }, []);
+  // Voice input manager hook (replaces inline voice input management)
+  const {
+    voiceInputs,
+    voiceInputStates,
+    voiceError,
+    clearVoiceError,
+    handleVoiceToggle,
+    autoStopNotification,
+    clearAutoStopNotification,
+    languageFallbackNotification,
+    clearLanguageFallbackNotification,
+  } = useVoiceInputManager(
+    {
+      language:
+        settings.voiceLanguage ??
+        settings.preferredTranslationLanguage ??
+        navigator.language,
+      autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
+      enableSound: settings.enableSound,
+      settings,
+    },
+    handleTranscript0,
+    handleTranscript1
+  );
 
-  const handleAutoStop1 = useCallback(() => {
-    devLog('Auto-stop triggered for field 1');
-    setAutoStopNotification(true);
+  const [voiceInput0, voiceInput1] = voiceInputs;
 
-    if (settings.enableSound && audioManagerRef.current) {
-      audioManagerRef.current.playVoiceStopCue().catch((err) => {
-        devError('Failed to play voice stop audio cue:', err);
-      });
-    }
-  }, [settings.enableSound]);
-
-  const voiceInput1 = useVoiceInput({
-    language:
-      settings.voiceLanguage ??
-      settings.preferredTranslationLanguage ??
-      navigator.language,
-    onTranscript: handleTranscript1,
-    onError: handleVoiceError1,
-    onAutoStop: handleAutoStop1,
-    autoStopDelay: settings.voiceAutoStopDelay ?? 3000,
-  });
-
-  // Update voice input recording states
-  useEffect(() => {
-    setVoiceInputStates((prev) => {
-      const newStates = [...prev];
-      newStates[0].isRecording = voiceInput0.isRecording;
-      newStates[1].isRecording = voiceInput1.isRecording;
-      return newStates;
-    });
-  }, [voiceInput0.isRecording, voiceInput1.isRecording]);
-
+  // Writer stream cleanup effect
+  // NECESSARY: Cleanup effect to clear writer stream connections and animation timers on unmount
+  // This prevents memory leaks and ensures streams are properly disconnected
   useEffect(() => {
     const cleanupRef = [...writerStreamCleanupRef.current];
     const timersSnapshot = [...writerAnimationTimerRef.current];
@@ -301,70 +261,16 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       writerAnimationTimerRef.current = timersSnapshot;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // writerAnimationTimerRef and writerStreamCleanupRef are stable refs from hook
+  }, []);
 
-  // Writer animation is now managed by useWriterStreaming hook
-
-  // Show notification if language fallback is detected
-  useEffect(() => {
-    if (voiceInput0.isLanguageFallback || voiceInput1.isLanguageFallback) {
-      const languageName = voiceInput0.isLanguageFallback
-        ? voiceInput0.languageName
-        : voiceInput1.languageName;
-      setLanguageFallbackNotification({
-        show: true,
-        languageName,
-      });
-    }
-  }, [
-    voiceInput0.isLanguageFallback,
-    voiceInput0.languageName,
-    voiceInput1.isLanguageFallback,
-    voiceInput1.languageName,
-  ]);
-
-  // Keyboard navigation (arrows, esc, enter)
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'Enter') {
-        e.preventDefault();
-        // Don't advance from step 0 if still loading summary
-        if (step === 0 && isLoadingSummary) return;
-        setStep((s) => Math.min(3, s + 1));
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setStep((s) => Math.max(0, s - 1));
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    },
-    [onCancel, step, isLoadingSummary]
-  );
-
+  // NECESSARY: Focus trap for accessibility - keeps keyboard focus within modal
   useEffect(() => {
     if (!contentRef.current) return;
     return trapFocus(contentRef.current, onCancel);
   }, [onCancel]);
 
-  // Initialize audio manager
-  useEffect(() => {
-    audioManagerRef.current = new AudioManager(settings);
-    audioManagerRef.current.loadAudioFiles();
-    // Capture timer ref value for cleanup
-    const timer = typingTimerRef.current;
-
-    return () => {
-      if (audioManagerRef.current) {
-        audioManagerRef.current.cleanup();
-      }
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [settings]);
-
-  // Check Writer and Rewriter API availability
+  // NECESSARY: Async initialization to check AI API availability on mount
+  // Cannot be replaced with useMemo as it requires async chrome.runtime.sendMessage
   useEffect(() => {
     const checkAPIs = async () => {
       try {
@@ -427,9 +333,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         new Promise<string>((resolve, reject) => {
           let aggregated = '';
           const port = chrome.runtime.connect({ name: 'ai-stream' });
-          const requestId = `writer-stream-${Date.now()}-${Math.random()
-            .toString(16)
-            .slice(2)}`;
+          const requestId = `writer-stream-${Date.now()}-${Math.random().toString(16).slice(2)}`;
           let closed = false;
 
           const cleanup = () => {
@@ -582,7 +486,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       summary,
       startWriterAnimation,
       setIsDraftGenerating,
-      // Refs are stable from hook, but included for completeness
       writerTargetTextRef,
       writerDisplayIndexRef,
       writerAnimationTimerRef,
@@ -639,143 +542,87 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         });
       }
     },
-    [rewriterAvailable, step, answers, summary]
+    [rewriterAvailable, step, answers, summary, setRewritePreview]
   );
 
-  // Accept rewrite
+  // Accept rewrite using hook
   const handleAcceptRewrite = useCallback(() => {
-    if (!rewritePreview) return;
+    const rewrittenText = acceptRewrite();
+    if (rewrittenText && rewritePreview) {
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[rewritePreview.index] = rewrittenText;
+        lastTextValueRef.current[rewritePreview.index] = rewrittenText;
+        return next;
+      });
+      setSelectedTones((prev) => {
+        const next = [...prev];
+        next[rewritePreview.index] = undefined;
+        return next;
+      });
+    }
+  }, [acceptRewrite, rewritePreview]);
 
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[rewritePreview.index] = rewritePreview.rewritten;
-      lastTextValueRef.current[rewritePreview.index] = rewritePreview.rewritten;
-      return next;
-    });
+  // Discard rewrite using hook
+  const handleDiscardRewrite = useCallback(
+    (index: 0 | 1) => {
+      discardRewrite();
+      setSelectedTones((prev) => {
+        const next = [...prev];
+        next[index] = undefined;
+        return next;
+      });
+    },
+    [discardRewrite]
+  );
 
-    setRewritePreview(null);
-    setSelectedTones((prev) => {
-      const next = [...prev];
-      next[rewritePreview.index] = undefined;
-      return next;
-    });
-  }, [rewritePreview]);
-
-  // Discard rewrite
-  const handleDiscardRewrite = useCallback((index: 0 | 1) => {
-    setRewritePreview(null);
-    setSelectedTones((prev) => {
-      const next = [...prev];
-      next[index] = undefined;
-      return next;
-    });
-  }, []);
-
-  // Accept proofread
+  // Accept proofread using hook
   const handleAcceptProofread = useCallback(
     (index: 0 | 1) => {
-      if (proofreadResult?.index === index) {
+      const correctedText = acceptProofread(index);
+      if (correctedText) {
         setAnswers((prev) => {
           const next = [...prev];
-          next[index] = proofreadResult.result.correctedText;
-          lastTextValueRef.current[index] =
-            proofreadResult.result.correctedText;
+          next[index] = correctedText;
+          lastTextValueRef.current[index] = correctedText;
           return next;
         });
-        setProofreadResult(null);
       }
     },
-    [proofreadResult]
+    [acceptProofread]
   );
 
-  // Discard proofread
+  // Discard proofread using hook
   const handleDiscardProofread = useCallback(() => {
-    setProofreadResult(null);
-  }, []);
+    discardProofread();
+  }, [discardProofread]);
 
-  // Voice toggle handlers
-  const handleVoiceToggle0 = useCallback(() => {
-    devLog(
-      '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
-      voiceInput0.isRecording
-    );
-    if (voiceInput0.isRecording) {
-      devLog('[MeditationFlowOverlay] Stopping recording for input 0');
-      voiceInput0.stopRecording();
-
-      // Play voice stop audio cue if sound is enabled
-      if (settings.enableSound && audioManagerRef.current) {
-        audioManagerRef.current.playVoiceStopCue().catch((err) => {
-          devError('Failed to play voice stop audio cue:', err);
-        });
-      }
-    } else {
-      devLog('[MeditationFlowOverlay] Starting recording for input 0');
-      void voiceInput0.startRecording().catch((err) => {
-        setVoiceError({
-          code: 'network',
-          message: err instanceof Error ? err.message : 'Voice input failed',
-        });
-      });
-    }
-  }, [voiceInput0, settings.enableSound]);
-
-  const handleVoiceToggle1 = useCallback(() => {
-    devLog(
-      '[MeditationFlowOverlay] Voice toggle clicked, isRecording:',
-      voiceInput1.isRecording
-    );
-    if (voiceInput1.isRecording) {
-      devLog('[MeditationFlowOverlay] Stopping recording for input 1');
-      voiceInput1.stopRecording();
-
-      // Play voice stop audio cue if sound is enabled
-      if (settings.enableSound && audioManagerRef.current) {
-        audioManagerRef.current.playVoiceStopCue().catch((err) => {
-          devError('Failed to play voice stop audio cue:', err);
-        });
-      }
-    } else {
-      devLog('[MeditationFlowOverlay] Starting recording for input 1');
-      void voiceInput1.startRecording().catch((err) => {
-        setVoiceError({
-          code: 'network',
-          message: err instanceof Error ? err.message : 'Voice input failed',
-        });
-      });
-    }
-  }, [voiceInput1, settings.enableSound]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + G = Generate draft
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key === 'g' &&
-        (step === 2 || step === 3)
-      ) {
-        e.preventDefault();
-        const index = step === 2 ? 0 : 1;
-        if (!answers[index] && writerAvailable) {
-          void handleGenerateDraft(index);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [step, answers, writerAvailable, handleGenerateDraft]);
-
-  const next = () => {
-    // Don't advance from step 0 if still loading summary
+  // Navigation functions
+  const next = useCallback(() => {
     if (step === 0 && isLoadingSummary) return;
     setStep((s) => Math.min(3, s + 1));
-  };
-  const prev = () => setStep((s) => Math.max(0, s - 1));
+  }, [step, isLoadingSummary]);
 
-  const save = () => {
-    // Compute voice metadata for each answer
+  const prev = useCallback(() => {
+    setStep((s) => Math.max(0, s - 1));
+  }, []);
+
+  // Keyboard shortcuts hook (replaces inline keyboard handling)
+  const isProcessing =
+    _isRewriting.some((v) => v) || isProofreading.some((v) => v);
+  useOverlayKeyboardShortcuts({
+    step,
+    isLoadingSummary,
+    isProcessing,
+    writerAvailable,
+    answers,
+    onNext: next,
+    onPrev: prev,
+    onCancel,
+    onGenerateDraft: handleGenerateDraft,
+  });
+
+  const save = useCallback(() => {
     const voiceMetadata: VoiceInputMetadata[] = answers.map((_, index) => {
       const voiceInput = index === 0 ? voiceInput0 : voiceInput1;
       const hasVoiceTranscription =
@@ -784,9 +631,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
           voiceInput.hasPermission === true);
 
       if (!hasVoiceTranscription) {
-        return {
-          isVoiceTranscribed: false,
-        };
+        return { isVoiceTranscribed: false };
       }
 
       const wordCount = (lastTextValueRef.current[index] || '')
@@ -803,12 +648,14 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     });
 
     onSave(answers, voiceMetadata);
-  };
+  }, [answers, voiceInput0, voiceInput1, voiceInputStates, onSave]);
 
   // Track previous loading state to detect when loading completes
   const prevLoadingRef = useRef<boolean | null>(null);
 
-  // Auto-advance to summary screen once loading completes
+  // NECESSARY: Auto-advance effect that detects loading state transitions
+  // Uses ref to track previous state - cannot be replaced with useMemo as it needs
+  // to detect the transition from loading=true to loading=false
   useEffect(() => {
     devLog('[MeditationFlow] Auto-advance check:', {
       step,
@@ -816,7 +663,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       prevLoading: prevLoadingRef.current,
     });
 
-    // Check if we transitioned from loading to not loading
     if (
       step === 0 &&
       prevLoadingRef.current === true &&
@@ -826,30 +672,26 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       setStep(1);
     }
 
-    // Update the ref for next render
     prevLoadingRef.current = isLoadingSummary;
   }, [step, isLoadingSummary]);
 
-  // Meditative phrase rotation is now handled by BreathingPhase component
-
-  // Guided breath cues: 4s inhale → 4s exhale (continuous during loading, or twice when not loading)
+  // NECESSARY: Timer-based breathing animation - manages intervals/timeouts for breath cues
+  // Cannot be replaced with useMemo as it manages side effects (timers) and state updates
   useEffect(() => {
     if (step !== 0 || settings?.reduceMotion) return;
 
-    const phase = 4000; // 4s per inhale/exhale
+    const phase = 4000;
     setBreathCue('inhale');
 
     if (isLoadingSummary) {
-      // Continuous breathing cycle during loading
       const interval = setInterval(() => {
         setBreathCue((prev) => (prev === 'inhale' ? 'exhale' : 'inhale'));
       }, phase);
       return () => clearInterval(interval);
     } else {
-      // Two cycles when not loading
-      const t1 = window.setTimeout(() => setBreathCue('exhale'), phase); // 4-8s
-      const t2 = window.setTimeout(() => setBreathCue('inhale'), phase * 2); // 8-12s
-      const t3 = window.setTimeout(() => setBreathCue('exhale'), phase * 3); // 12-16s
+      const t1 = window.setTimeout(() => setBreathCue('exhale'), phase);
+      const t2 = window.setTimeout(() => setBreathCue('inhale'), phase * 2);
+      const t3 = window.setTimeout(() => setBreathCue('exhale'), phase * 3);
       return () => {
         window.clearTimeout(t1);
         window.clearTimeout(t2);
@@ -857,8 +699,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
       };
     }
   }, [step, settings?.reduceMotion, isLoadingSummary]);
-
-  // Draft auto-save removed per request
 
   const Header = (
     <div
@@ -961,7 +801,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                     });
                     try {
                       const result = await onProofread(answers[idx] ?? '', idx);
-                      // Only show preview, don't auto-apply
                       setProofreadResult({ index: idx, result });
                     } catch {
                       // silent
@@ -1056,7 +895,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   return next;
                 });
                 const result = await onProofread(answers[1] ?? '', 1);
-                // Only show preview, don't auto-apply
                 setProofreadResult({ index: 1, result });
               } catch {
                 // silent
@@ -1122,6 +960,24 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
     </div>
   );
 
+  // Keyboard navigation for React events (arrows, esc, enter)
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        e.preventDefault();
+        if (step === 0 && isLoadingSummary) return;
+        setStep((s) => Math.min(3, s + 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setStep((s) => Math.max(0, s - 1));
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    },
+    [onCancel, step, isLoadingSummary]
+  );
+
   return (
     <div
       className="reflexa-overlay reflexa-overlay--meditation"
@@ -1143,8 +999,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
         }}
       >
         {Header}
-
-        {/* Resume draft popup removed per request */}
 
         {/* Center content per step */}
         <div
@@ -1195,7 +1049,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               onAcceptProofread={() => handleAcceptProofread(0)}
               lastTextValueRef={lastTextValueRef}
               typingTimerRef={typingTimerRef}
-              onVoiceToggle={handleVoiceToggle0}
+              onVoiceToggle={() => handleVoiceToggle(0)}
             />
           )}
 
@@ -1218,14 +1072,12 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
               onAcceptProofread={() => handleAcceptProofread(1)}
               lastTextValueRef={lastTextValueRef}
               typingTimerRef={typingTimerRef}
-              onVoiceToggle={handleVoiceToggle1}
+              onVoiceToggle={() => handleVoiceToggle(1)}
             />
           )}
         </div>
 
         {Nav}
-
-        {/* Tools panel removed - now using MoreToolsMenu in navigation */}
 
         {/* Voice Input Error Notification */}
         {voiceError && (
@@ -1234,7 +1086,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             message={voiceError.message}
             type="error"
             duration={5000}
-            onClose={() => setVoiceError(null)}
+            onClose={clearVoiceError}
           />
         )}
 
@@ -1245,7 +1097,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             message="Recording stopped after silence detected"
             type="info"
             duration={3000}
-            onClose={() => setAutoStopNotification(false)}
+            onClose={clearAutoStopNotification}
           />
         )}
 
@@ -1256,9 +1108,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
             message={`The selected language is not supported. Using ${languageFallbackNotification.languageName} instead.`}
             type="warning"
             duration={5000}
-            onClose={() =>
-              setLanguageFallbackNotification({ show: false, languageName: '' })
-            }
+            onClose={clearLanguageFallbackNotification}
           />
         )}
 

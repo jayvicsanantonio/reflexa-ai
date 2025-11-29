@@ -79,39 +79,43 @@ export function createRenderOverlay(
 
     overlayInfo.root.render(
       <MeditationFlowOverlay
-        summary={contentState.getSummary()}
-        summaryDisplay={
-          contentState.getSummaryDisplay().length
+        summaryConfig={{
+          summary: contentState.getSummary(),
+          summaryDisplay: contentState.getSummaryDisplay().length
             ? contentState.getSummaryDisplay()
-            : undefined
-        }
+            : undefined,
+          currentFormat: contentState.getSummaryFormat(),
+          onFormatChange: formatChangeHandler,
+          isLoadingSummary: contentState.getIsLoadingSummary(),
+        }}
         prompts={contentState.getPrompts()}
         onSave={handleSaveReflection}
         onCancel={handleCancelReflection}
         settings={instanceManager.getSettings() ?? getDefaultSettings()}
-        onFormatChange={formatChangeHandler}
-        currentFormat={contentState.getSummaryFormat()}
-        isLoadingSummary={contentState.getIsLoadingSummary()}
-        languageDetection={
-          contentState.getOriginalContentLanguage() ?? undefined
-        }
-        summaryLanguageDetection={
-          contentState.getLanguageDetection() ??
-          contentState.getOriginalContentLanguage() ??
-          undefined
-        }
-        onTranslateToEnglish={
-          translationEnabled ? handleTranslateToEnglish : undefined
-        }
-        onTranslate={translationEnabled ? handleTranslate : undefined}
-        isTranslating={
-          translationEnabled ? contentState.getIsTranslating() : false
-        }
         onProofread={handleProofread}
-        ambientMuted={
-          soundEnabled ? contentState.getIsAmbientMuted() : undefined
+        translationConfig={
+          translationEnabled
+            ? {
+                onTranslateToEnglish: handleTranslateToEnglish,
+                onTranslate: handleTranslate,
+                isTranslating: contentState.getIsTranslating(),
+                languageDetection:
+                  contentState.getOriginalContentLanguage() ?? undefined,
+                summaryLanguageDetection:
+                  contentState.getLanguageDetection() ??
+                  contentState.getOriginalContentLanguage() ??
+                  undefined,
+              }
+            : undefined
         }
-        onToggleAmbient={soundEnabled ? handleToggleAmbient : undefined}
+        audioConfig={
+          soundEnabled
+            ? {
+                ambientMuted: contentState.getIsAmbientMuted(),
+                onToggleAmbient: handleToggleAmbient,
+              }
+            : undefined
+        }
       />
     );
   };
