@@ -8,11 +8,7 @@ import { contentState } from '../state';
 import { instanceManager } from '../core';
 import { uiManager } from '../ui';
 import type { Settings, SummaryFormat } from '../../types';
-import {
-  handleProofread,
-  handleTranslate,
-  handleTranslateToEnglish,
-} from './aiOperations';
+import { handleProofread, handleTranslate } from './aiOperations';
 import {
   handleSaveReflection,
   handleCancelReflection,
@@ -96,7 +92,6 @@ export function createRenderOverlay(
         translationConfig={
           translationEnabled
             ? {
-                onTranslateToEnglish: handleTranslateToEnglish,
                 onTranslate: handleTranslate,
                 isTranslating: contentState.getIsTranslating(),
                 languageDetection:

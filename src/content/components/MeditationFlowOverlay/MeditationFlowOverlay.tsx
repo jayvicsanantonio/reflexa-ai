@@ -29,7 +29,6 @@ import '../../styles.css';
  * Translation-related configuration
  */
 export interface TranslationConfig {
-  onTranslateToEnglish?: () => Promise<void>;
   onTranslate?: (targetLanguage: string) => Promise<void>;
   isTranslating?: boolean;
   languageDetection?: LanguageDetection;
@@ -116,7 +115,6 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
 
   // Destructure translation config with defaults
   const {
-    onTranslateToEnglish: _onTranslateToEnglish,
     onTranslate: _onTranslate,
     isTranslating: _isTranslating = false,
     languageDetection,
@@ -1167,7 +1165,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   whiteSpace: 'nowrap',
                 }}
               >
-                ✂️ Concise
+                Concise
               </button>
               <button
                 type="button"
@@ -1187,7 +1185,7 @@ export const MeditationFlowOverlay: React.FC<MeditationFlowOverlayProps> = ({
                   whiteSpace: 'nowrap',
                 }}
               >
-                💙 Warmth
+                Warmth
               </button>
               <button
                 type="button"
