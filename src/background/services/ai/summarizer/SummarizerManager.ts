@@ -23,11 +23,14 @@ import { RetryHandler } from './RetryHandler';
 import { BulletsStrategy } from './strategies/BulletsStrategy';
 import { ParagraphStrategy } from './strategies/ParagraphStrategy';
 import { HeadlineBulletsStrategy } from './strategies/HeadlineBulletsStrategy';
+import { RecursiveSummarizer } from './RecursiveSummarizer';
 import { capabilityDetector } from '../../capabilities/capabilityDetector';
-import { devError } from '../../../../utils/logger';
+import { devError, devLog } from '../../../../utils/logger';
 
 const SUMMARIZE_TIMEOUT = 30000;
 const RETRY_TIMEOUT = 60000;
+const DEFAULT_MAX_TOKENS = 4000; // Conservative default for Gemini Nano
+const CHARS_PER_TOKEN = 4; // Average characters per token
 
 /**
  * Create default dependencies for backward compatibility
@@ -134,17 +137,24 @@ export class SummarizerManager implements ISummarizerManager {
     languageOptions?: SummarizerLanguageOptions,
     onChunk?: (chunk: string, aggregate: string) => void
   ): Promise<string> {
+    devError('[SummarizerManager] summarizeStreaming called, format:', format);
     if (format === 'headline-bullets') {
       throw new Error('Streaming is not supported for headline-bullets format');
     }
 
+    devError(
+      '[SummarizerManager] Checking availability, current:',
+      this.available
+    );
     if (!this.available) {
       const isAvailable = await this.checkAvailability();
+      devError('[SummarizerManager] Availability check result:', isAvailable);
       if (!isAvailable) {
         throw new Error('Summarizer API is not available');
       }
     }
 
+    devError('[SummarizerManager] Getting or creating session...');
     const session = await this.sessionPool.getOrCreate({
       type: format === 'paragraph' ? 'tldr' : 'key-points',
       format: format === 'paragraph' ? 'plain-text' : 'markdown',
@@ -153,11 +163,79 @@ export class SummarizerManager implements ISummarizerManager {
       languageOptions,
     });
 
-    if (!session || typeof session.summarizeStreaming !== 'function') {
-      throw new Error('Summarizer streaming is not available');
+    devError(
+      '[SummarizerManager] Session obtained:',
+      !!session,
+      'has summarizeStreaming:',
+      typeof session?.summarizeStreaming
+    );
+    if (!session) {
+      throw new Error('Summarizer session could not be created');
     }
 
-    return this.processStream(session, text, onChunk);
+    // Check if text exceeds context window and needs recursive summarization
+    const maxTokens = this.getMaxTokens(session);
+    const estimatedTokens = Math.ceil(text.length / CHARS_PER_TOKEN);
+
+    devLog(
+      `[SummarizerManager] Text size: ${text.length} chars, ~${estimatedTokens} tokens, max: ${maxTokens} tokens`
+    );
+
+    if (estimatedTokens > maxTokens) {
+      devLog(
+        '[SummarizerManager] Text exceeds context window, using recursive summarization'
+      );
+      return await this.recursiveSummarizeStreaming(
+        text,
+        session,
+        maxTokens,
+        onChunk
+      );
+    }
+
+    // Text fits in context window, use direct streaming
+    if (typeof session.summarizeStreaming !== 'function') {
+      devError('[SummarizerManager] Streaming not available, using fallback');
+      const result = await session.summarize(text);
+      if (result && onChunk) {
+        onChunk(result, result);
+      }
+      return result || '';
+    }
+
+    // Add timeout to prevent infinite hanging
+    const timeoutMs = 30000; // 30 seconds
+    devError(
+      '[SummarizerManager] Starting processStream with timeout:',
+      timeoutMs
+    );
+    try {
+      return await Promise.race([
+        this.processStream(session, text, onChunk),
+        new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Summarization streaming timeout')),
+            timeoutMs
+          )
+        ),
+      ]);
+    } catch (error) {
+      devError(
+        '[SummarizerManager] Streaming failed, falling back to non-streaming:',
+        error
+      );
+      // Fallback to non-streaming summarize method
+      const result = await session.summarize(text);
+      devError(
+        '[SummarizerManager] Non-streaming result length:',
+        result?.length
+      );
+      if (result && onChunk) {
+        // Simulate streaming by sending the whole result at once
+        onChunk(result, result);
+      }
+      return result || '';
+    }
   }
 
   destroy(): void {
@@ -182,11 +260,16 @@ export class SummarizerManager implements ISummarizerManager {
     text: string,
     onChunk?: (chunk: string, aggregate: string) => void
   ): Promise<string> {
+    devError(
+      '[SummarizerManager] processStream called with text length:',
+      text.length
+    );
     const stream = session.summarizeStreaming(text);
     if (!stream) {
       throw new Error('Summarizer streaming returned no data');
     }
 
+    devError('[SummarizerManager] Stream object received:', typeof stream);
     let aggregate = '';
 
     if (
@@ -194,24 +277,38 @@ export class SummarizerManager implements ISummarizerManager {
         Symbol.asyncIterator
       ] === 'function'
     ) {
+      devError('[SummarizerManager] Using AsyncIterable stream');
       for await (const chunk of stream as unknown as AsyncIterable<string>) {
+        devError(
+          '[SummarizerManager] Received chunk:',
+          typeof chunk,
+          chunk?.length
+        );
         if (typeof chunk !== 'string') continue;
         aggregate += chunk;
         onChunk?.(chunk, aggregate);
       }
+      devError('[SummarizerManager] AsyncIterable stream complete');
     } else if (
       typeof (stream as ReadableStream<string>).getReader === 'function'
     ) {
+      devError('[SummarizerManager] Using ReadableStream');
       const reader = (stream as ReadableStream<string>).getReader();
       try {
         while (true) {
           const { value, done } = await reader.read();
+          devError('[SummarizerManager] Read result:', {
+            done,
+            valueType: typeof value,
+            valueLength: value?.length,
+          });
           if (done) break;
           if (typeof value === 'string') {
             aggregate += value;
             onChunk?.(value, aggregate);
           }
         }
+        devError('[SummarizerManager] ReadableStream complete');
       } finally {
         reader.releaseLock();
       }
@@ -220,5 +317,45 @@ export class SummarizerManager implements ISummarizerManager {
     }
 
     return aggregate;
+  }
+
+  /**
+   * Get maximum tokens supported by the summarizer
+   * Uses inputQuota if available, otherwise returns default
+   */
+  private getMaxTokens(session: AISummarizer): number {
+    try {
+      // Check if session has inputQuota property
+      if ('inputQuota' in session && typeof session.inputQuota === 'number') {
+        devLog(`[SummarizerManager] Using inputQuota: ${session.inputQuota}`);
+        return session.inputQuota;
+      }
+    } catch (error) {
+      devError('[SummarizerManager] Error getting inputQuota:', error);
+    }
+
+    devLog(
+      `[SummarizerManager] Using default max tokens: ${DEFAULT_MAX_TOKENS}`
+    );
+    return DEFAULT_MAX_TOKENS;
+  }
+
+  /**
+   * Recursively summarize large text using "summary of summaries" technique
+   */
+  private async recursiveSummarizeStreaming(
+    text: string,
+    session: AISummarizer,
+    maxTokens: number,
+    onChunk?: (chunk: string, aggregate: string) => void
+  ): Promise<string> {
+    const recursiveSummarizer = new RecursiveSummarizer({
+      maxTokens,
+      charsPerToken: CHARS_PER_TOKEN,
+      chunkOverlap: 200,
+      maxRecursionDepth: 10,
+    });
+
+    return await recursiveSummarizer.summarizeStreaming(text, session, onChunk);
   }
 }

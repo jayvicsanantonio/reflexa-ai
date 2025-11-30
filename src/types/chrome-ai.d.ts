@@ -16,6 +16,9 @@ export interface AISummarizer {
     options?: { context?: string }
   ): ReadableStream;
   destroy(): void;
+  // Token limit properties (Chrome 138+)
+  inputQuota?: number; // Maximum tokens that can be processed
+  measureInputUsage?(input: string): Promise<{ tokens: number }>; // Measure token usage
 }
 
 export interface AISummarizerFactory {

@@ -150,8 +150,25 @@ chrome.runtime.onConnect.addListener((port) => {
   let disconnected = false;
   const isDisconnected = () => disconnected;
 
+  // Keep-alive mechanism to prevent service worker termination during streaming
+  // Chrome terminates service workers after 30s of inactivity, so we ping every 20s
+  const keepAliveInterval = setInterval(() => {
+    if (!disconnected) {
+      // Send a heartbeat to keep the connection alive
+      try {
+        port.postMessage({ event: 'keepalive' });
+        devLog('[Stream] Keepalive sent');
+      } catch (error) {
+        // Port already disconnected, clear interval
+        devWarn('[Stream] Keepalive failed, port disconnected');
+        clearInterval(keepAliveInterval);
+      }
+    }
+  }, 20000);
+
   port.onDisconnect.addListener(() => {
     disconnected = true;
+    clearInterval(keepAliveInterval);
   });
 
   port.onMessage.addListener((message) => {

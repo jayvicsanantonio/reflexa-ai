@@ -7,7 +7,7 @@ import { aiService } from '../../services/ai/aiService';
 import { settingsManager } from '../utils/shared';
 import type { SummaryFormat, WriterOptions } from '../../../types';
 import { ERROR_MESSAGES } from '../../../constants';
-import { devWarn, devError } from '../../../utils/logger';
+import { devLog, devWarn, devError } from '../../../utils/logger';
 
 /**
  * Safe post message to streaming port with disconnection check
@@ -68,6 +68,7 @@ export async function handleSummarizeStreamRequest(
   }
 
   try {
+    devLog('[Stream] Starting summarization stream for requestId:', requestId);
     const settings = await settingsManager.getSettings();
     const translationEnabled =
       settings.enableTranslation ?? settings.translationEnabled;
@@ -81,6 +82,7 @@ export async function handleSummarizeStreamRequest(
     const expectedLanguages =
       typeof detectedLanguage === 'string' ? [detectedLanguage] : undefined;
 
+    devLog('[Stream] Calling aiService.summarizer.summarizeStreaming');
     const aggregate = await aiService.summarizer.summarizeStreaming(
       content,
       format as SummaryFormat,
@@ -90,6 +92,7 @@ export async function handleSummarizeStreamRequest(
         expectedContextLanguages: expectedLanguages,
       },
       (chunk) => {
+        devLog('[Stream] Received chunk, length:', chunk.length);
         safePostStreamMessage(port, isDisconnected, {
           event: 'chunk',
           requestId,
@@ -98,19 +101,56 @@ export async function handleSummarizeStreamRequest(
       }
     );
 
+    devLog(
+      '[Stream] Summarization complete, aggregate length:',
+      aggregate.length
+    );
     safePostStreamMessage(port, isDisconnected, {
       event: 'complete',
       requestId,
       data: aggregate,
     });
   } catch (error) {
-    devError('Error in summarize stream:', error);
+    devError('[Stream] Error in summarize stream:', error);
+
+    // Try fallback to non-streaming Prompt API
+    devError('[Stream] Attempting fallback to non-streaming Prompt API...');
+    try {
+      const { handleSummarize } = await import('../ai/aiHandlers');
+      const fallbackResult = await handleSummarize(payload);
+
+      if (fallbackResult.success && fallbackResult.data) {
+        devError(
+          '[Stream] Fallback successful, sending result as single chunk'
+        );
+        // Send the result as a single chunk to simulate streaming
+        const resultText = fallbackResult.data.join('\n');
+        safePostStreamMessage(port, isDisconnected, {
+          event: 'chunk',
+          requestId,
+          data: resultText,
+        });
+        safePostStreamMessage(port, isDisconnected, {
+          event: 'complete',
+          requestId,
+          data: resultText,
+        });
+        return;
+      }
+    } catch (fallbackError) {
+      devError('[Stream] Fallback also failed:', fallbackError);
+    }
+
+    // If fallback fails, send error
+    const errorMessage =
+      error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR;
+    devError('[Stream] Sending error message to client:', errorMessage);
     safePostStreamMessage(port, isDisconnected, {
       event: 'error',
       requestId,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.GENERIC_ERROR,
+      error: errorMessage,
     });
+    devError('[Stream] Error message sent');
   }
 }
 

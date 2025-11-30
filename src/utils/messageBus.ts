@@ -76,7 +76,20 @@ export function startAIStream(
       error?: unknown;
     };
 
-    if (message.requestId !== requestId) return;
+    // Ignore keepalive messages
+    if (message.event === 'keepalive') return;
+
+    if (message.requestId !== requestId) {
+      devWarn(
+        '[MessageBus] Received message for different requestId:',
+        message.requestId,
+        'expected:',
+        requestId
+      );
+      return;
+    }
+
+    devWarn('[MessageBus] Received message event:', message.event);
 
     switch (message.event) {
       case 'chunk':
@@ -95,11 +108,13 @@ export function startAIStream(
           typeof message.error === 'string'
             ? message.error
             : 'Unknown streaming error';
+        devWarn('[MessageBus] Calling onError handler with:', errorMessage);
         handlers.onError?.(errorMessage);
         cleanup();
         break;
       }
       default:
+        devWarn('[MessageBus] Unknown event type:', message.event);
         break;
     }
   });

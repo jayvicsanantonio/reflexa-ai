@@ -174,11 +174,14 @@ export function summarizeWithStreaming(
         },
         onError: (error) => {
           devWarn('Summarize stream error:', error);
+          devWarn('Setting isLoadingSummary to false and triggering re-render');
           if (!completed) {
             contentState.setSummaryBuffer('');
           }
           contentState.setActiveSummaryStreamCleanup(null);
           contentState.setSummaryStreamComplete(true);
+          contentState.setIsLoadingSummary(false);
+          renderOverlay(); // Trigger re-render to update UI state
           if (receivedChunk) {
             resolve(false);
           } else {

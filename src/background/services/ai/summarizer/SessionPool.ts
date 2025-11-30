@@ -45,27 +45,56 @@ export class ChromeSummarizerAPI implements ISummarizerAPI {
   }
 
   async create(config: SummarizerSessionConfig): Promise<AISummarizer | null> {
+    devError('[ChromeSummarizerAPI] create called with config:', config);
     const SummarizerAPI = (
       globalThis as typeof globalThis & { Summarizer?: AISummarizerFactory }
     ).Summarizer;
 
     if (!SummarizerAPI) {
+      devError('[ChromeSummarizerAPI] Summarizer API not found in globalThis');
       return null;
     }
 
-    return SummarizerAPI.create({
-      type: config.type,
-      format: config.format,
-      length: config.length,
-      ...(config.outputLanguage && { outputLanguage: config.outputLanguage }),
-      ...(config.languageOptions?.expectedInputLanguages?.length && {
-        expectedInputLanguages: config.languageOptions.expectedInputLanguages,
-      }),
-      ...(config.languageOptions?.expectedContextLanguages?.length && {
-        expectedContextLanguages:
-          config.languageOptions.expectedContextLanguages,
-      }),
-    });
+    devError('[ChromeSummarizerAPI] Calling Summarizer.create...');
+
+    // Add timeout for Summarizer.create() which can hang indefinitely
+    const createTimeout = 10000; // 10 seconds
+    try {
+      const session = await Promise.race([
+        SummarizerAPI.create({
+          type: config.type,
+          format: config.format,
+          length: config.length,
+          ...(config.outputLanguage && {
+            outputLanguage: config.outputLanguage,
+          }),
+          ...(config.languageOptions?.expectedInputLanguages?.length && {
+            expectedInputLanguages:
+              config.languageOptions.expectedInputLanguages,
+          }),
+          ...(config.languageOptions?.expectedContextLanguages?.length && {
+            expectedContextLanguages:
+              config.languageOptions.expectedContextLanguages,
+          }),
+        }),
+        new Promise<null>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  'Summarizer.create() timeout - Gemini Nano may not be ready'
+                )
+              ),
+            createTimeout
+          )
+        ),
+      ]);
+      devError('[ChromeSummarizerAPI] Summarizer.create returned:', !!session);
+      return session;
+    } catch (error) {
+      devError('[ChromeSummarizerAPI] Summarizer.create failed:', error);
+      throw error;
+    }
   }
 }
 
@@ -81,13 +110,17 @@ export class SessionPool implements ISessionPool {
     config: SummarizerSessionConfig
   ): Promise<AISummarizer | null> {
     const key = generateSessionKey(config);
+    devError('[SessionPool] getOrCreate called with key:', key);
 
     if (this.sessions.has(key)) {
+      devError('[SessionPool] Returning cached session');
       return this.sessions.get(key)!;
     }
 
+    devError('[SessionPool] Creating new session...');
     try {
       const session = await this.api.create(config);
+      devError('[SessionPool] Session created:', !!session);
       if (session) {
         this.sessions.set(key, session);
         devLog(`Created summarizer session: ${key}`);
