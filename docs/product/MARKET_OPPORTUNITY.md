@@ -1,4 +1,4 @@
-# 📈 Reflexa AI — Market Opportunity Analysis
+#  Reflexa AI — Market Opportunity Analysis
 
 **Project Name:** Browse+Reflect — Mental & Focus Companion  
 **Brand:** Reflexa AI  
@@ -7,14 +7,14 @@
 
 ---
 
-## 🧭 Overview
+##  Overview
 
 **Reflexa AI** bridges the gap between **digital wellness** and **knowledge retention**.  
 It’s a mindfulness-driven Chrome Extension powered by **Gemini Nano**, helping users slow down, reflect, and remember what they read — directly inside their browser.
 
 ---
 
-## 🕒 Why Now
+##  Why Now
 
 - **Information overload** and short attention spans are worsening with the rise of social media and digital multitasking.
 - **AI is now local.** Gemini Nano allows private, on-device summarization and emotional reflection, making Reflexa AI’s approach feasible for the first time.
@@ -22,7 +22,7 @@ It’s a mindfulness-driven Chrome Extension powered by **Gemini Nano**, helping
 
 ---
 
-## 📊 Key Metrics & Research Facts
+##  Key Metrics & Research Facts
 
 1. A systematic review found that **22.5% of respondents** in a German sample cited information overload as one of their most frequent stressors.  
    — [Source: PMC (2023)](https://pmc.ncbi.nlm.nih.gov/articles/PMC10322198/?utm_source=chatgpt.com)
@@ -71,7 +71,7 @@ It’s a mindfulness-driven Chrome Extension powered by **Gemini Nano**, helping
 
 ---
 
-## 💼 Business Fit
+##  Business Fit
 
 **Market Category:** Digital Wellness / AI Companions  
 **Market Size (2025 est.):** USD $16 – 18 billion  
@@ -93,7 +93,7 @@ It’s a mindfulness-driven Chrome Extension powered by **Gemini Nano**, helping
 
 ---
 
-## 🧑‍🤝‍🧑 Community Signals
+## ‍‍ Community Signals
 
 - Subreddits such as **r/selfimprovement**, **r/productivity**, and **r/digitalminimalism** frequently discuss burnout and content fatigue.
 - YouTube creators like **Ali Abdaal** and **Matt D’Avella** promote mindful productivity, drawing millions of viewers.
@@ -101,7 +101,7 @@ It’s a mindfulness-driven Chrome Extension powered by **Gemini Nano**, helping
 
 ---
 
-## 🌍 Vision Alignment
+##  Vision Alignment
 
 Reflexa AI aligns with **Human‑Centered AI** trends and the **calm technology** movement.  
 As Gemini Nano enables real‑time, local emotional reflection, Reflexa becomes the **first wellness‑oriented browser companion** — turning reading into a reflective, focused experience.

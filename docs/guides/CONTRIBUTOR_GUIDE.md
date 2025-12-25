@@ -128,5 +128,5 @@ npm run package           # build + zip to build/
 5. Format/lint/type‑check: `npm run check`.
 6. Open PR with Conventional Commit title and screenshots if UI changed.
 
-Happy contributing! 🎉
+Happy contributing! 
 

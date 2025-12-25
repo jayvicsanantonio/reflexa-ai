@@ -473,19 +473,19 @@ Total Reflections: 42
 
 **Best content for reflection**:
 
-- ✅ Long-form articles (1000+ words)
-- ✅ Blog posts with actionable advice
-- ✅ Research summaries and case studies
-- ✅ Opinion pieces and essays
-- ✅ Educational content and tutorials
+-  Long-form articles (1000+ words)
+-  Blog posts with actionable advice
+-  Research summaries and case studies
+-  Opinion pieces and essays
+-  Educational content and tutorials
 
 **Less suitable content**:
 
-- ❌ News headlines and short updates
-- ❌ Social media feeds
-- ❌ Video-heavy pages
-- ❌ Image galleries
-- ❌ Interactive web apps
+-  News headlines and short updates
+-  Social media feeds
+-  Video-heavy pages
+-  Image galleries
+-  Interactive web apps
 
 ## FAQ
 
@@ -652,12 +652,12 @@ If you encounter issues not covered in this guide:
 
 We'd love to hear from you!
 
-- 💡 **Feature requests**: Open a GitHub Discussion
-- 🐛 **Bug reports**: Create a GitHub Issue
+-  **Feature requests**: Open a GitHub Discussion
+-  **Bug reports**: Create a GitHub Issue
 - ⭐ **Reviews**: Leave a review on the Chrome Web Store
-- 📧 **General feedback**: Email feedback@reflexa-ai.com
+-  **General feedback**: Email feedback@reflexa-ai.com
 
-Thank you for using Reflexa AI! Happy reflecting! 🌸
+Thank you for using Reflexa AI! Happy reflecting! 
 
 #### Voice Input
 

@@ -2,7 +2,7 @@
 
 Welcome to the Reflexa AI Chrome Extension documentation.
 
-## 📚 Documentation
+##  Documentation
 
 ### Getting Started
 
@@ -14,7 +14,7 @@ Welcome to the Reflexa AI Chrome Extension documentation.
 - **[Market Analysis](./product/MARKET_ANALYSIS.md)** - Comprehensive market analysis and opportunity
 - **[Market Opportunity](./product/MARKET_OPPORTUNITY.md)** - Market opportunity overview
 
-## 🔍 What is Reflexa AI?
+##  What is Reflexa AI?
 
 Reflexa AI is a wellness-centered Chrome Extension that transforms everyday reading into calm, reflective micro-sessions with AI-powered insights.
 
@@ -26,7 +26,7 @@ Reflexa AI is a wellness-centered Chrome Extension that transforms everyday read
 - **Calming Experience** - Zen-inspired design with breathing animations
 - **Accessible** - Full keyboard navigation and screen reader support
 
-## 🚀 Quick Start
+##  Quick Start
 
 1. Install the extension from Chrome Web Store
 2. Enable Chrome Built-in AI APIs in Chrome flags
@@ -37,7 +37,7 @@ See the [User Guide](./guides/USER_GUIDE.md) for detailed instructions.
 
 ---
 
-## 📖 Documentation Structure
+##  Documentation Structure
 
 ```
 docs/
@@ -52,7 +52,7 @@ docs/
 
 ---
 
-## 🆘 Support
+##  Support
 
 - **User Guide**: [Complete guide](./guides/USER_GUIDE.md)
 - **Issues**: [GitHub Issues](https://github.com/yourusername/reflexa-ai-chrome-extension/issues)

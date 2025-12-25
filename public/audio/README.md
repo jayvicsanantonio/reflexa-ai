@@ -4,7 +4,7 @@ This directory contains audio files for the Reflexa AI Chrome Extension.
 
 ## Status
 
-✅ **Placeholder audio files have been created** (silent MP3s with correct durations)
+ **Placeholder audio files have been created** (silent MP3s with correct durations)
 
 These placeholder files allow the extension to run without errors, but they are silent. For production use, replace them with actual audio content following the specifications below.
 

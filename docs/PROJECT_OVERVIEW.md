@@ -1,4 +1,4 @@
-# 🌿 Reflexa AI — Project Overview
+#  Reflexa AI — Project Overview
 
 **Project Name:** Browse+Reflect — Mental & Focus Companion
 **Brand:** Reflexa AI
@@ -7,22 +7,22 @@
 
 ---
 
-## 🧠 Overview
+##  Overview
 
 **Reflexa AI** (formerly "Browse+Reflect") is a wellness-centered Chrome Extension powered by **Chrome's Built-in AI APIs (Gemini Nano)**, designed to transform online reading into a moment of mindfulness, focus, and reflection.
 It helps users **pause, process, and retain** what they read — turning browsing into a meditative experience.
 
 ---
 
-## 🌿 Core Philosophy
+##  Core Philosophy
 
 Modern readers face **information overload** and **short attention spans**. Reflexa AI provides a **calm, reflective reading companion** that encourages introspection and focus through mindful prompts, guided pauses, and soft analytics.
 
 ---
 
-## ⚙️ Technical Foundation
+## ️ Technical Foundation
 
-### 🧩 Chrome Built-in AI Integration
+###  Chrome Built-in AI Integration
 
 - **7 Chrome Built-in AI APIs** powered by Gemini Nano
 - On-device processing — fully private, low-latency, and context-aware
@@ -36,7 +36,7 @@ Modern readers face **information overload** and **short attention spans**. Refl
   - **Prompt API** - General-purpose AI interactions
   - **Summarizer API** - Create concise summaries
 
-### 🔐 Chrome Extension Architecture
+###  Chrome Extension Architecture
 
 - **Manifest V3** compliant
 - Built with **Next.js**, **Tailwind CSS**, and **Shadcn UI**
@@ -45,20 +45,20 @@ Modern readers face **information overload** and **short attention spans**. Refl
 
 ---
 
-## 💡 Core Features
+##  Core Features
 
 | Feature                      | Description                                                                  | Type     |
 | ---------------------------- | ---------------------------------------------------------------------------- | -------- |
-| 🪞 **Reflect Mode**          | Summarizes the page and provides reflection questions via Chrome Built-in AI | Core     |
-| ☯️ **Zen Reading Overlay**   | Breathing animation, dimmed background, and calming visuals                  | Core     |
-| 📊 **Focus Insights**        | Reading duration, scroll rhythm, and attention metrics                       | Core     |
-| 🧘 **Guided Micro-Pauses**   | Suggests mindful pauses during fast scrolling                                | Optional |
-| 🔔 **Mindful Notifications** | Chrome notifications reminding users to breathe or reflect                   | Optional |
-| 📘 **Memory Journal**        | Stores all reflections, summaries, and insights                              | Optional |
+|  **Reflect Mode**          | Summarizes the page and provides reflection questions via Chrome Built-in AI | Core     |
+| ️ **Zen Reading Overlay**   | Breathing animation, dimmed background, and calming visuals                  | Core     |
+|  **Focus Insights**        | Reading duration, scroll rhythm, and attention metrics                       | Core     |
+|  **Guided Micro-Pauses**   | Suggests mindful pauses during fast scrolling                                | Optional |
+|  **Mindful Notifications** | Chrome notifications reminding users to breathe or reflect                   | Optional |
+|  **Memory Journal**        | Stores all reflections, summaries, and insights                              | Optional |
 
 ---
 
-## 📊 Why Now
+##  Why Now
 
 - **Information overload epidemic:** users retain less than 10% of what they read daily.
 - **Digital wellness movement:** growing interest in tools that promote mindful technology use.
@@ -68,7 +68,7 @@ Modern readers face **information overload** and **short attention spans**. Refl
 
 ---
 
-## 🎯 Target Market
+##  Target Market
 
 - **Knowledge workers**, **students**, and **lifelong learners**
 - **Gen Z and Millennials** dealing with digital burnout
@@ -76,7 +76,7 @@ Modern readers face **information overload** and **short attention spans**. Refl
 
 ---
 
-## 🔎 Differentiation
+##  Differentiation
 
 Unlike Readwise, Pocket, or Refind — Reflexa doesn't just save content.
 It **guides users to emotionally and cognitively process** what they're reading _in the moment_.
@@ -84,7 +84,7 @@ Powered by **Chrome's Built-in AI APIs (Gemini Nano)**, Reflexa delivers privacy
 
 ---
 
-## 🎨 Design & Experience
+##  Design & Experience
 
 - **Visual Aesthetic:** Zen-inspired, muted tones, gentle gradients
 - **Frameworks:** Shadcn UI + Tailwind CSS
@@ -94,9 +94,9 @@ Powered by **Chrome's Built-in AI APIs (Gemini Nano)**, Reflexa delivers privacy
 
 ---
 
-## 🚀 MVP Scope
+##  MVP Scope
 
-### ✅ Core Deliverables
+###  Core Deliverables
 
 1. Chrome Extension popup & overlay (Reflect Mode)
 2. Chrome Built-in AI integration (7 APIs)
@@ -104,7 +104,7 @@ Powered by **Chrome's Built-in AI APIs (Gemini Nano)**, Reflexa delivers privacy
 4. Zen visual overlay & breathing animation
 5. Local Storage & Reflection History panel
 
-### 🌱 Optional Stretch Goals
+###  Optional Stretch Goals
 
 - Chrome reminder notifications
 - Sync with Calm API or Google Fit
@@ -112,7 +112,7 @@ Powered by **Chrome's Built-in AI APIs (Gemini Nano)**, Reflexa delivers privacy
 
 ---
 
-## 🌐 Brand Identity
+##  Brand Identity
 
 **Name:** Reflexa AI
 **Tagline:** _"Pause. Reflect. Remember."_
@@ -122,7 +122,7 @@ Powered by **Chrome's Built-in AI APIs (Gemini Nano)**, Reflexa delivers privacy
 
 ---
 
-## 🧭 Vision
+##  Vision
 
 To make digital reading **mindful, memorable, and meaningful** — transforming the web from an attention trap into a space for growth and reflection.
 
@@ -130,7 +130,7 @@ Reflexa is your **focus mirror** — helping you see not just what you read, but
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 For complete documentation, see:
 
